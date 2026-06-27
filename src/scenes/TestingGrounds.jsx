@@ -1,3 +1,4 @@
+import PlayerController from "../components/character/PlayerController";
 import Atmosphere from "../components/world/Atmosphere";
 import Lighting from "../components/world/Lighting";
 import GridFloor from "../components/world/GridFloor";
@@ -16,6 +17,7 @@ export default function TestingGrounds() {
       <WorldGizmos />      
       <TestBuildings />
       <TestCourse />
+      <PlayerController />
       <Helpers />
     </>
   );
