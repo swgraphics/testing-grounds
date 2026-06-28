@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Ecctrl } from "ecctrl";
+import { EcctrlCameraControls } from "ecctrl/camera";
 import Adventurer from "./Adventurer";
 
 const keysPressed = {
@@ -11,6 +12,38 @@ const keysPressed = {
   jump: false,
   run: false,
 };
+
+function FollowCamera({ controllerRef }) {
+  const cameraControlsRef = useRef();
+  const { camera } = useThree();
+
+  useFrame(() => {
+    if (!controllerRef.current || !cameraControlsRef.current) return;
+
+    const target = controllerRef.current.currPos;
+    if (!target) return;
+
+    cameraControlsRef.current.moveTo(
+      target.x,
+      target.y + 1.5,
+      target.z,
+      true
+    );
+
+    camera.position.lerp(
+  {
+    x: target.x,
+    y: target.y + 3.0,
+    z: target.z + 5.4,
+  },
+  0.08
+);
+
+    camera.lookAt(target.x, target.y + 1.2, target.z);
+  });
+
+  return <EcctrlCameraControls ref={cameraControlsRef} makeDefault smoothTime={0.15} />;
+}
 
 export default function PlayerController() {
   const controllerRef = useRef();
@@ -44,42 +77,23 @@ export default function PlayerController() {
   }, []);
 
   useFrame(() => {
-    const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-    const gamepad = gamepads[0];
-
-    let gamepadForward = false;
-    let gamepadBackward = false;
-    let gamepadLeft = false;
-    let gamepadRight = false;
-    let gamepadJump = false;
-    let gamepadRun = false;
-
-    if (gamepad) {
-      const leftStickX = gamepad.axes[0] || 0;
-      const leftStickY = gamepad.axes[1] || 0;
-
-      gamepadForward = leftStickY < -0.3;
-      gamepadBackward = leftStickY > 0.3;
-      gamepadLeft = leftStickX < -0.3;
-      gamepadRight = leftStickX > 0.3;
-
-      gamepadJump = gamepad.buttons[0]?.pressed || false;
-      gamepadRun = gamepad.buttons[1]?.pressed || false;
-    }
-
     controllerRef.current?.setMovement({
-      forward: keysPressed.forward || gamepadForward,
-      backward: keysPressed.backward || gamepadBackward,
-      leftward: keysPressed.leftward || gamepadLeft,
-      rightward: keysPressed.rightward || gamepadRight,
-      jump: keysPressed.jump || gamepadJump,
-      run: keysPressed.run || gamepadRun,
+      forward: keysPressed.forward,
+      backward: keysPressed.backward,
+      leftward: keysPressed.leftward,
+      rightward: keysPressed.rightward,
+      jump: keysPressed.jump,
+      run: keysPressed.run,
     });
   });
 
   return (
-    <Ecctrl ref={controllerRef} position={[0, 3, 0]} mode="FixedCamera" debug>
-      <Adventurer />
-    </Ecctrl>
+    <>
+      <Ecctrl ref={controllerRef} position={[0, 3, 0]} mode="FixedCamera">
+        <Adventurer />
+      </Ecctrl>
+
+      <FollowCamera controllerRef={controllerRef} />
+    </>
   );
 }
