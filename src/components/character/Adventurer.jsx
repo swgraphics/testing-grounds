@@ -1,19 +1,44 @@
-import { useGLTF } from "@react-three/drei";
-
-// Character tuning
-const CHARACTER_SCALE = 4.8;
-const CHARACTER_HEIGHT = 6.3;
-const CHARACTER_ROTATION = Math.PI;
+import { useEffect, useRef } from "react";
+import { useAnimations, useFBX, useGLTF } from "@react-three/drei";
+import { characterConfig } from "../../config/characterConfig";
 
 export default function Adventurer() {
+  const groupRef = useRef();
+
   const { scene } = useGLTF("/models/characters/Adventurer.glb");
 
+  const idleAnimation = useFBX("/animations/adventurer/Breathing Idle.fbx");
+
+  idleAnimation.animations[0].name = "Breathing Idle";
+
+  const { actions } = useAnimations(idleAnimation.animations, groupRef);
+
+  useEffect(() => {
+    const idleAction = actions["Breathing Idle"];
+
+    if (idleAction) {
+      idleAction.reset().fadeIn(0.2).play();
+    }
+
+    return () => {
+      if (idleAction) {
+        idleAction.fadeOut(0.2);
+      }
+    };
+  }, [actions]);
+
   return (
-    <primitive
-      object={scene}
-      scale={CHARACTER_SCALE}
-      position={[0, CHARACTER_HEIGHT, 0]}
-      rotation={[0, CHARACTER_ROTATION, 0]}
-    />
+    <group
+      ref={groupRef}
+      scale={characterConfig.scale}
+      position={[0, characterConfig.height, 0]}
+      rotation={[
+  characterConfig.rotationX,
+  characterConfig.rotationY,
+  characterConfig.rotationZ,
+]}
+    >
+      <primitive object={scene} />
+    </group>
   );
 }

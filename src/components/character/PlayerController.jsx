@@ -1,3 +1,4 @@
+import { cameraConfig } from "../../config/cameraConfig";
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Ecctrl } from "ecctrl";
@@ -33,13 +34,13 @@ function FollowCamera({ controllerRef }) {
     camera.position.lerp(
   {
     x: target.x,
-    y: target.y + 3.0,
-    z: target.z + 5.4,
+    y: target.y + cameraConfig.height,
+    z: target.z + cameraConfig.distance,
   },
-  0.08
+  cameraConfig.smoothing
 );
 
-    camera.lookAt(target.x, target.y + 1.2, target.z);
+    camera.lookAt(target.x, target.y + cameraConfig.lookAtHeight, target.z);
   });
 
   return <EcctrlCameraControls ref={cameraControlsRef} makeDefault smoothTime={0.15} />;
