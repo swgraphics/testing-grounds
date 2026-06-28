@@ -19,14 +19,8 @@ function FollowCamera({ controllerRef }) {
   useFrame(() => {
     if (!controllerRef.current) return;
 
-    const rawTarget = controllerRef.current.currPos;
-if (!rawTarget) return;
-
-const target = {
-  x: -rawTarget.x,
-  y: rawTarget.y,
-  z: -rawTarget.z,
-};
+    const target = controllerRef.current.currPos;
+    if (!target) return;
 
     camera.position.lerp(
       {
@@ -95,10 +89,10 @@ export default function PlayerController() {
     }
 
     controllerRef.current?.setMovement({
-      forward: keysPressed.backward,
-      backward: keysPressed.forward,
-      leftward: keysPressed.rightward,
-      rightward: keysPressed.leftward,
+      forward: keysPressed.forward,
+      backward: keysPressed.backward,
+      leftward: keysPressed.leftward,
+      rightward: keysPressed.rightward,
       jump: keysPressed.jump,
       run: keysPressed.run,
     });
