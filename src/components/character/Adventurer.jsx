@@ -1,31 +1,42 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import { useAnimations, useFBX, useGLTF } from "@react-three/drei";
 import { characterConfig } from "../../config/characterConfig";
 
-export default function Adventurer() {
+const Adventurer = forwardRef(function Adventurer(
+  { animationState = "idle" },
+  ref
+) {
   const groupRef = useRef();
+
+  useImperativeHandle(ref, () => groupRef.current);
 
   const { scene } = useGLTF("/models/characters/Adventurer.glb");
 
-  const idleAnimation = useFBX("/animations/adventurer/Breathing Idle.fbx");
+  const idle = useFBX("/animations/adventurer/Breathing Idle.fbx");
+  const walk = useFBX("/animations/adventurer/Walking.fbx");
+  const run = useFBX("/animations/adventurer/Running.fbx");
 
-  idleAnimation.animations[0].name = "Breathing Idle";
+  const animations = useMemo(() => {
+    idle.animations[0].name = "idle";
+    walk.animations[0].name = "walk";
+    run.animations[0].name = "run";
 
-  const { actions } = useAnimations(idleAnimation.animations, groupRef);
+    return [idle.animations[0], walk.animations[0], run.animations[0]];
+  }, [idle, walk, run]);
+
+  const { actions } = useAnimations(animations, groupRef);
 
   useEffect(() => {
-    const idleAction = actions["Breathing Idle"];
+    const currentAction = actions[animationState];
 
-    if (idleAction) {
-      idleAction.reset().fadeIn(0.2).play();
-    }
+    if (!currentAction) return;
+
+    currentAction.reset().fadeIn(0.2).play();
 
     return () => {
-      if (idleAction) {
-        idleAction.fadeOut(0.2);
-      }
+      currentAction.fadeOut(0.2);
     };
-  }, [actions]);
+  }, [actions, animationState]);
 
   return (
     <group
@@ -33,12 +44,14 @@ export default function Adventurer() {
       scale={characterConfig.scale}
       position={[0, characterConfig.height, 0]}
       rotation={[
-  characterConfig.rotationX,
-  characterConfig.rotationY,
-  characterConfig.rotationZ,
-]}
+        characterConfig.rotationX,
+        characterConfig.rotationY,
+        characterConfig.rotationZ,
+      ]}
     >
       <primitive object={scene} />
     </group>
   );
-}
+});
+
+export default Adventurer;

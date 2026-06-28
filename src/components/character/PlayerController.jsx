@@ -1,8 +1,7 @@
-import { cameraConfig } from "../../config/cameraConfig";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Ecctrl } from "ecctrl";
-import { EcctrlCameraControls } from "ecctrl/camera";
+import { cameraConfig } from "../../config/cameraConfig";
 import Adventurer from "./Adventurer";
 
 const keysPressed = {
@@ -15,39 +14,42 @@ const keysPressed = {
 };
 
 function FollowCamera({ controllerRef }) {
-  const cameraControlsRef = useRef();
   const { camera } = useThree();
 
   useFrame(() => {
-    if (!controllerRef.current || !cameraControlsRef.current) return;
+    if (!controllerRef.current) return;
 
-    const target = controllerRef.current.currPos;
-    if (!target) return;
+    const rawTarget = controllerRef.current.currPos;
+if (!rawTarget) return;
 
-    cameraControlsRef.current.moveTo(
-      target.x,
-      target.y + 1.5,
-      target.z,
-      true
-    );
+const target = {
+  x: -rawTarget.x,
+  y: rawTarget.y,
+  z: -rawTarget.z,
+};
 
     camera.position.lerp(
-  {
-    x: target.x,
-    y: target.y + cameraConfig.height,
-    z: target.z + cameraConfig.distance,
-  },
-  cameraConfig.smoothing
-);
+      {
+        x: target.x,
+        y: target.y + cameraConfig.height,
+        z: target.z + cameraConfig.distance,
+      },
+      cameraConfig.smoothing
+    );
 
-    camera.lookAt(target.x, target.y + cameraConfig.lookAtHeight, target.z);
+    camera.lookAt(
+      target.x,
+      target.y + cameraConfig.lookAtHeight,
+      target.z
+    );
   });
 
-  return <EcctrlCameraControls ref={cameraControlsRef} makeDefault smoothTime={0.15} />;
+  return null;
 }
 
 export default function PlayerController() {
   const controllerRef = useRef();
+  const [animationState, setAnimationState] = useState("idle");
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -78,11 +80,25 @@ export default function PlayerController() {
   }, []);
 
   useFrame(() => {
+    const isMoving =
+      keysPressed.forward ||
+      keysPressed.backward ||
+      keysPressed.leftward ||
+      keysPressed.rightward;
+
+    if (!isMoving) {
+      setAnimationState("idle");
+    } else if (keysPressed.run) {
+      setAnimationState("run");
+    } else {
+      setAnimationState("walk");
+    }
+
     controllerRef.current?.setMovement({
-      forward: keysPressed.forward,
-      backward: keysPressed.backward,
-      leftward: keysPressed.leftward,
-      rightward: keysPressed.rightward,
+      forward: keysPressed.backward,
+      backward: keysPressed.forward,
+      leftward: keysPressed.rightward,
+      rightward: keysPressed.leftward,
       jump: keysPressed.jump,
       run: keysPressed.run,
     });
@@ -91,7 +107,7 @@ export default function PlayerController() {
   return (
     <>
       <Ecctrl ref={controllerRef} position={[0, 3, 0]} mode="FixedCamera">
-        <Adventurer />
+        <Adventurer animationState={animationState} />
       </Ecctrl>
 
       <FollowCamera controllerRef={controllerRef} />
