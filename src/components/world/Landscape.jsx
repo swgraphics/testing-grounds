@@ -18,18 +18,17 @@ function Hill({ position, scale, color = "#9ca8b3" }) {
 function CrimsonTree({ position, scale = 1 }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 2.5, 0]} castShadow>
-        <cylinderGeometry args={[0.12, 0.2, 5, 5]} />
-        <meshStandardMaterial color="#300812" roughness={0.9} />
+      <mesh position={[0, 3, 0]}>
+        <cylinderGeometry args={[0.15, 0.25, 6, 5]} />
+        <meshStandardMaterial color="#300812" />
       </mesh>
 
-      <mesh position={[0, 5.2, 0]} castShadow>
-        <icosahedronGeometry args={[1.6, 1]} />
+      <mesh position={[0, 7, 0]}>
+        <icosahedronGeometry args={[2.2, 1]} />
         <meshStandardMaterial
-          color="#15060a"
+          color="#12060a"
           emissive="#8b1026"
-          emissiveIntensity={0.18}
-          roughness={0.8}
+          emissiveIntensity={0.25}
         />
       </mesh>
     </group>

@@ -20,6 +20,8 @@ const mobileInput = {
   backward: false,
   leftward: false,
   rightward: false,
+  jump: false,
+  run: false,
 };
 
 function FollowCamera({ controllerRef }) {
@@ -106,34 +108,37 @@ function FollowCamera({ controllerRef }) {
 
     camera.position.lerp(desiredPosition, cameraConfig.smoothing);
 
-    camera.lookAt(
-      target.x,
-      target.y + cameraConfig.lookAtHeight,
-      target.z
-    );
+    camera.lookAt(target.x, target.y + cameraConfig.lookAtHeight, target.z);
   });
 
   return null;
 }
 
-function MobileJoystick() {
+function MobileControls() {
   const joystickRef = useRef({
     active: false,
     startX: 0,
     startY: 0,
   });
 
+  const [stickPosition, setStickPosition] = useState({ x: 0, y: 0 });
+  const [sprintOn, setSprintOn] = useState(false);
+
   useEffect(() => {
-    function resetMobileInput() {
+    mobileInput.run = sprintOn;
+  }, [sprintOn]);
+
+  useEffect(() => {
+    function resetMovement() {
       mobileInput.forward = false;
       mobileInput.backward = false;
       mobileInput.leftward = false;
       mobileInput.rightward = false;
+      setStickPosition({ x: 0, y: 0 });
     }
 
     function handlePointerDown(event) {
       const isLeftSide = event.clientX < window.innerWidth / 2;
-
       if (!isLeftSide || event.pointerType !== "touch") return;
 
       joystickRef.current.active = true;
@@ -147,17 +152,23 @@ function MobileJoystick() {
       const deltaX = event.clientX - joystickRef.current.startX;
       const deltaY = event.clientY - joystickRef.current.startY;
 
-      resetMobileInput();
+      const clampedX = THREE.MathUtils.clamp(deltaX, -45, 45);
+      const clampedY = THREE.MathUtils.clamp(deltaY, -45, 45);
 
-      if (deltaY < -25) mobileInput.forward = true;
-      if (deltaY > 25) mobileInput.backward = true;
-      if (deltaX < -25) mobileInput.leftward = true;
-      if (deltaX > 25) mobileInput.rightward = true;
+      setStickPosition({
+        x: clampedX,
+        y: clampedY,
+      });
+
+      mobileInput.forward = clampedY < -20;
+      mobileInput.backward = clampedY > 20;
+      mobileInput.leftward = clampedX < -20;
+      mobileInput.rightward = clampedX > 20;
     }
 
     function handlePointerUp() {
       joystickRef.current.active = false;
-      resetMobileInput();
+      resetMovement();
     }
 
     window.addEventListener("pointerdown", handlePointerDown);
@@ -171,7 +182,46 @@ function MobileJoystick() {
     };
   }, []);
 
-  return null;
+  function handleJumpPress() {
+    mobileInput.jump = true;
+
+    setTimeout(() => {
+      mobileInput.jump = false;
+    }, 120);
+  }
+
+  return (
+    <div className="tg-mobile-controls">
+      <div className="tg-joystick">
+        <div className="tg-joystick-ring">
+          <div
+            className="tg-joystick-thumb"
+            style={{
+              transform: `translate(${stickPosition.x}px, ${stickPosition.y}px)`,
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="tg-action-buttons">
+        <button
+          className="tg-action-button"
+          onPointerDown={handleJumpPress}
+        >
+          <span>▲</span>
+          <small>Jump</small>
+        </button>
+
+        <button
+          className={`tg-action-button ${sprintOn ? "active" : ""}`}
+          onPointerDown={() => setSprintOn((current) => !current)}
+        >
+          <span>››</span>
+          <small>Sprint</small>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function PlayerController() {
@@ -211,29 +261,28 @@ export default function PlayerController() {
     const inputBackward = keysPressed.backward || mobileInput.backward;
     const inputLeftward = keysPressed.leftward || mobileInput.leftward;
     const inputRightward = keysPressed.rightward || mobileInput.rightward;
+    const inputJump = keysPressed.jump || mobileInput.jump;
+    const inputRun = keysPressed.run || mobileInput.run;
 
     const isMoving =
-      inputForward ||
-      inputBackward ||
-      inputLeftward ||
-      inputRightward;
+      inputForward || inputBackward || inputLeftward || inputRightward;
 
     if (!isMoving) {
       setAnimationState("idle");
-    } else if (keysPressed.run) {
+    } else if (inputRun) {
       setAnimationState("run");
     } else {
       setAnimationState("walk");
     }
 
     controllerRef.current?.setMovement({
-  forward: inputForward,
-  backward: inputBackward,
-  leftward: inputLeftward,
-  rightward: inputRightward,
-  jump: keysPressed.jump,
-  run: keysPressed.run,
-});
+      forward: inputForward,
+      backward: inputBackward,
+      leftward: inputLeftward,
+      rightward: inputRightward,
+      jump: inputJump,
+      run: inputRun,
+    });
   });
 
   return (
@@ -243,7 +292,7 @@ export default function PlayerController() {
       </Ecctrl>
 
       <FollowCamera controllerRef={controllerRef} />
-      <MobileJoystick />
+      <MobileControls />
     </>
   );
 }

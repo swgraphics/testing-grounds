@@ -81,3 +81,136 @@ canvas {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+.tg-mobile-controls {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.tg-joystick {
+  position: absolute;
+  left: 34px;
+  bottom: 42px;
+  width: 132px;
+  height: 132px;
+  pointer-events: none;
+}
+
+.tg-joystick-ring {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 54, 95, 0.75);
+  background: radial-gradient(
+    circle,
+    rgba(255, 54, 95, 0.09) 0%,
+    rgba(5, 6, 8, 0.34) 56%,
+    rgba(5, 6, 8, 0.62) 100%
+  );
+  box-shadow:
+    0 0 18px rgba(255, 54, 95, 0.18),
+    inset 0 0 24px rgba(223, 239, 255, 0.08);
+  position: relative;
+}
+
+.tg-joystick-ring::before,
+.tg-joystick-ring::after {
+  content: "";
+  position: absolute;
+  background: rgba(223, 239, 255, 0.35);
+}
+
+.tg-joystick-ring::before {
+  width: 1px;
+  height: 90px;
+  left: 50%;
+  top: 21px;
+}
+
+.tg-joystick-ring::after {
+  height: 1px;
+  width: 90px;
+  left: 21px;
+  top: 50%;
+}
+
+.tg-joystick-thumb {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  left: 39px;
+  top: 39px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 54, 95, 0.95);
+  background: radial-gradient(
+    circle,
+    rgba(255, 54, 95, 0.34) 0%,
+    rgba(139, 16, 38, 0.22) 55%,
+    rgba(5, 6, 8, 0.7) 100%
+  );
+  box-shadow:
+    0 0 18px rgba(255, 54, 95, 0.35),
+    inset 0 0 14px rgba(223, 239, 255, 0.08);
+}
+
+.tg-action-buttons {
+  position: absolute;
+  right: 34px;
+  bottom: 48px;
+  display: flex;
+  gap: 18px;
+  pointer-events: auto;
+}
+
+.tg-action-button {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 54, 95, 0.85);
+  background: radial-gradient(
+    circle,
+    rgba(255, 54, 95, 0.12) 0%,
+    rgba(5, 6, 8, 0.72) 70%
+  );
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow:
+    0 0 18px rgba(255, 54, 95, 0.2),
+    inset 0 0 18px rgba(223, 239, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.tg-action-button span {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.tg-action-button small {
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.tg-action-button.active {
+  background: radial-gradient(
+    circle,
+    rgba(255, 54, 95, 0.42) 0%,
+    rgba(139, 16, 38, 0.35) 55%,
+    rgba(5, 6, 8, 0.8) 100%
+  );
+  box-shadow:
+    0 0 26px rgba(255, 54, 95, 0.45),
+    inset 0 0 22px rgba(223, 239, 255, 0.1);
+}
+
+@media (min-width: 900px) {
+  .tg-mobile-controls {
+    display: none;
+  }
+}

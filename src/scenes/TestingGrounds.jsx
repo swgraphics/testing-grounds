@@ -2,6 +2,7 @@ import PlayerController from "../components/character/PlayerController";
 import Atmosphere from "../components/world/Atmosphere";
 import Lighting from "../components/world/Lighting";
 import GridFloor from "../components/world/GridFloor";
+import GridTerrain from "../components/world/GridTerrain";
 import SpawnPad from "../components/world/SpawnPad";
 import TestBuildings from "../components/world/TestBuildings";
 import TestCourse from "../components/world/TestCourse";
@@ -14,6 +15,7 @@ export default function TestingGrounds() {
       <Atmosphere />
       <Lighting />
       <GridFloor />
+      <GridTerrain />
       <Landscape />
       <SpawnPad />
       <WorldGizmos />      
