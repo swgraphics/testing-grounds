@@ -292,7 +292,6 @@ export default function PlayerController() {
       </Ecctrl>
 
       <FollowCamera controllerRef={controllerRef} />
-      <MobileControls />
     </>
   );
 }
