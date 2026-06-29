@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Ecctrl } from "ecctrl";
+import * as THREE from "three";
+
 import { cameraConfig } from "../../config/cameraConfig";
 import Adventurer from "./Adventurer";
 
@@ -13,8 +15,76 @@ const keysPressed = {
   run: false,
 };
 
+const mobileInput = {
+  forward: false,
+  backward: false,
+  leftward: false,
+  rightward: false,
+};
+
 function FollowCamera({ controllerRef }) {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
+
+  const yawRef = useRef(0);
+  const pitchRef = useRef(0.25);
+  const isOrbitingRef = useRef(false);
+  const lastPointerRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    function handlePointerDown(event) {
+      const isRightSide = event.clientX > window.innerWidth / 2;
+
+      if (event.pointerType === "mouse" || isRightSide) {
+        isOrbitingRef.current = true;
+        lastPointerRef.current = {
+          x: event.clientX,
+          y: event.clientY,
+        };
+      }
+    }
+
+    function handlePointerMove(event) {
+      if (!isOrbitingRef.current) return;
+
+      const deltaX = event.clientX - lastPointerRef.current.x;
+      const deltaY = event.clientY - lastPointerRef.current.y;
+
+      const sensitivity =
+        event.pointerType === "touch"
+          ? cameraConfig.touchOrbitSensitivity
+          : cameraConfig.orbitSensitivity;
+
+      yawRef.current -= deltaX * sensitivity;
+      pitchRef.current += deltaY * sensitivity;
+
+      pitchRef.current = THREE.MathUtils.clamp(
+        pitchRef.current,
+        cameraConfig.minPitch,
+        cameraConfig.maxPitch
+      );
+
+      lastPointerRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+    }
+
+    function handlePointerUp() {
+      isOrbitingRef.current = false;
+    }
+
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      canvas.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [gl]);
 
   useFrame(() => {
     if (!controllerRef.current) return;
@@ -22,14 +92,19 @@ function FollowCamera({ controllerRef }) {
     const target = controllerRef.current.currPos;
     if (!target) return;
 
-    camera.position.lerp(
-      {
-        x: target.x,
-        y: target.y + cameraConfig.height,
-        z: target.z + cameraConfig.distance,
-      },
-      cameraConfig.smoothing
+    const cameraOffset = new THREE.Vector3(
+      Math.sin(yawRef.current) * cameraConfig.distance,
+      cameraConfig.height + Math.sin(pitchRef.current) * 2,
+      Math.cos(yawRef.current) * cameraConfig.distance
     );
+
+    const desiredPosition = new THREE.Vector3(
+      target.x + cameraOffset.x,
+      target.y + cameraOffset.y,
+      target.z + cameraOffset.z
+    );
+
+    camera.position.lerp(desiredPosition, cameraConfig.smoothing);
 
     camera.lookAt(
       target.x,
@@ -37,6 +112,64 @@ function FollowCamera({ controllerRef }) {
       target.z
     );
   });
+
+  return null;
+}
+
+function MobileJoystick() {
+  const joystickRef = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+  });
+
+  useEffect(() => {
+    function resetMobileInput() {
+      mobileInput.forward = false;
+      mobileInput.backward = false;
+      mobileInput.leftward = false;
+      mobileInput.rightward = false;
+    }
+
+    function handlePointerDown(event) {
+      const isLeftSide = event.clientX < window.innerWidth / 2;
+
+      if (!isLeftSide || event.pointerType !== "touch") return;
+
+      joystickRef.current.active = true;
+      joystickRef.current.startX = event.clientX;
+      joystickRef.current.startY = event.clientY;
+    }
+
+    function handlePointerMove(event) {
+      if (!joystickRef.current.active) return;
+
+      const deltaX = event.clientX - joystickRef.current.startX;
+      const deltaY = event.clientY - joystickRef.current.startY;
+
+      resetMobileInput();
+
+      if (deltaY < -25) mobileInput.forward = true;
+      if (deltaY > 25) mobileInput.backward = true;
+      if (deltaX < -25) mobileInput.leftward = true;
+      if (deltaX > 25) mobileInput.rightward = true;
+    }
+
+    function handlePointerUp() {
+      joystickRef.current.active = false;
+      resetMobileInput();
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, []);
 
   return null;
 }
@@ -74,11 +207,16 @@ export default function PlayerController() {
   }, []);
 
   useFrame(() => {
+    const inputForward = keysPressed.forward || mobileInput.forward;
+    const inputBackward = keysPressed.backward || mobileInput.backward;
+    const inputLeftward = keysPressed.leftward || mobileInput.leftward;
+    const inputRightward = keysPressed.rightward || mobileInput.rightward;
+
     const isMoving =
-      keysPressed.forward ||
-      keysPressed.backward ||
-      keysPressed.leftward ||
-      keysPressed.rightward;
+      inputForward ||
+      inputBackward ||
+      inputLeftward ||
+      inputRightward;
 
     if (!isMoving) {
       setAnimationState("idle");
@@ -89,12 +227,12 @@ export default function PlayerController() {
     }
 
     controllerRef.current?.setMovement({
-      forward: keysPressed.forward,
-      backward: keysPressed.backward,
-      leftward: keysPressed.leftward,
-      rightward: keysPressed.rightward,
-      jump: keysPressed.jump,
-      run: keysPressed.run,
+      forward: inputForward,
+     backward: inputBackward,
+    leftward: inputLeftward,
+    rightward: inputRightward,
+    jump: keysPressed.jump,
+     run: keysPressed.run,
     });
   });
 
@@ -105,6 +243,7 @@ export default function PlayerController() {
       </Ecctrl>
 
       <FollowCamera controllerRef={controllerRef} />
+      <MobileJoystick />
     </>
   );
 }

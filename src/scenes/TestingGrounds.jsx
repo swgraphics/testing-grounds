@@ -7,12 +7,14 @@ import TestBuildings from "../components/world/TestBuildings";
 import TestCourse from "../components/world/TestCourse";
 import Helpers from "../components/world/Helpers";
 import WorldGizmos from "../components/world/WorldGizmos";
+import Landscape from "../components/world/Landscape";
 export default function TestingGrounds() {
   return (
     <>
       <Atmosphere />
       <Lighting />
       <GridFloor />
+      <Landscape />
       <SpawnPad />
       <WorldGizmos />      
       <TestBuildings />
