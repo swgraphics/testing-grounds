@@ -227,13 +227,13 @@ export default function PlayerController() {
     }
 
     controllerRef.current?.setMovement({
-      forward: inputForward,
-     backward: inputBackward,
-    leftward: inputLeftward,
-    rightward: inputRightward,
-    jump: keysPressed.jump,
-     run: keysPressed.run,
-    });
+  forward: inputForward,
+  backward: inputBackward,
+  leftward: inputLeftward,
+  rightward: inputRightward,
+  jump: keysPressed.jump,
+  run: keysPressed.run,
+});
   });
 
   return (
