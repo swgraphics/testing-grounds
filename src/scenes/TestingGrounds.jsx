@@ -14,8 +14,8 @@ export default function TestingGrounds() {
     <>
       <Atmosphere />
       <Lighting />
-      <GridFloor />
       <GridTerrain />
+      <GridFloor />
       <Landscape />
       <SpawnPad />
       <WorldGizmos />      

@@ -27,6 +27,13 @@ export default function TestCourse() {
       <StaticBox position={[80, 1, -20]} scale={[40, 2, 2]} color="#3b3030" />
       <StaticBox position={[60, 1, 0]} scale={[2, 2, 40]} color="#3b3030" />
       <StaticBox position={[100, 1, 0]} scale={[2, 2, 40]} color="#3b3030" />
+    {/* Spawn practice blocks */}
+<StaticBox position={[8, 0.5, -8]} scale={[2, 1, 2]} color="#2c3540" />
+<StaticBox position={[14, 1, -8]} scale={[2, 2, 2]} color="#2c3540" />
+<StaticBox position={[21, 1.5, -8]} scale={[2, 3, 2]} color="#2c3540" />
+
+{/* Slim climbing wall */}
+<StaticBox position={[-14, 3, -10]} scale={[1, 6, 10]} color="#3b3030" />
     </>
   );
 }
