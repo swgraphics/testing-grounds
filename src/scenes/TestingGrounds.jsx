@@ -12,17 +12,21 @@ import Landscape from "../components/world/Landscape";
 export default function TestingGrounds() {
   return (
     <>
-      <Atmosphere />
-      <Lighting />
-      <GridTerrain />
-      <GridFloor />
-      <Landscape />
-      <SpawnPad />
-      <WorldGizmos />      
-      <TestBuildings />
-      <TestCourse />
-      <PlayerController />
-      <Helpers />
+<Atmosphere />
+<Lighting />
+
+<GridTerrain />
+<GridFloor />
+
+<Landscape />
+<SpawnPad />
+<WorldGizmos />
+
+<TestBuildings />
+<TestCourse />
+
+<PlayerController />
+<Helpers />
     </>
   );
 }

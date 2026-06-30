@@ -1,50 +1,53 @@
-import { RigidBody } from "@react-three/rapier";
-
-function Hill({ position, scale, color = "#9ca8b3" }) {
-  return (
-    <RigidBody type="fixed" colliders="cuboid">
-      <mesh position={position} scale={scale} castShadow receiveShadow>
-        <icosahedronGeometry args={[1, 2]} />
-        <meshStandardMaterial
-          color={color}
-          roughness={0.92}
-          wireframe={false}
-        />
-      </mesh>
-    </RigidBody>
-  );
-}
-
 function CrimsonTree({ position, scale = 1 }) {
   return (
     <group position={position} scale={scale}>
-      <mesh position={[0, 3, 0]}>
-        <cylinderGeometry args={[0.15, 0.25, 6, 5]} />
-        <meshStandardMaterial color="#300812" />
+      <mesh position={[0, 2.8, 0]} castShadow>
+        <cylinderGeometry args={[0.12, 0.22, 5.6, 5]} />
+        <meshStandardMaterial color="#300812" roughness={0.9} />
       </mesh>
 
-      <mesh position={[0, 7, 0]}>
-        <icosahedronGeometry args={[2.2, 1]} />
+      <mesh position={[0, 6.2, 0]} castShadow>
+        <coneGeometry args={[1.4, 3.2, 6]} />
         <meshStandardMaterial
           color="#12060a"
           emissive="#8b1026"
-          emissiveIntensity={0.25}
+          emissiveIntensity={0.22}
+          roughness={0.8}
         />
       </mesh>
     </group>
   );
 }
 
-function IceWaterPatch({ position, scale }) {
+function ForestCluster() {
+  const trees = [];
+
+  for (let i = 0; i < 90; i++) {
+    const x = -160 + Math.random() * 130;
+    const z = -180 + Math.random() * 160;
+    const scale = 0.65 + Math.random() * 1.25;
+
+    trees.push(
+      <CrimsonTree
+        key={i}
+        position={[x, 0, z]}
+        scale={scale}
+      />
+    );
+  }
+
+  return <>{trees}</>;
+}
+
+function PaleWaterPatch({ position, scale }) {
   return (
     <mesh position={position} scale={scale} rotation={[-Math.PI / 2, 0, 0]}>
-      <circleGeometry args={[1, 32]} />
+      <circleGeometry args={[1, 48]} />
       <meshStandardMaterial
         color="#dfefff"
         roughness={0.35}
-        metalness={0.05}
         transparent
-        opacity={0.72}
+        opacity={0.62}
       />
     </mesh>
   );
@@ -53,27 +56,15 @@ function IceWaterPatch({ position, scale }) {
 export default function Landscape() {
   return (
     <>
-      {/* Low-poly cliff / mountain shapes */}
-      <Hill position={[-140, 18, -130]} scale={[70, 28, 45]} />
-      <Hill position={[150, 24, -150]} scale={[85, 38, 55]} />
-      <Hill position={[180, 16, 120]} scale={[60, 24, 45]} />
-      <Hill position={[-170, 12, 120]} scale={[50, 18, 40]} />
+      <ForestCluster />
 
-      {/* Smaller traversal rocks */}
-      <Hill position={[-40, 4, -90]} scale={[18, 7, 14]} color="#6f7982" />
-      <Hill position={[35, 3, -120]} scale={[14, 5, 10]} color="#6f7982" />
-      <Hill position={[120, 5, 65]} scale={[20, 8, 16]} color="#6f7982" />
-
-      {/* Ice / water testing zones */}
-      <IceWaterPatch position={[0, 0.08, 170]} scale={[42, 24, 1]} />
-      <IceWaterPatch position={[145, 0.08, 155]} scale={[35, 18, 1]} />
-
-      {/* Crimson vegetation clusters */}
       <CrimsonTree position={[-90, 0, -75]} scale={1.4} />
       <CrimsonTree position={[-115, 0, -95]} scale={1.1} />
       <CrimsonTree position={[95, 0, 105]} scale={1.2} />
       <CrimsonTree position={[130, 0, 125]} scale={0.9} />
-      <CrimsonTree position={[-150, 0, 80]} scale={1.0} />
+
+      <PaleWaterPatch position={[0, 0.08, 170]} scale={[42, 24, 1]} />
+      <PaleWaterPatch position={[145, 0.08, 155]} scale={[35, 18, 1]} />
     </>
   );
 }
