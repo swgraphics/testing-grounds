@@ -29,6 +29,8 @@ export default function InputHUD() {
       if (event.code === "KeyD") inputState.rightward = true;
       if (event.code === "Space") inputState.jump = true;
       if (event.code === "ShiftLeft") inputState.run = true;
+      if (event.code === "KeyC") inputState.crouch = true;
+      if (event.code === "ControlLeft") inputState.slide = true;
       refresh();
     }
 
@@ -39,6 +41,8 @@ export default function InputHUD() {
       if (event.code === "KeyD") inputState.rightward = false;
       if (event.code === "Space") inputState.jump = false;
       if (event.code === "ShiftLeft") inputState.run = false;
+      if (event.code === "KeyC") inputState.crouch = false;
+      if (event.code === "ControlLeft") inputState.slide = false;
       refresh();
     }
 

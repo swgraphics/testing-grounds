@@ -3,6 +3,9 @@ export const inputState = {
   backward: false,
   leftward: false,
   rightward: false,
+
   jump: false,
   run: false,
+  crouch: false,
+  slide: false,
 };

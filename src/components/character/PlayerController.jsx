@@ -82,18 +82,26 @@ export default function PlayerController() {
 
   useFrame(() => {
     const isMoving =
-      inputState.forward ||
-      inputState.backward ||
-      inputState.leftward ||
-      inputState.rightward;
+  inputState.forward ||
+  inputState.backward ||
+  inputState.leftward ||
+  inputState.rightward;
 
-    if (!isMoving) {
-      setAnimationState("idle");
-    } else if (inputState.run) {
-      setAnimationState("run");
-    } else {
-      setAnimationState("walk");
-    }
+if (inputState.slide && isMoving) {
+  setAnimationState("slide");
+} else if (inputState.jump && inputState.run && isMoving) {
+  setAnimationState("runJump");
+} else if (inputState.jump) {
+  setAnimationState("jump");
+} else if (inputState.crouch && isMoving) {
+  setAnimationState("crouchWalk");
+} else if (!isMoving) {
+  setAnimationState("idle");
+} else if (inputState.run) {
+  setAnimationState("run");
+} else {
+  setAnimationState("walk");
+}
 
     controllerRef.current?.setMovement({
       forward: inputState.forward,
