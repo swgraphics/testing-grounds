@@ -1,0 +1,158 @@
+import { useEffect, useRef, useState } from "react";
+import { inputState } from "../../systems/input/inputState";
+
+function KeyBox({ label, active }) {
+  return <div className={`tg-key-box ${active ? "active" : ""}`}>{label}</div>;
+}
+
+export default function InputHUD() {
+  const [, forceUpdate] = useState(0);
+
+  const joystickRef = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+  });
+
+  const [stickPosition, setStickPosition] = useState({ x: 0, y: 0 });
+  const [sprintOn, setSprintOn] = useState(false);
+
+  useEffect(() => {
+    function refresh() {
+      forceUpdate((value) => value + 1);
+    }
+
+    function handleKeyDown(event) {
+      if (event.code === "KeyW") inputState.forward = true;
+      if (event.code === "KeyS") inputState.backward = true;
+      if (event.code === "KeyA") inputState.leftward = true;
+      if (event.code === "KeyD") inputState.rightward = true;
+      if (event.code === "Space") inputState.jump = true;
+      if (event.code === "ShiftLeft") inputState.run = true;
+      refresh();
+    }
+
+    function handleKeyUp(event) {
+      if (event.code === "KeyW") inputState.forward = false;
+      if (event.code === "KeyS") inputState.backward = false;
+      if (event.code === "KeyA") inputState.leftward = false;
+      if (event.code === "KeyD") inputState.rightward = false;
+      if (event.code === "Space") inputState.jump = false;
+      if (event.code === "ShiftLeft") inputState.run = false;
+      refresh();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  useEffect(() => {
+    inputState.run = sprintOn;
+  }, [sprintOn]);
+
+  useEffect(() => {
+    function resetJoystick() {
+      inputState.forward = false;
+      inputState.backward = false;
+      inputState.leftward = false;
+      inputState.rightward = false;
+      setStickPosition({ x: 0, y: 0 });
+    }
+
+    function handlePointerDown(event) {
+      const isLeftSide = event.clientX < window.innerWidth / 2;
+      if (!isLeftSide || event.pointerType !== "touch") return;
+
+      joystickRef.current.active = true;
+      joystickRef.current.startX = event.clientX;
+      joystickRef.current.startY = event.clientY;
+    }
+
+    function handlePointerMove(event) {
+      if (!joystickRef.current.active) return;
+
+      const deltaX = event.clientX - joystickRef.current.startX;
+      const deltaY = event.clientY - joystickRef.current.startY;
+
+      const clampedX = Math.max(-45, Math.min(45, deltaX));
+      const clampedY = Math.max(-45, Math.min(45, deltaY));
+
+      setStickPosition({ x: clampedX, y: clampedY });
+
+      inputState.forward = clampedY < -20;
+      inputState.backward = clampedY > 20;
+      inputState.leftward = clampedX < -20;
+      inputState.rightward = clampedX > 20;
+    }
+
+    function handlePointerUp() {
+      joystickRef.current.active = false;
+      resetJoystick();
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, []);
+
+  function handleJumpPress() {
+    inputState.jump = true;
+
+    setTimeout(() => {
+      inputState.jump = false;
+    }, 120);
+  }
+
+  return (
+    <>
+      <div className="tg-keyboard-hud">
+        <div className="tg-key-row">
+          <KeyBox label="W" active={inputState.forward} />
+        </div>
+
+        <div className="tg-key-row">
+          <KeyBox label="A" active={inputState.leftward} />
+          <KeyBox label="S" active={inputState.backward} />
+          <KeyBox label="D" active={inputState.rightward} />
+        </div>
+      </div>
+
+      <div className="tg-mobile-controls">
+        <div className="tg-joystick">
+          <div className="tg-joystick-ring">
+            <div
+              className="tg-joystick-thumb"
+              style={{
+                transform: `translate(${stickPosition.x}px, ${stickPosition.y}px)`,
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="tg-action-buttons">
+          <button className="tg-action-button" onPointerDown={handleJumpPress}>
+            <span>JUMP</span>
+          </button>
+
+          <button
+            className={`tg-action-button ${sprintOn ? "active" : ""}`}
+            onPointerDown={() => setSprintOn((current) => !current)}
+          >
+            <span>Sprint</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}

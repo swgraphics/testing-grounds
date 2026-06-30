@@ -188,13 +188,14 @@ canvas {
 }
 
 .tg-action-button span {
-  font-size: 28px;
+  font-size: 18px;
+  font-family: var(--tg-font-display);
+  letter-spacing: 0.08em;
   line-height: 1;
 }
 
 .tg-action-button small {
-  font-size: 13px;
-  margin-top: 6px;
+  display: none;
 }
 
 .tg-action-button.active {
