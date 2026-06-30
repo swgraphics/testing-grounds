@@ -7,6 +7,8 @@ function KeyBox({ label, active }) {
 
 export default function InputHUD() {
   const [, forceUpdate] = useState(0);
+  const [stickPosition, setStickPosition] = useState({ x: 0, y: 0 });
+  const [sprintOn, setSprintOn] = useState(false);
 
   const joystickRef = useRef({
     active: false,
@@ -14,14 +16,11 @@ export default function InputHUD() {
     startY: 0,
   });
 
-  const [stickPosition, setStickPosition] = useState({ x: 0, y: 0 });
-  const [sprintOn, setSprintOn] = useState(false);
+  function refresh() {
+    forceUpdate((value) => value + 1);
+  }
 
   useEffect(() => {
-    function refresh() {
-      forceUpdate((value) => value + 1);
-    }
-
     function handleKeyDown(event) {
       if (event.code === "KeyW") inputState.forward = true;
       if (event.code === "KeyS") inputState.backward = true;
@@ -31,6 +30,7 @@ export default function InputHUD() {
       if (event.code === "ShiftLeft") inputState.run = true;
       if (event.code === "KeyC") inputState.crouch = true;
       if (event.code === "ControlLeft") inputState.slide = true;
+
       refresh();
     }
 
@@ -43,6 +43,7 @@ export default function InputHUD() {
       if (event.code === "ShiftLeft") inputState.run = false;
       if (event.code === "KeyC") inputState.crouch = false;
       if (event.code === "ControlLeft") inputState.slide = false;
+
       refresh();
     }
 
@@ -66,6 +67,7 @@ export default function InputHUD() {
       inputState.leftward = false;
       inputState.rightward = false;
       setStickPosition({ x: 0, y: 0 });
+      refresh();
     }
 
     function handlePointerDown(event) {
@@ -92,6 +94,8 @@ export default function InputHUD() {
       inputState.backward = clampedY > 20;
       inputState.leftward = clampedX < -20;
       inputState.rightward = clampedX > 20;
+
+      refresh();
     }
 
     function handlePointerUp() {
@@ -110,12 +114,14 @@ export default function InputHUD() {
     };
   }, []);
 
-  function handleJumpPress() {
-    inputState.jump = true;
+  function tapAction(actionName, duration = 140) {
+    inputState[actionName] = true;
+    refresh();
 
     setTimeout(() => {
-      inputState.jump = false;
-    }, 120);
+      inputState[actionName] = false;
+      refresh();
+    }, duration);
   }
 
   return (
@@ -145,7 +151,7 @@ export default function InputHUD() {
         </div>
 
         <div className="tg-action-buttons">
-          <button className="tg-action-button" onPointerDown={handleJumpPress}>
+          <button className="tg-action-button" onPointerDown={() => tapAction("jump")}>
             <span>JUMP</span>
           </button>
 
@@ -153,7 +159,35 @@ export default function InputHUD() {
             className={`tg-action-button ${sprintOn ? "active" : ""}`}
             onPointerDown={() => setSprintOn((current) => !current)}
           >
-            <span>Sprint</span>
+            <span>SPRINT</span>
+          </button>
+
+          <button
+            className="tg-action-button"
+            onPointerDown={() => {
+              inputState.crouch = true;
+              refresh();
+            }}
+            onPointerUp={() => {
+              inputState.crouch = false;
+              refresh();
+            }}
+          >
+            <span>CROUCH</span>
+          </button>
+
+          <button
+            className="tg-action-button"
+            onPointerDown={() => {
+              inputState.slide = true;
+              refresh();
+            }}
+            onPointerUp={() => {
+              inputState.slide = false;
+              refresh();
+            }}
+          >
+            <span>SLIDE</span>
           </button>
         </div>
       </div>
