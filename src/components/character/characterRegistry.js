@@ -3,6 +3,8 @@ export const characterRegistry = {
     id: "adventurer",
     displayName: "Adventurer",
 
+    animationSource: "fbx",
+
     modelPath: "/models/characters/Adventurer.glb",
 
     animations: {
@@ -24,51 +26,34 @@ export const characterRegistry = {
       y: 0,
       z: 0,
     },
-
-    camera: {
-      height: 3,
-      distance: 5.4,
-    },
-
-    movement: {
-      walkSpeed: 1,
-      runSpeed: 1,
-      superSpeedMultiplier: 50,
-    },
   },
 
   velociraptor: {
     id: "velociraptor",
     displayName: "Velociraptor",
 
-    modelPath: "/models/characters/velociraptor/Velociraptor.glb",
+    animationSource: "embedded",
 
-    animations: {
-      idle: "/animations/velociraptor/Idle.fbx",
-      walk: "/animations/velociraptor/Walk.fbx",
-      run: "/animations/velociraptor/Run.fbx",
+    modelPath: "/models/characters/velociraptor/velociraptor.glb",
+
+    animationMap: {
+      idle: "Idle",
+      walk: "Walk",
+      run: "Run",
     },
 
-    scale: 1,
-    height: 0,
+    scale: 0.25,
+    height: -0.75,
+
+    cameraHeight: 0.9,
+    cameraDistance: 4.8,
 
     rotation: {
       x: 0,
       y: 0,
       z: 0,
     },
-
-    camera: {
-      height: 2.2,
-      distance: 7.5,
-    },
-
-    movement: {
-      walkSpeed: 1,
-      runSpeed: 1.25,
-      superSpeedMultiplier: 50,
-    },
   },
 };
 
-export const activeCharacterId = "adventurer";
+export const activeCharacterId = "velociraptor";
