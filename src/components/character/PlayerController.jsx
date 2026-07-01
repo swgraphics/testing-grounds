@@ -5,7 +5,8 @@ import * as THREE from "three";
 
 import { cameraConfig } from "../../config/cameraConfig";
 import { inputState } from "../../systems/input/inputState";
-import Adventurer from "./Adventurer";
+import PlayableCharacter from "./PlayableCharacter";
+import { characterRegistry, activeCharacterId } from "./characterRegistry";
 
 function FollowCamera({ controllerRef }) {
   const { camera, gl } = useThree();
@@ -116,7 +117,10 @@ if (inputState.slide && isMoving) {
   return (
     <>
       <Ecctrl ref={controllerRef} position={[0, 3, 0]} mode="FixedCamera">
-        <Adventurer animationState={animationState} />
+        <PlayableCharacter
+  character={characterRegistry[activeCharacterId]}
+  animationState={animationState}
+/>
       </Ecctrl>
 
       <FollowCamera controllerRef={controllerRef} />
