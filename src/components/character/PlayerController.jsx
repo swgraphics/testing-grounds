@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Ecctrl } from "ecctrl";
 import * as THREE from "three";
@@ -10,8 +10,6 @@ import {
   activeCharacterId,
 } from "./characterRegistry";
 import PlayableCharacter from "./PlayableCharacter";
-
-const activeCharacter = characterRegistry[activeCharacterId];
 
 function FollowCamera({ controllerRef, character }) {
   const { camera, gl } = useThree();
@@ -99,7 +97,19 @@ function FollowCamera({ controllerRef, character }) {
 export default function PlayerController() {
   const controllerRef = useRef();
   const [animationState, setAnimationState] = useState("idle");
+  const [currentCharacterId, setCurrentCharacterId] = useState(activeCharacterId);
+  const activeCharacter = characterRegistry[currentCharacterId];
+  useEffect(() => {
+  function handleCharacterChange(event) {
+    setCurrentCharacterId(event.detail.characterId);
+  }
 
+  window.addEventListener("change-character", handleCharacterChange);
+
+  return () => {
+    window.removeEventListener("change-character", handleCharacterChange);
+  };
+}, []);
   useFrame(() => {
     const isMoving =
       inputState.forward ||
@@ -135,7 +145,12 @@ export default function PlayerController() {
 
   return (
     <>
-      <Ecctrl ref={controllerRef} position={[0, 3, 0]} mode="FixedCamera">
+      <Ecctrl 
+        key={activeCharacter.id} 
+        ref={controllerRef} 
+        position={[0, 3, 0]} 
+        mode="FixedCamera">
+          
         <PlayableCharacter
           character={activeCharacter}
           animationState={animationState}

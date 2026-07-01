@@ -126,6 +126,39 @@ export default function InputHUD() {
 
   return (
     <>
+      <div className="tg-side-panel">
+  <div className="tg-side-panel-title">DEV TOOLS</div>
+
+  <div className="tg-side-panel-section">
+    <div className="tg-side-panel-label">Choose Character</div>
+
+    <button
+      className="tg-side-panel-button"
+      onClick={() => {
+        window.dispatchEvent(
+          new CustomEvent("change-character", {
+            detail: { characterId: "adventurer" },
+          })
+        );
+      }}
+    >
+      Human
+    </button>
+
+    <button
+      className="tg-side-panel-button"
+      onClick={() => {
+        window.dispatchEvent(
+          new CustomEvent("change-character", {
+            detail: { characterId: "velociraptor" },
+          })
+        );
+      }}
+    >
+      Raptor
+    </button>
+  </div>
+</div>
       <div className="tg-keyboard-hud">
         <div className="tg-key-row">
           <KeyBox label="W" active={inputState.forward} />
