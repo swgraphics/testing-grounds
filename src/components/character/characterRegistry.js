@@ -37,10 +37,11 @@ export const characterRegistry = {
     modelPath: "/models/characters/velociraptor/velociraptor.glb",
 
     animationMap: {
-      idle: "Idle",
-      walk: "Walk",
-      run: "Run",
-    },
+  idle: "Armature|Velociraptor_Idle",
+  walk: "Armature|Velociraptor_Walk",
+  run: "Armature|Velociraptor_Run",
+  jump: "Armature|Velociraptor_Jump",
+},
 
     scale: 0.25,
     height: -0.75,

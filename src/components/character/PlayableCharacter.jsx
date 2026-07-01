@@ -7,6 +7,7 @@ function FBXAnimatedCharacter({ character, animationState }) {
 
   const { scene } = useGLTF(character.modelPath);
 
+
   const idle = useFBX(character.animations.idle);
   const walk = useFBX(character.animations.walk);
   const run = useFBX(character.animations.run);
@@ -101,7 +102,8 @@ function EmbeddedAnimatedCharacter({ character, animationState }) {
   const groupRef = useRef();
 
   const { scene, animations } = useGLTF(character.modelPath);
-
+  console.log("Available animations:");
+  scene.animations.forEach((clip) => console.log(clip.name));
   const renamedAnimations = useMemo(() => {
     return animations.map((clip) => {
       const mappedName =

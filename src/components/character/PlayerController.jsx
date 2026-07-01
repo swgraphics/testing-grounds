@@ -5,16 +5,24 @@ import * as THREE from "three";
 
 import { cameraConfig } from "../../config/cameraConfig";
 import { inputState } from "../../systems/input/inputState";
+import {
+  characterRegistry,
+  activeCharacterId,
+} from "./characterRegistry";
 import PlayableCharacter from "./PlayableCharacter";
-import { characterRegistry, activeCharacterId } from "./characterRegistry";
 
-function FollowCamera({ controllerRef }) {
+const activeCharacter = characterRegistry[activeCharacterId];
+
+function FollowCamera({ controllerRef, character }) {
   const { camera, gl } = useThree();
 
   const yawRef = useRef(0);
   const pitchRef = useRef(0.25);
   const isOrbitingRef = useRef(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
+
+  const cameraHeight = character.cameraHeight ?? cameraConfig.height;
+  const cameraDistance = character.cameraDistance ?? cameraConfig.distance;
 
   useFrame(() => {
     if (!controllerRef.current) return;
@@ -23,9 +31,9 @@ function FollowCamera({ controllerRef }) {
     if (!target) return;
 
     const cameraOffset = new THREE.Vector3(
-      Math.sin(yawRef.current) * cameraConfig.distance,
-      cameraConfig.height + Math.sin(pitchRef.current) * 2,
-      Math.cos(yawRef.current) * cameraConfig.distance
+      Math.sin(yawRef.current) * cameraDistance,
+      cameraHeight + Math.sin(pitchRef.current) * 2,
+      Math.cos(yawRef.current) * cameraDistance
     );
 
     const desiredPosition = new THREE.Vector3(
@@ -35,7 +43,12 @@ function FollowCamera({ controllerRef }) {
     );
 
     camera.position.lerp(desiredPosition, cameraConfig.smoothing);
-    camera.lookAt(target.x, target.y + cameraConfig.lookAtHeight, target.z);
+
+    camera.lookAt(
+      target.x,
+      target.y + cameraConfig.lookAtHeight,
+      target.z
+    );
   });
 
   gl.domElement.onpointerdown = (event) => {
@@ -43,7 +56,10 @@ function FollowCamera({ controllerRef }) {
 
     if (event.pointerType === "mouse" || isRightSide) {
       isOrbitingRef.current = true;
-      lastPointerRef.current = { x: event.clientX, y: event.clientY };
+      lastPointerRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
     }
   };
 
@@ -67,7 +83,10 @@ function FollowCamera({ controllerRef }) {
       cameraConfig.maxPitch
     );
 
-    lastPointerRef.current = { x: event.clientX, y: event.clientY };
+    lastPointerRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
   };
 
   window.onpointerup = () => {
@@ -83,26 +102,26 @@ export default function PlayerController() {
 
   useFrame(() => {
     const isMoving =
-  inputState.forward ||
-  inputState.backward ||
-  inputState.leftward ||
-  inputState.rightward;
+      inputState.forward ||
+      inputState.backward ||
+      inputState.leftward ||
+      inputState.rightward;
 
-if (inputState.slide && isMoving) {
-  setAnimationState("slide");
-} else if (inputState.jump && inputState.run && isMoving) {
-  setAnimationState("runJump");
-} else if (inputState.jump) {
-  setAnimationState("jump");
-} else if (inputState.crouch && isMoving) {
-  setAnimationState("crouchWalk");
-} else if (!isMoving) {
-  setAnimationState("idle");
-} else if (inputState.run) {
-  setAnimationState("run");
-} else {
-  setAnimationState("walk");
-}
+    if (inputState.slide && isMoving) {
+      setAnimationState("slide");
+    } else if (inputState.jump && inputState.run && isMoving) {
+      setAnimationState("runJump");
+    } else if (inputState.jump) {
+      setAnimationState("jump");
+    } else if (inputState.crouch && isMoving) {
+      setAnimationState("crouchWalk");
+    } else if (!isMoving) {
+      setAnimationState("idle");
+    } else if (inputState.run) {
+      setAnimationState("run");
+    } else {
+      setAnimationState("walk");
+    }
 
     controllerRef.current?.setMovement({
       forward: inputState.forward,
@@ -118,12 +137,15 @@ if (inputState.slide && isMoving) {
     <>
       <Ecctrl ref={controllerRef} position={[0, 3, 0]} mode="FixedCamera">
         <PlayableCharacter
-  character={characterRegistry[activeCharacterId]}
-  animationState={animationState}
-/>
+          character={activeCharacter}
+          animationState={animationState}
+        />
       </Ecctrl>
 
-      <FollowCamera controllerRef={controllerRef} />
+      <FollowCamera
+        controllerRef={controllerRef}
+        character={activeCharacter}
+      />
     </>
   );
 }
