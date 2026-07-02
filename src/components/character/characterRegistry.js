@@ -35,7 +35,8 @@ export const characterRegistry = {
 
     animationSource: "embedded",
 
-    modelPath: "/models/characters/velociraptor/velociraptor.glb",
+    modelPath:
+      "/models/characters/velociraptor/velociraptor_custom.glb",
 
     animationMap: {
   idle: "Armature|Velociraptor_Idle",
