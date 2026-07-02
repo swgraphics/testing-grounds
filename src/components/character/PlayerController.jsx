@@ -14,7 +14,7 @@ import PlayableCharacter from "./PlayableCharacter";
 function FollowCamera({ controllerRef, character }) {
   const { camera, gl } = useThree();
 
-  const yawRef = useRef(0);
+  const yawRef = useRef(Math.PI);
   const pitchRef = useRef(0.25);
   const isOrbitingRef = useRef(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });

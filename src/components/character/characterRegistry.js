@@ -19,7 +19,8 @@ export const characterRegistry = {
     },
 
     scale: 1,
-    height: 1.7,
+    height: 0.02,
+  
 
     rotation: {
       x: -Math.PI / 2,
@@ -57,4 +58,4 @@ export const characterRegistry = {
   },
 };
 
-export const activeCharacterId = "velociraptor";
+export const activeCharacterId = "adventurer";

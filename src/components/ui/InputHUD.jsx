@@ -9,6 +9,7 @@ export default function InputHUD() {
   const [, forceUpdate] = useState(0);
   const [stickPosition, setStickPosition] = useState({ x: 0, y: 0 });
   const [sprintOn, setSprintOn] = useState(false);
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
 
   const joystickRef = useRef({
     active: false,
@@ -18,6 +19,14 @@ export default function InputHUD() {
 
   function refresh() {
     forceUpdate((value) => value + 1);
+  }
+
+  function changeCharacter(characterId) {
+    window.dispatchEvent(
+      new CustomEvent("change-character", {
+        detail: { characterId },
+      })
+    );
   }
 
   useEffect(() => {
@@ -126,39 +135,39 @@ export default function InputHUD() {
 
   return (
     <>
-      <div className="tg-side-panel">
-  <div className="tg-side-panel-title">DEV TOOLS</div>
+      <div className={`tg-side-panel ${devToolsOpen ? "open" : ""}`}>
+        <button
+          className="tg-dev-toggle"
+          onClick={() => setDevToolsOpen((current) => !current)}
+        >
+          {devToolsOpen ? "◀" : "▶"}
+        </button>
 
-  <div className="tg-side-panel-section">
-    <div className="tg-side-panel-label">Choose Character</div>
+        {devToolsOpen && (
+          <>
+            <div className="tg-side-panel-title">DEV TOOLS</div>
 
-    <button
-      className="tg-side-panel-button"
-      onClick={() => {
-        window.dispatchEvent(
-          new CustomEvent("change-character", {
-            detail: { characterId: "adventurer" },
-          })
-        );
-      }}
-    >
-      Human
-    </button>
+            <div className="tg-side-panel-section">
+              <div className="tg-side-panel-label">Choose Character</div>
 
-    <button
-      className="tg-side-panel-button"
-      onClick={() => {
-        window.dispatchEvent(
-          new CustomEvent("change-character", {
-            detail: { characterId: "velociraptor" },
-          })
-        );
-      }}
-    >
-      Raptor
-    </button>
-  </div>
-</div>
+              <button
+                className="tg-side-panel-button"
+                onClick={() => changeCharacter("adventurer")}
+              >
+                Human
+              </button>
+
+              <button
+                className="tg-side-panel-button"
+                onClick={() => changeCharacter("velociraptor")}
+              >
+                Raptor
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="tg-keyboard-hud">
         <div className="tg-key-row">
           <KeyBox label="W" active={inputState.forward} />
@@ -184,7 +193,10 @@ export default function InputHUD() {
         </div>
 
         <div className="tg-action-buttons">
-          <button className="tg-action-button" onPointerDown={() => tapAction("jump")}>
+          <button
+            className="tg-action-button"
+            onPointerDown={() => tapAction("jump")}
+          >
             <span>JUMP</span>
           </button>
 
