@@ -9,21 +9,19 @@
   --tg-gray: #9ca8b3;
   --tg-white: #e8eef5;
 
-  --tg-maroon: #300812;
-  --tg-crimson: #8b1026;
-  --tg-crimson-hot: #ff365f;
+  --tg-maroon: #811012;
+  --tg-crimson: #cd2626;
+  --tg-crimson-hot: #cd2626;
 
   --tg-font-display: "Bebas Neue", "Oswald", sans-serif;
   --tg-font-copy: "Inter", "Helvetica Neue", Arial, sans-serif;
 
-  --tg-gradient-crimson: linear-gradient(
-    90deg,
-    #300812 0%,
-    #8b1026 35%,
-    #ff365f 50%,
-    #8b1026 65%,
-    #300812 100%
-  );
+--tg-gradient-crimson: linear-gradient(
+  90deg,
+  #811012 0%,
+  #cd2626 50%,
+  #811012 100%
+);
 }
 
 html,
@@ -382,11 +380,11 @@ canvas {
   height: 36px;
   border: 2px solid rgba(232, 238, 245, 0.9);
   background: linear-gradient(
-    90deg,
-    var(--tg-crimson) 0%,
-    var(--tg-crimson-hot) 45%,
-    var(--tg-maroon) 100%
-  );
+  180deg,
+  #cd2626 0%,
+  #b41f1f 45%,
+  #811012 100%
+);
   color: var(--tg-white);
   font-family: var(--tg-font-display);
   letter-spacing: 0.07em;
@@ -395,7 +393,16 @@ canvas {
 }
 
 .tg-title-buttons button:hover {
-  box-shadow: 0 0 18px rgba(255, 54, 95, 0.42);
+  background: linear-gradient(
+    180deg,
+    #e63535 0%,
+    #cd2626 45%,
+    #8f1313 100%
+  );
+
+  box-shadow:
+    0 0 24px rgba(205, 38, 38, 0.45),
+    inset 0 0 8px rgba(255,255,255,0.08);
 }
 
 .tg-title-footer {

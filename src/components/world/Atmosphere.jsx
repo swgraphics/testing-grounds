@@ -3,16 +3,19 @@ import { useThree } from "@react-three/fiber";
 import { useEffect } from "react";
 import * as THREE from "three";
 
-export default function Atmosphere() {
+export default function Atmosphere({ titleMode = false }) {
   const { scene } = useThree();
 
   useEffect(() => {
-    scene.fog = new THREE.FogExp2("#07090d", 0.012);
+  scene.fog = new THREE.FogExp2(
+    "#07090d",
+    titleMode ? 0.0025 : 0.012
+  );
 
-    return () => {
-      scene.fog = null;
-    };
-  }, [scene]);
+  return () => {
+    scene.fog = null;
+  };
+}, [scene, titleMode]);
 
   return (
     <>

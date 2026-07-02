@@ -137,11 +137,16 @@ export default function InputHUD() {
     <>
       <div className={`tg-side-panel ${devToolsOpen ? "open" : ""}`}>
         <button
-          className="tg-dev-toggle"
-          onClick={() => setDevToolsOpen((current) => !current)}
-        >
-          {devToolsOpen ? "◀" : "▶"}
-        </button>
+  className="tg-dev-toggle"
+  onClick={() => setDevToolsOpen((current) => !current)}
+  aria-label="Toggle Dev Tools"
+>
+  <img
+    src="/images/TG_ICON.svg"
+    alt="Testing Grounds"
+    className="tg-dev-toggle-icon"
+  />
+</button>
 
         {devToolsOpen && (
           <>

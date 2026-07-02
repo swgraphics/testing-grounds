@@ -40,7 +40,7 @@ export default function TestingGrounds({ titleMode = false }) {
     <>
       <TitleOrbitCamera active={titleMode} />
 
-      <Atmosphere />
+      <Atmosphere titleMode={titleMode} />
       <Lighting />
 
       <GridTerrain />
