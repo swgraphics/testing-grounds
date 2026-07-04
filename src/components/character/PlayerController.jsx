@@ -20,14 +20,14 @@ function FollowCamera({ controllerRef, character }) {
   const lastPointerRef = useRef({ x: 0, y: 0 });
 
   const isPortraitMobile =
-  window.innerWidth < 900 && window.innerHeight > window.innerWidth;
+  window.matchMedia("(max-width: 899px) and (orientation: portrait)").matches;
 
 const cameraHeight = character.cameraHeight ?? cameraConfig.height;
 const cameraDistance = character.cameraDistance ?? cameraConfig.distance;
 
-const portraitHeightBoost = isPortraitMobile ? 1.35 : 0;
-const portraitLookAtBoost = isPortraitMobile ? 1.1 : 0;
-const portraitDistanceBoost = isPortraitMobile ? 1.2 : 0;
+const portraitHeightBoost = isPortraitMobile ? 2.8 : 0;
+const portraitLookAtDrop = isPortraitMobile ? 1.6 : 0;
+const portraitDistanceBoost = isPortraitMobile ? 2.5 : 0;
 
   useFrame(() => {
     if (!controllerRef.current) return;
@@ -51,7 +51,7 @@ const portraitDistanceBoost = isPortraitMobile ? 1.2 : 0;
 
     camera.lookAt(
       target.x,
-      target.y + cameraConfig.lookAtHeight + portraitLookAtBoost,
+      target.y + cameraConfig.lookAtHeight + portraitLookAtDrop,
       target.z
     );
   });
