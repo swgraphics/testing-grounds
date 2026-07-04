@@ -19,8 +19,15 @@ function FollowCamera({ controllerRef, character }) {
   const isOrbitingRef = useRef(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
 
-  const cameraHeight = character.cameraHeight ?? cameraConfig.height;
-  const cameraDistance = character.cameraDistance ?? cameraConfig.distance;
+  const isPortraitMobile =
+  window.innerWidth < 900 && window.innerHeight > window.innerWidth;
+
+const cameraHeight = character.cameraHeight ?? cameraConfig.height;
+const cameraDistance = character.cameraDistance ?? cameraConfig.distance;
+
+const portraitHeightBoost = isPortraitMobile ? 1.35 : 0;
+const portraitLookAtBoost = isPortraitMobile ? 1.1 : 0;
+const portraitDistanceBoost = isPortraitMobile ? 1.2 : 0;
 
   useFrame(() => {
     if (!controllerRef.current) return;
@@ -29,10 +36,10 @@ function FollowCamera({ controllerRef, character }) {
     if (!target) return;
 
     const cameraOffset = new THREE.Vector3(
-      Math.sin(yawRef.current) * cameraDistance,
-      cameraHeight + Math.sin(pitchRef.current) * 2,
-      Math.cos(yawRef.current) * cameraDistance
-    );
+  Math.sin(yawRef.current) * (cameraDistance + portraitDistanceBoost),
+  cameraHeight + portraitHeightBoost + Math.sin(pitchRef.current) * 2,
+  Math.cos(yawRef.current) * (cameraDistance + portraitDistanceBoost)
+);
 
     const desiredPosition = new THREE.Vector3(
       target.x + cameraOffset.x,
@@ -44,7 +51,7 @@ function FollowCamera({ controllerRef, character }) {
 
     camera.lookAt(
       target.x,
-      target.y + cameraConfig.lookAtHeight,
+      target.y + cameraConfig.lookAtHeight + portraitLookAtBoost,
       target.z
     );
   });
