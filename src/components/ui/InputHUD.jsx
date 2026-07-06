@@ -135,8 +135,7 @@ export default function InputHUD() {
 
   return (
     <>
-      <div className={`tg-side-panel ${devToolsOpen ? "open" : ""}`}>
-        <button
+      <button
   className="tg-dev-toggle"
   onClick={() => setDevToolsOpen((current) => !current)}
   aria-label="Toggle Dev Tools"
@@ -148,12 +147,14 @@ export default function InputHUD() {
   />
 </button>
 
+<div className={`tg-side-panel ${devToolsOpen ? "open" : ""}`}>
+
         {devToolsOpen && (
           <>
             <div className="tg-side-panel-title">DEV TOOLS</div>
 
-            <div className="tg-side-panel-section">
-              <div className="tg-side-panel-label">Choose Character</div>
+            <div className="tg-dev-section">
+              <div className="tg-dev-section-title">CHARACTER</div>
 
               <button
                 className="tg-side-panel-button"
@@ -168,6 +169,32 @@ export default function InputHUD() {
               >
                 Raptor
               </button>
+
+              <button className="tg-side-panel-button disabled">Upload</button>
+            </div>
+
+            <div className="tg-dev-section">
+              <div className="tg-dev-section-title">TERRAIN</div>
+              <div className="tg-dev-placeholder">Sliders coming soon</div>
+            </div>
+
+            <div className="tg-dev-section">
+              <div className="tg-dev-section-title">CAMERA</div>
+              <div className="tg-dev-placeholder">Controls coming soon</div>
+            </div>
+
+            <div className="tg-dev-section">
+              <div className="tg-dev-section-title">PHYSICS</div>
+              <div className="tg-dev-placeholder">
+                Debug tools coming soon
+              </div>
+            </div>
+
+            <div className="tg-dev-section">
+              <div className="tg-dev-section-title">MATERIALS</div>
+              <div className="tg-dev-placeholder">
+                TG / Original / Wireframe
+              </div>
             </div>
           </>
         )}
