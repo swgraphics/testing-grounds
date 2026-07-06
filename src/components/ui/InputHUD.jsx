@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { inputState } from "../../systems/input/inputState";
-
+import {
+  terrainSettings,
+  updateTerrainSetting,
+} from "../../systems/terrain/terrainSettings";
 function KeyBox({ label, active }) {
   return <div className={`tg-key-box ${active ? "active" : ""}`}>{label}</div>;
 }
@@ -174,9 +177,27 @@ export default function InputHUD() {
             </div>
 
             <div className="tg-dev-section">
-              <div className="tg-dev-section-title">TERRAIN</div>
-              <div className="tg-dev-placeholder">Sliders coming soon</div>
-            </div>
+  <div className="tg-dev-section-title">TERRAIN</div>
+
+  <label className="tg-dev-slider-label">
+    Terrain Height
+  </label>
+
+  <input
+    className="tg-dev-slider"
+    type="range"
+    min="0"
+    max="3"
+    step="0.1"
+    defaultValue={terrainSettings.heightMultiplier}
+    onChange={(event) => {
+      updateTerrainSetting(
+        "heightMultiplier",
+        Number(event.target.value)
+      );
+    }}
+  />
+</div>
 
             <div className="tg-dev-section">
               <div className="tg-dev-section-title">CAMERA</div>

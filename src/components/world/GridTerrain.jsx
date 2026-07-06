@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { RigidBody } from "@react-three/rapier";
+import { terrainSettings } from "../../systems/terrain/terrainSettings";
 
 function smoothStep(edge0, edge1, value) {
   const x = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
@@ -8,6 +9,22 @@ function smoothStep(edge0, edge1, value) {
 }
 
 export default function GridTerrain() {
+  const [heightMultiplier, setHeightMultiplier] = useState(
+    terrainSettings.heightMultiplier
+  );
+
+  useEffect(() => {
+    function handleTerrainChange() {
+      setHeightMultiplier(terrainSettings.heightMultiplier);
+    }
+
+    window.addEventListener("terrain-settings-changed", handleTerrainChange);
+
+    return () => {
+      window.removeEventListener("terrain-settings-changed", handleTerrainChange);
+    };
+  }, []);
+
   const geometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(600, 600, 120, 120);
     geo.rotateX(-Math.PI / 2);
@@ -20,24 +37,21 @@ export default function GridTerrain() {
 
       const distanceFromSpawn = Math.sqrt(x * x + z * z);
 
-      let height = 0;
-
-      // Spawn-safe flat area
       const flatRadius = 80;
-
-      // Landscape gradually starts after this radius
       const landscapeStart = 95;
       const landscapeFull = 190;
 
-      const terrainBlend = smoothStep(landscapeStart, landscapeFull, distanceFromSpawn);
+      const terrainBlend = smoothStep(
+        landscapeStart,
+        landscapeFull,
+        distanceFromSpawn
+      );
 
-      // Broad rolling terrain
       let rollingHills = 0;
       rollingHills += Math.sin(x * 0.018) * 10;
       rollingHills += Math.cos(z * 0.022) * 8;
       rollingHills += Math.sin((x + z) * 0.012) * 6;
 
-      // Distant mountain mass
       const mountainX = 160;
       const mountainZ = -170;
       const mountainDistance = Math.sqrt(
@@ -46,13 +60,13 @@ export default function GridTerrain() {
       );
 
       const mountainHeight = Math.max(0, 70 - mountainDistance * 0.35);
-
-      // Cliff/ridge area away from spawn
       const ridge = Math.max(0, Math.sin((x - 80) * 0.025) * 22);
 
-      height = (rollingHills + mountainHeight + ridge) * terrainBlend;
+      let height =
+        (rollingHills + mountainHeight + ridge) *
+        terrainBlend *
+        heightMultiplier;
 
-      // Force spawn area perfectly flat
       if (distanceFromSpawn < flatRadius) {
         height = 0;
       }
@@ -62,10 +76,14 @@ export default function GridTerrain() {
 
     geo.computeVertexNormals();
     return geo;
-  }, []);
+  }, [heightMultiplier]);
 
   return (
-    <RigidBody type="fixed" colliders="trimesh">
+    <RigidBody
+      key={heightMultiplier}
+      type="fixed"
+      colliders="trimesh"
+    >
       <mesh geometry={geometry} receiveShadow>
         <meshStandardMaterial color="#2b333a" roughness={0.92} />
       </mesh>
