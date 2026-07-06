@@ -511,6 +511,109 @@ canvas {
 }
 
 /* =======================================================
+   World HUD: Compass + Area Discovery
+======================================================= */
+
+.tg-compass-bar {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+
+  width: 260px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 42px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(129, 16, 18, 0) 0%,
+    rgba(129, 16, 18, 0.72) 22%,
+    rgba(205, 38, 38, 0.82) 50%,
+    rgba(129, 16, 18, 0.72) 78%,
+    rgba(129, 16, 18, 0) 100%
+  );
+
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+}
+
+.tg-compass-mark {
+  font-size: 22px;
+  color: var(--tg-white);
+}
+
+.tg-area-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 28;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: var(--tg-font-display);
+  font-size: min(42vw, 160px);
+  letter-spacing: -0.04em;
+  color: rgba(232, 238, 245, 0.32);
+
+  opacity: 0;
+  transform: scale(1.08);
+  transition:
+    opacity 1.2s ease,
+    transform 1.8s ease;
+
+  pointer-events: none;
+}
+
+.tg-area-overlay.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.tg-location-label {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 36;
+
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-top: 1px solid rgba(205, 38, 38, 0.75);
+  background: rgba(5, 6, 8, 0.86);
+
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 20px;
+  letter-spacing: 0.08em;
+
+  opacity: 0;
+  transform: translateY(100%);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+
+  pointer-events: none;
+}
+
+.tg-location-label.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* =======================================================
    Responsive Visibility
 ======================================================= */
 
