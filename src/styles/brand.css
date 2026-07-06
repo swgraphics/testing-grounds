@@ -343,7 +343,84 @@ canvas {
   opacity: 0.45;
   cursor: not-allowed;
 }
+.tg-dev-slider-label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--tg-font-copy);
+  font-size: 11px;
+  color: rgba(232, 238, 245, 0.75);
+}
 
+.tg-dev-slider {
+  width: 100%;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  background: transparent;
+}
+
+/* Track */
+
+.tg-dev-slider::-webkit-slider-runnable-track {
+  height: 6px;
+
+  border-radius: 999px;
+
+  background: linear-gradient(
+    90deg,
+    #811012,
+    #cd2626,
+    #811012
+  );
+}
+
+.tg-dev-slider::-moz-range-track {
+  height: 6px;
+
+  border-radius: 999px;
+
+  background: linear-gradient(
+    90deg,
+    #811012,
+    #cd2626,
+    #811012
+  );
+}
+
+/* Thumb */
+
+.tg-dev-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+
+  width: 16px;
+  height: 16px;
+
+  margin-top: -5px;
+
+  border-radius: 50%;
+
+  border: 2px solid #ffffff;
+
+  background: #cd2626;
+
+  box-shadow:
+    0 0 10px rgba(205,38,38,.6);
+}
+
+.tg-dev-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+
+  border-radius: 50%;
+
+  border: 2px solid white;
+
+  background: #cd2626;
+
+  box-shadow:
+    0 0 10px rgba(205,38,38,.6);
+}
 /* Mobile Dev Tools */
 
 @media (max-width: 899px) {
