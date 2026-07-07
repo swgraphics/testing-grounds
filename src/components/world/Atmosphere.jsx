@@ -1,21 +1,47 @@
 import { Sky, Stars } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import * as THREE from "three";
+
+import { terrainSettings } from "../../systems/terrain/terrainSettings";
 
 export default function Atmosphere({ titleMode = false }) {
   const { scene } = useThree();
 
-  useEffect(() => {
-  scene.fog = new THREE.FogExp2(
-    "#07090d",
-    titleMode ? 0.0025 : 0.012
+  const [fogDensity, setFogDensity] = useState(
+    terrainSettings.fogDensity ?? 0.012
   );
 
-  return () => {
-    scene.fog = null;
-  };
-}, [scene, titleMode]);
+  useEffect(() => {
+    function handleTerrainChange(event) {
+      if (event.detail.key === "fogDensity") {
+        setFogDensity(terrainSettings.fogDensity);
+      }
+    }
+
+    window.addEventListener(
+      "terrain-settings-changed",
+      handleTerrainChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "terrain-settings-changed",
+        handleTerrainChange
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    scene.fog = new THREE.FogExp2(
+      "#07090d",
+      titleMode ? 0.0025 : fogDensity
+    );
+
+    return () => {
+      scene.fog = null;
+    };
+  }, [scene, titleMode, fogDensity]);
 
   return (
     <>

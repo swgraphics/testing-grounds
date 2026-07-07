@@ -1,13 +1,15 @@
 export const terrainSettings = {
-  heightMultiplier: 1,
-  mountainHeight: 1,
-  cliffSharpness: 1,
-  rollingHills: 1,
-  ridgeStrength: 1,
+  heightMultiplier: 1.5,
+  mountainHeight: 1.5,
+  cliffSharpness: 1.5,
+  rollingHills: 1.5,
+  ridgeStrength: 1.5,
 
-  treeDensity: 25,
-  foliageDensity: 25,
-  rockDensity: 20,
+  treeDensity: 50,
+  foliageDensity: 50,
+  rockDensity: 50,
+
+  fogDensity: 0.012,
 };
 
 export function updateTerrainSetting(key, value) {

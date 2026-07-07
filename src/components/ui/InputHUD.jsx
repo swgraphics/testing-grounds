@@ -185,9 +185,9 @@ export default function InputHUD() {
   ["cliffSharpness", "Cliff Sharpness", 0, 3, 0.1],
   ["rollingHills", "Rolling Hills", 0, 3, 0.1],
   ["ridgeStrength", "Ridge Strength", 0, 3, 0.1],
-  ["treeDensity", "Tree Scatter", 0, 3, 0.1],
-  ["foliageDensity", "Foliage Scatter", 0, 3, 0.1],
-  ["rockDensity", "Rock Scatter", 0, 3, 0.1],
+  ["treeDensity", "Tree Scatter", 0, 100, 1],
+  ["foliageDensity", "Foliage Scatter", 0, 100, 1],
+  ["rockDensity", "Rock Scatter", 0, 100, 1],
 ]
 .map(([key, label, min, max, step]) => (
     <div className="tg-dev-slider-group" key={key}>
@@ -219,7 +219,30 @@ export default function InputHUD() {
                 Debug tools coming soon
               </div>
             </div>
+<div className="tg-dev-section">
+  <div className="tg-dev-section-title">ATMOSPHERE</div>
 
+  <div className="tg-dev-slider-group">
+    <label className="tg-dev-slider-label">
+      Fog Density
+    </label>
+
+    <input
+      className="tg-dev-slider"
+      type="range"
+      min="0"
+      max="100"
+      step="1"
+      defaultValue={50}
+      onChange={(event) => {
+        updateTerrainSetting(
+          "fogDensity",
+          Number(event.target.value) / 4000
+        );
+      }}
+    />
+  </div>
+</div>
             <div className="tg-dev-section">
               <div className="tg-dev-section-title">MATERIALS</div>
               <div className="tg-dev-placeholder">

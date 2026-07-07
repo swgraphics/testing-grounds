@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
+import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 
-const MAX_TREES = 2000;
-const MAX_FOLIAGE = 3000;
-const MAX_ROCKS = 1500;
+const MAX_TREES = 900;
+const MAX_FOLIAGE = 1400;
+const MAX_ROCKS = 650;
 
 function seededRandom(seed) {
   const x = Math.sin(seed * 9999) * 10000;
@@ -39,7 +40,7 @@ function countFromSlider(value, maxCount) {
   return Math.max(1, Math.floor(maxCount * normalized));
 }
 
-const TREE_POINTS = makeScatterPoints(MAX_TREES, 100, {
+const TREE_POINTS = makeScatterPoints(MAX_TREES, 10, {
   minX: -140,
   maxX: 130,
   minZ: -170,
@@ -48,7 +49,7 @@ const TREE_POINTS = makeScatterPoints(MAX_TREES, 100, {
   maxScale: 1.8,
 });
 
-const FOLIAGE_POINTS = makeScatterPoints(MAX_FOLIAGE, 1000, {
+const FOLIAGE_POINTS = makeScatterPoints(MAX_FOLIAGE, 500, {
   minX: -150,
   maxX: 150,
   minZ: -180,
@@ -57,7 +58,7 @@ const FOLIAGE_POINTS = makeScatterPoints(MAX_FOLIAGE, 1000, {
   maxScale: 1.55,
 });
 
-const ROCK_POINTS = makeScatterPoints(MAX_ROCKS, 2000, {
+const ROCK_POINTS = makeScatterPoints(MAX_ROCKS, 900, {
   minX: -160,
   maxX: 160,
   minZ: -190,
@@ -133,7 +134,6 @@ function useTerrainSetting(settingKey, fallbackValue) {
 
   useEffect(() => {
     function handleTerrainChange(event) {
-      if (event.detail.key !== settingKey) return;
       setValue(terrainSettings[settingKey] ?? fallbackValue);
     }
 
@@ -152,56 +152,104 @@ function useTerrainSetting(settingKey, fallbackValue) {
 
 function TreeScatter() {
   const treeDensity = useTerrainSetting("treeDensity", 25);
+  const heightMultiplier = useTerrainSetting("heightMultiplier", 1);
+  const mountainHeight = useTerrainSetting("mountainHeight", 1);
+  const cliffSharpness = useTerrainSetting("cliffSharpness", 1);
+  const rollingHills = useTerrainSetting("rollingHills", 1);
+  const ridgeStrength = useTerrainSetting("ridgeStrength", 1);
 
   const trees = useMemo(() => {
     const count = countFromSlider(treeDensity, MAX_TREES);
 
-    return TREE_POINTS.slice(0, count).map((point, index) => (
-      <CrimsonTree
-        key={`tree-${index}`}
-        position={[point.x, 0, point.z]}
-        scale={point.scale}
-      />
-    ));
-  }, [treeDensity]);
+    return TREE_POINTS.slice(0, count).map((point, index) => {
+      const y = getTerrainHeightAt(point.x, point.z);
+
+      return (
+        <CrimsonTree
+          key={`tree-${index}`}
+          position={[point.x, y, point.z]}
+          scale={point.scale}
+        />
+      );
+    });
+  }, [
+    treeDensity,
+    heightMultiplier,
+    mountainHeight,
+    cliffSharpness,
+    rollingHills,
+    ridgeStrength,
+  ]);
 
   return <>{trees}</>;
 }
 
 function FoliageScatter() {
   const foliageDensity = useTerrainSetting("foliageDensity", 25);
+  const heightMultiplier = useTerrainSetting("heightMultiplier", 1);
+  const mountainHeight = useTerrainSetting("mountainHeight", 1);
+  const cliffSharpness = useTerrainSetting("cliffSharpness", 1);
+  const rollingHills = useTerrainSetting("rollingHills", 1);
+  const ridgeStrength = useTerrainSetting("ridgeStrength", 1);
 
   const foliage = useMemo(() => {
     const count = countFromSlider(foliageDensity, MAX_FOLIAGE);
 
-    return FOLIAGE_POINTS.slice(0, count).map((point, index) => (
-      <CrimsonFern
-        key={`fern-${index}`}
-        position={[point.x, 0.06, point.z]}
-        scale={point.scale}
-        rotation={point.rotation}
-      />
-    ));
-  }, [foliageDensity]);
+    return FOLIAGE_POINTS.slice(0, count).map((point, index) => {
+      const y = getTerrainHeightAt(point.x, point.z) + 0.06;
+
+      return (
+        <CrimsonFern
+          key={`fern-${index}`}
+          position={[point.x, y, point.z]}
+          scale={point.scale}
+          rotation={point.rotation}
+        />
+      );
+    });
+  }, [
+    foliageDensity,
+    heightMultiplier,
+    mountainHeight,
+    cliffSharpness,
+    rollingHills,
+    ridgeStrength,
+  ]);
 
   return <>{foliage}</>;
 }
 
 function RockScatter() {
   const rockDensity = useTerrainSetting("rockDensity", 20);
+  const heightMultiplier = useTerrainSetting("heightMultiplier", 1);
+  const mountainHeight = useTerrainSetting("mountainHeight", 1);
+  const cliffSharpness = useTerrainSetting("cliffSharpness", 1);
+  const rollingHills = useTerrainSetting("rollingHills", 1);
+  const ridgeStrength = useTerrainSetting("ridgeStrength", 1);
 
   const rocks = useMemo(() => {
     const count = countFromSlider(rockDensity, MAX_ROCKS);
 
-    return ROCK_POINTS.slice(0, count).map((point, index) => (
-      <SimpleRock
-        key={`rock-${index}`}
-        position={[point.x, 0.24, point.z]}
-        scale={point.scale}
-        rotation={point.rotation}
-      />
-    ));
-  }, [rockDensity]);
+    return ROCK_POINTS.slice(0, count).map((point, index) => {
+      const y = getTerrainHeightAt(point.x, point.z) + 0.24;
+
+      return (
+        <SimpleRock
+          key={`rock-${index}`}
+          position={[point.x, y, point.z]}
+          scale={point.scale}
+          rotation={point.rotation}
+        />
+      );
+    });
+  }, [
+    rockDensity,
+    heightMultiplier,
+    mountainHeight,
+    cliffSharpness,
+    rollingHills,
+    ridgeStrength,
+  ]);
 
   return <>{rocks}</>;
 }
