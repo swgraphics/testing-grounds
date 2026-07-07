@@ -176,27 +176,32 @@ export default function InputHUD() {
               <button className="tg-side-panel-button disabled">Upload</button>
             </div>
 
-            <div className="tg-dev-section">
+           <div className="tg-dev-section">
   <div className="tg-dev-section-title">TERRAIN</div>
 
-  <label className="tg-dev-slider-label">
-    Terrain Height
-  </label>
+  {[
+    ["heightMultiplier", "Terrain Height", 0, 3, 0.1],
+    ["mountainHeight", "Mountain Height", 0, 3, 0.1],
+    ["cliffSharpness", "Cliff Sharpness", 0, 3, 0.1],
+    ["rollingHills", "Rolling Hills", 0, 3, 0.1],
+    ["ridgeStrength", "Ridge Strength", 0, 3, 0.1],
+  ].map(([key, label, min, max, step]) => (
+    <div className="tg-dev-slider-group" key={key}>
+      <label className="tg-dev-slider-label">{label}</label>
 
-  <input
-    className="tg-dev-slider"
-    type="range"
-    min="0"
-    max="3"
-    step="0.1"
-    defaultValue={terrainSettings.heightMultiplier}
-    onChange={(event) => {
-      updateTerrainSetting(
-        "heightMultiplier",
-        Number(event.target.value)
-      );
-    }}
-  />
+      <input
+        className="tg-dev-slider"
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        defaultValue={terrainSettings[key]}
+        onChange={(event) => {
+          updateTerrainSetting(key, Number(event.target.value));
+        }}
+      />
+    </div>
+  ))}
 </div>
 
             <div className="tg-dev-section">

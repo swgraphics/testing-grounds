@@ -9,24 +9,34 @@ function smoothStep(edge0, edge1, value) {
 }
 
 export default function GridTerrain() {
-  const [heightMultiplier, setHeightMultiplier] = useState(
-    terrainSettings.heightMultiplier
-  );
+  const [, refresh] = useState(0);
 
   useEffect(() => {
     function handleTerrainChange() {
-      setHeightMultiplier(terrainSettings.heightMultiplier);
+      refresh((v) => v + 1);
     }
 
-    window.addEventListener("terrain-settings-changed", handleTerrainChange);
+    window.addEventListener(
+      "terrain-settings-changed",
+      handleTerrainChange
+    );
 
     return () => {
-      window.removeEventListener("terrain-settings-changed", handleTerrainChange);
+      window.removeEventListener(
+        "terrain-settings-changed",
+        handleTerrainChange
+      );
     };
   }, []);
 
   const geometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(600, 600, 120, 120);
+    const geo = new THREE.PlaneGeometry(
+      600,
+      600,
+      120,
+      120
+    );
+
     geo.rotateX(-Math.PI / 2);
 
     const positions = geo.attributes.position;
@@ -35,39 +45,79 @@ export default function GridTerrain() {
       const x = positions.getX(i);
       const z = positions.getZ(i);
 
-      const distanceFromSpawn = Math.sqrt(x * x + z * z);
+      const distance = Math.sqrt(x * x + z * z);
 
       const flatRadius = 80;
-      const landscapeStart = 95;
-      const landscapeFull = 190;
 
       const terrainBlend = smoothStep(
-        landscapeStart,
-        landscapeFull,
-        distanceFromSpawn
+        95,
+        190,
+        distance
       );
 
-      let rollingHills = 0;
-      rollingHills += Math.sin(x * 0.018) * 10;
-      rollingHills += Math.cos(z * 0.022) * 8;
-      rollingHills += Math.sin((x + z) * 0.012) * 6;
+      //---------------------------------------------------
+      // Rolling Hills
+      //---------------------------------------------------
 
-      const mountainX = 160;
-      const mountainZ = -170;
+      let rolling = 0;
+
+      rolling +=
+        Math.sin(x * 0.018) *
+        10 *
+        terrainSettings.rollingHills;
+
+      rolling +=
+        Math.cos(z * 0.022) *
+        8 *
+        terrainSettings.rollingHills;
+
+      rolling +=
+        Math.sin((x + z) * 0.012) *
+        6 *
+        terrainSettings.rollingHills;
+
+      //---------------------------------------------------
+      // Mountain
+      //---------------------------------------------------
+
       const mountainDistance = Math.sqrt(
-        (x - mountainX) * (x - mountainX) +
-          (z - mountainZ) * (z - mountainZ)
+        (x - 160) * (x - 160) +
+          (z + 170) * (z + 170)
       );
 
-      const mountainHeight = Math.max(0, 70 - mountainDistance * 0.35);
-      const ridge = Math.max(0, Math.sin((x - 80) * 0.025) * 22);
+      const mountain =
+        Math.max(
+          0,
+          70 *
+            terrainSettings.mountainHeight -
+            mountainDistance * 0.35
+        );
+
+      //---------------------------------------------------
+      // Ridge
+      //---------------------------------------------------
+
+      const ridge =
+        Math.max(
+          0,
+          Math.sin(
+            (x - 80) *
+              0.025 *
+              terrainSettings.cliffSharpness
+          ) * 22
+        ) *
+        terrainSettings.ridgeStrength;
+
+      //---------------------------------------------------
 
       let height =
-        (rollingHills + mountainHeight + ridge) *
+        (rolling +
+          mountain +
+          ridge) *
         terrainBlend *
-        heightMultiplier;
+        terrainSettings.heightMultiplier;
 
-      if (distanceFromSpawn < flatRadius) {
+      if (distance < flatRadius) {
         height = 0;
       }
 
@@ -75,22 +125,36 @@ export default function GridTerrain() {
     }
 
     geo.computeVertexNormals();
+
     return geo;
-  }, [heightMultiplier]);
+  }, [
+    terrainSettings.heightMultiplier,
+    terrainSettings.mountainHeight,
+    terrainSettings.cliffSharpness,
+    terrainSettings.rollingHills,
+    terrainSettings.ridgeStrength,
+  ]);
 
   return (
     <RigidBody
-      key={heightMultiplier}
+      key={JSON.stringify(terrainSettings)}
       type="fixed"
       colliders="trimesh"
     >
       <mesh geometry={geometry} receiveShadow>
-        <meshStandardMaterial color="#2b333a" roughness={0.92} />
+        <meshStandardMaterial
+          color="#2b333a"
+          roughness={0.92}
+        />
       </mesh>
 
       <lineSegments>
         <wireframeGeometry args={[geometry]} />
-        <lineBasicMaterial color="#dfefff" transparent opacity={0.45} />
+        <lineBasicMaterial
+          color="#dfefff"
+          transparent
+          opacity={0.45}
+        />
       </lineSegments>
     </RigidBody>
   );
