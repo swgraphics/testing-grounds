@@ -257,8 +257,25 @@ canvas {
   box-shadow:
     0 0 22px rgba(0, 0, 0, 0.45),
     0 0 18px rgba(205, 38, 38, 0.12);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.tg-side-panel::-webkit-scrollbar {
+  width: 6px;
 }
 
+.tg-side-panel::-webkit-scrollbar-track {
+  background: rgba(5, 6, 8, 0.8);
+}
+
+.tg-side-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    #cd2626,
+    #811012
+  );
+  border-radius: 999px;
+}
 .tg-side-panel.open {
   pointer-events: auto;
   opacity: 1;

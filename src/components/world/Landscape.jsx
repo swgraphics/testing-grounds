@@ -1,5 +1,71 @@
 import { useEffect, useMemo, useState } from "react";
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
+
+const MAX_TREES = 2000;
+const MAX_FOLIAGE = 3000;
+const MAX_ROCKS = 1500;
+
+function seededRandom(seed) {
+  const x = Math.sin(seed * 9999) * 10000;
+  return x - Math.floor(x);
+}
+
+function makeScatterPoints(count, seedOffset, bounds) {
+  const points = [];
+
+  for (let i = 0; i < count; i++) {
+    points.push({
+      x: bounds.minX + seededRandom(i + seedOffset) * (bounds.maxX - bounds.minX),
+      z: bounds.minZ + seededRandom(i + seedOffset + 1000) * (bounds.maxZ - bounds.minZ),
+      scale:
+        bounds.minScale +
+        seededRandom(i + seedOffset + 2000) *
+          (bounds.maxScale - bounds.minScale),
+      rotation: seededRandom(i + seedOffset + 3000) * Math.PI * 2,
+    });
+  }
+
+  return points;
+}
+
+function countFromSlider(value, maxCount) {
+  const safeValue = Number(value) || 0;
+
+  if (safeValue <= 0) return 0;
+  if (safeValue >= 100) return maxCount;
+
+  const normalized = safeValue / 100;
+
+  return Math.max(1, Math.floor(maxCount * normalized));
+}
+
+const TREE_POINTS = makeScatterPoints(MAX_TREES, 100, {
+  minX: -140,
+  maxX: 130,
+  minZ: -170,
+  maxZ: 150,
+  minScale: 0.55,
+  maxScale: 1.8,
+});
+
+const FOLIAGE_POINTS = makeScatterPoints(MAX_FOLIAGE, 1000, {
+  minX: -150,
+  maxX: 150,
+  minZ: -180,
+  maxZ: 170,
+  minScale: 0.45,
+  maxScale: 1.55,
+});
+
+const ROCK_POINTS = makeScatterPoints(MAX_ROCKS, 2000, {
+  minX: -160,
+  maxX: 160,
+  minZ: -190,
+  maxZ: 180,
+  minScale: 0.3,
+  maxScale: 1.55,
+});
+
 function CrimsonTree({ position, scale = 1 }) {
   return (
     <group position={position} scale={scale}>
@@ -12,7 +78,7 @@ function CrimsonTree({ position, scale = 1 }) {
         <coneGeometry args={[1.4, 3.2, 6]} />
         <meshStandardMaterial
           color="#12060a"
-          emissive="#8b1026"
+          emissive="#cd2626"
           emissiveIntensity={0.22}
           roughness={0.8}
         />
@@ -21,18 +87,57 @@ function CrimsonTree({ position, scale = 1 }) {
   );
 }
 
-function ForestCluster() {
-  const [, refresh] = useState(0);
+function CrimsonFern({ position, scale = 1, rotation = 0 }) {
+  return (
+    <group position={position} scale={scale} rotation={[0, rotation, 0]}>
+      {[0, 1, 2, 3, 4, 5].map((leaf) => (
+        <mesh
+          key={leaf}
+          position={[0, 0.18, 0]}
+          rotation={[-Math.PI / 2.7, 0, (Math.PI * 2 * leaf) / 6]}
+          castShadow
+        >
+          <planeGeometry args={[0.28, 2.2]} />
+          <meshStandardMaterial
+            color="#16070a"
+            emissive="#cd2626"
+            emissiveIntensity={0.18}
+            roughness={0.9}
+            side={2}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function SimpleRock({ position, scale = 1, rotation = 0 }) {
+  return (
+    <mesh
+      position={position}
+      scale={[scale * 1.2, scale * 0.55, scale]}
+      rotation={[0, rotation, 0]}
+      castShadow
+      receiveShadow
+    >
+      <dodecahedronGeometry args={[1, 0]} />
+      <meshStandardMaterial color="#20272d" roughness={0.95} />
+    </mesh>
+  );
+}
+
+function useTerrainSetting(settingKey, fallbackValue) {
+  const [value, setValue] = useState(
+    terrainSettings[settingKey] ?? fallbackValue
+  );
 
   useEffect(() => {
-    function handleTerrainChange() {
-      refresh((v) => v + 1);
+    function handleTerrainChange(event) {
+      if (event.detail.key !== settingKey) return;
+      setValue(terrainSettings[settingKey] ?? fallbackValue);
     }
 
-    window.addEventListener(
-      "terrain-settings-changed",
-      handleTerrainChange
-    );
+    window.addEventListener("terrain-settings-changed", handleTerrainChange);
 
     return () => {
       window.removeEventListener(
@@ -40,33 +145,65 @@ function ForestCluster() {
         handleTerrainChange
       );
     };
-  }, []);
+  }, [settingKey, fallbackValue]);
+
+  return value;
+}
+
+function TreeScatter() {
+  const treeDensity = useTerrainSetting("treeDensity", 25);
 
   const trees = useMemo(() => {
-    const result = [];
+    const count = countFromSlider(treeDensity, MAX_TREES);
 
-    const treeCount = Math.floor(
-      90 * terrainSettings.treeDensity
-    );
-
-    for (let i = 0; i < treeCount; i++) {
-      const x = -160 + Math.random() * 130;
-      const z = -180 + Math.random() * 160;
-      const scale = 0.65 + Math.random() * 1.25;
-
-      result.push(
-        <CrimsonTree
-          key={i}
-          position={[x, 0, z]}
-          scale={scale}
-        />
-      );
-    }
-
-    return result;
-  }, [terrainSettings.treeDensity]);
+    return TREE_POINTS.slice(0, count).map((point, index) => (
+      <CrimsonTree
+        key={`tree-${index}`}
+        position={[point.x, 0, point.z]}
+        scale={point.scale}
+      />
+    ));
+  }, [treeDensity]);
 
   return <>{trees}</>;
+}
+
+function FoliageScatter() {
+  const foliageDensity = useTerrainSetting("foliageDensity", 25);
+
+  const foliage = useMemo(() => {
+    const count = countFromSlider(foliageDensity, MAX_FOLIAGE);
+
+    return FOLIAGE_POINTS.slice(0, count).map((point, index) => (
+      <CrimsonFern
+        key={`fern-${index}`}
+        position={[point.x, 0.06, point.z]}
+        scale={point.scale}
+        rotation={point.rotation}
+      />
+    ));
+  }, [foliageDensity]);
+
+  return <>{foliage}</>;
+}
+
+function RockScatter() {
+  const rockDensity = useTerrainSetting("rockDensity", 20);
+
+  const rocks = useMemo(() => {
+    const count = countFromSlider(rockDensity, MAX_ROCKS);
+
+    return ROCK_POINTS.slice(0, count).map((point, index) => (
+      <SimpleRock
+        key={`rock-${index}`}
+        position={[point.x, 0.24, point.z]}
+        scale={point.scale}
+        rotation={point.rotation}
+      />
+    ));
+  }, [rockDensity]);
+
+  return <>{rocks}</>;
 }
 
 function PaleWaterPatch({ position, scale }) {
@@ -86,12 +223,9 @@ function PaleWaterPatch({ position, scale }) {
 export default function Landscape() {
   return (
     <>
-      <ForestCluster />
-
-      <CrimsonTree position={[-90, 0, -75]} scale={1.4} />
-      <CrimsonTree position={[-115, 0, -95]} scale={1.1} />
-      <CrimsonTree position={[95, 0, 105]} scale={1.2} />
-      <CrimsonTree position={[130, 0, 125]} scale={0.9} />
+      <TreeScatter />
+      <FoliageScatter />
+      <RockScatter />
 
       <PaleWaterPatch position={[0, 0.08, 170]} scale={[42, 24, 1]} />
       <PaleWaterPatch position={[145, 0.08, 155]} scale={[35, 18, 1]} />

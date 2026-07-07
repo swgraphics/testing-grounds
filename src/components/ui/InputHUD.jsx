@@ -186,7 +186,10 @@ export default function InputHUD() {
   ["rollingHills", "Rolling Hills", 0, 3, 0.1],
   ["ridgeStrength", "Ridge Strength", 0, 3, 0.1],
   ["treeDensity", "Tree Scatter", 0, 3, 0.1],
-].map(([key, label, min, max, step]) => (
+  ["foliageDensity", "Foliage Scatter", 0, 3, 0.1],
+  ["rockDensity", "Rock Scatter", 0, 3, 0.1],
+]
+.map(([key, label, min, max, step]) => (
     <div className="tg-dev-slider-group" key={key}>
       <label className="tg-dev-slider-label">{label}</label>
 

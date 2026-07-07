@@ -4,7 +4,10 @@ export const terrainSettings = {
   cliffSharpness: 1,
   rollingHills: 1,
   ridgeStrength: 1,
-  treeDensity: 1,
+
+  treeDensity: 25,
+  foliageDensity: 25,
+  rockDensity: 20,
 };
 
 export function updateTerrainSetting(key, value) {
