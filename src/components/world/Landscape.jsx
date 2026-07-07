@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from "react";
+import { terrainSettings } from "../../systems/terrain/terrainSettings";
 function CrimsonTree({ position, scale = 1 }) {
   return (
     <group position={position} scale={scale}>
@@ -20,21 +22,49 @@ function CrimsonTree({ position, scale = 1 }) {
 }
 
 function ForestCluster() {
-  const trees = [];
+  const [, refresh] = useState(0);
 
-  for (let i = 0; i < 90; i++) {
-    const x = -160 + Math.random() * 130;
-    const z = -180 + Math.random() * 160;
-    const scale = 0.65 + Math.random() * 1.25;
+  useEffect(() => {
+    function handleTerrainChange() {
+      refresh((v) => v + 1);
+    }
 
-    trees.push(
-      <CrimsonTree
-        key={i}
-        position={[x, 0, z]}
-        scale={scale}
-      />
+    window.addEventListener(
+      "terrain-settings-changed",
+      handleTerrainChange
     );
-  }
+
+    return () => {
+      window.removeEventListener(
+        "terrain-settings-changed",
+        handleTerrainChange
+      );
+    };
+  }, []);
+
+  const trees = useMemo(() => {
+    const result = [];
+
+    const treeCount = Math.floor(
+      90 * terrainSettings.treeDensity
+    );
+
+    for (let i = 0; i < treeCount; i++) {
+      const x = -160 + Math.random() * 130;
+      const z = -180 + Math.random() * 160;
+      const scale = 0.65 + Math.random() * 1.25;
+
+      result.push(
+        <CrimsonTree
+          key={i}
+          position={[x, 0, z]}
+          scale={scale}
+        />
+      );
+    }
+
+    return result;
+  }, [terrainSettings.treeDensity]);
 
   return <>{trees}</>;
 }

@@ -180,12 +180,13 @@ export default function InputHUD() {
   <div className="tg-dev-section-title">TERRAIN</div>
 
   {[
-    ["heightMultiplier", "Terrain Height", 0, 3, 0.1],
-    ["mountainHeight", "Mountain Height", 0, 3, 0.1],
-    ["cliffSharpness", "Cliff Sharpness", 0, 3, 0.1],
-    ["rollingHills", "Rolling Hills", 0, 3, 0.1],
-    ["ridgeStrength", "Ridge Strength", 0, 3, 0.1],
-  ].map(([key, label, min, max, step]) => (
+  ["heightMultiplier", "Terrain Height", 0, 3, 0.1],
+  ["mountainHeight", "Mountain Height", 0, 3, 0.1],
+  ["cliffSharpness", "Cliff Sharpness", 0, 3, 0.1],
+  ["rollingHills", "Rolling Hills", 0, 3, 0.1],
+  ["ridgeStrength", "Ridge Strength", 0, 3, 0.1],
+  ["treeDensity", "Tree Scatter", 0, 3, 0.1],
+].map(([key, label, min, max, step]) => (
     <div className="tg-dev-slider-group" key={key}>
       <label className="tg-dev-slider-label">{label}</label>
 
