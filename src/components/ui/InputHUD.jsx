@@ -3,6 +3,9 @@ import { inputState } from "../../systems/input/inputState";
 import {
   terrainSettings,
   updateTerrainSetting,
+  saveWorldSettings,
+  loadWorldSettings,
+  resetWorldSettings,
 } from "../../systems/terrain/terrainSettings";
 function KeyBox({ label, active }) {
   return <div className={`tg-key-box ${active ? "active" : ""}`}>{label}</div>;
@@ -199,10 +202,11 @@ export default function InputHUD() {
         min={min}
         max={max}
         step={step}
-        defaultValue={terrainSettings[key]}
+        value={terrainSettings[key]}
         onChange={(event) => {
-          updateTerrainSetting(key, Number(event.target.value));
-        }}
+  updateTerrainSetting(key, Number(event.target.value));
+  refresh();
+}}
       />
     </div>
   ))}
@@ -222,26 +226,63 @@ export default function InputHUD() {
 <div className="tg-dev-section">
   <div className="tg-dev-section-title">ATMOSPHERE</div>
 
-  <div className="tg-dev-slider-group">
-    <label className="tg-dev-slider-label">
-      Fog Density
-    </label>
+  {[
+    ["fogDensity", "Fog Density", 0, 100, 1],
+    ["sunHeight", "Sun Height", 0, 100, 1],
+    ["sunRotation", "Sun Rotation", 0, 100, 1],
+    ["skyHaze", "Sky Haze", 0, 100, 1],
+    ["stars", "Stars", 0, 100, 1],
+  ].map(([key, label, min, max, step]) => (
+    <div className="tg-dev-slider-group" key={key}>
+      <label className="tg-dev-slider-label">{label}</label>
 
-    <input
-      className="tg-dev-slider"
-      type="range"
-      min="0"
-      max="100"
-      step="1"
-      defaultValue={50}
-      onChange={(event) => {
-        updateTerrainSetting(
-          "fogDensity",
-          Number(event.target.value) / 4000
-        );
-      }}
-    />
-  </div>
+      <input
+        className="tg-dev-slider"
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={terrainSettings[key]}
+        onChange={(event) => {
+          updateTerrainSetting(key, Number(event.target.value));
+          refresh();
+        }}
+      />
+    </div>
+  ))}
+  <div className="tg-dev-section">
+  <div className="tg-dev-section-title">WORLD</div>
+
+  <button
+    className="tg-side-panel-button"
+    onClick={() => {
+      saveWorldSettings();
+      refresh();
+    }}
+  >
+    Save World
+  </button>
+
+  <button
+    className="tg-side-panel-button"
+    onClick={() => {
+      loadWorldSettings();
+      refresh();
+    }}
+  >
+    Load World
+  </button>
+
+  <button
+    className="tg-side-panel-button"
+    onClick={() => {
+      resetWorldSettings();
+      refresh();
+    }}
+  >
+    Reset World
+  </button>
+</div>
 </div>
             <div className="tg-dev-section">
               <div className="tg-dev-section-title">MATERIALS</div>
