@@ -448,6 +448,8 @@ canvas {
     height: calc(100vh - 120px);
     padding: 18px;
     transform: translateX(100%);
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .tg-side-panel.open {
@@ -466,12 +468,15 @@ canvas {
 /* Desktop Dev Tools */
 
 @media (min-width: 900px) {
-  .tg-side-panel {
+    .tg-side-panel {
     right: 20px;
     bottom: 72px;
     width: 260px;
+    max-height: calc(100vh - 110px);
     padding: 18px;
     transform: translateY(140%);
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .tg-side-panel.open {
@@ -706,7 +711,44 @@ canvas {
   opacity: 1;
   transform: translateY(0);
 }
+/* =======================================================
+   Compass Bar
+======================================================= */
 
+.tg-compass-bar {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+
+  width: 260px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 42px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(129, 16, 18, 0) 0%,
+    rgba(129, 16, 18, 0.72) 22%,
+    rgba(205, 38, 38, 0.82) 50%,
+    rgba(129, 16, 18, 0.72) 78%,
+    rgba(129, 16, 18, 0) 100%
+  );
+
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+}
+
+.tg-compass-mark {
+  font-size: 22px;
+}
 /* =======================================================
    Responsive Visibility
 ======================================================= */

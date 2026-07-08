@@ -6,6 +6,7 @@ import { Physics } from "@react-three/rapier";
 import TestingGrounds from "./scenes/TestingGrounds";
 import InputHUD from "./components/ui/InputHUD";
 import TitleScreen from "./components/ui/TitleScreen";
+import CompassBar from "./components/ui/CompassBar";
 
 export default function App() {
   const [showTitleScreen, setShowTitleScreen] = useState(true);
@@ -22,7 +23,12 @@ export default function App() {
         <Stats />
       </Canvas>
 
-      {!showTitleScreen && <InputHUD />}
+      {!showTitleScreen && (
+  <>
+    <CompassBar />
+    <InputHUD />
+  </>
+)}
 
       {showTitleScreen && (
         <TitleScreen onStart={() => setShowTitleScreen(false)} />

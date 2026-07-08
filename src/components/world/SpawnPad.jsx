@@ -11,11 +11,6 @@ export default function SpawnPad() {
         </mesh>
       </RigidBody>
 
-      <mesh position={[0, 0.18, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[3, 3.4, 64]} />
-        <meshBasicMaterial color="#66ccff" />
-      </mesh>
-
       <Text
         position={[0, 0.22, -7]}
         rotation={[-Math.PI / 2, 0, 0]}

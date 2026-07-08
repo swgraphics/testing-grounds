@@ -9,7 +9,7 @@ export function smoothStep(edge0, edge1, value) {
 export function getTerrainHeightAt(x, z) {
   const distance = Math.sqrt(x * x + z * z);
 
-  const flatRadius = 80;
+  const flatSquareSize = 90;
 
   const terrainBlend = smoothStep(95, 190, distance);
 
@@ -39,7 +39,19 @@ export function getTerrainHeightAt(x, z) {
     terrainBlend *
     terrainSettings.heightMultiplier;
 
-  if (distance < flatRadius) {
+  const plateauStrength = (terrainSettings.plateauAmount ?? 0) / 100;
+  const plateauLevel = 42 * terrainSettings.heightMultiplier;
+
+  if (height > plateauLevel) {
+    const flattenedHeight = plateauLevel + (height - plateauLevel) * 0.16;
+
+    height = THREE.MathUtils.lerp(height, flattenedHeight, plateauStrength);
+  }
+
+  const insideSpawnSquare =
+    Math.abs(x) < flatSquareSize && Math.abs(z) < flatSquareSize;
+
+  if (insideSpawnSquare) {
     height = 0;
   }
 
