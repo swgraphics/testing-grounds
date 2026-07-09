@@ -6,6 +6,7 @@ import {
   saveWorldSettings,
   loadWorldSettings,
   resetWorldSettings,
+  reshuffleScatter,
 } from "../../systems/terrain/terrainSettings";
 function KeyBox({ label, active }) {
   return <div className={`tg-key-box ${active ? "active" : ""}`}>{label}</div>;
@@ -188,7 +189,8 @@ export default function InputHUD() {
   ["cliffSharpness", "Cliff Sharpness", 0, 3, 0.1],
   ["rollingHills", "Rolling Hills", 0, 3, 0.1],
   ["ridgeStrength", "Ridge Strength", 0, 3, 0.1],
-  ["treeDensity", "Tree Scatter", 0, 100, 1],
+  ["treeDensity", "Tree Density", 0, 100, 1],
+  ["treeCoverage", "Tree Coverage", 0, 100, 1],
   ["foliageDensity", "Foliage Scatter", 0, 100, 1],
   ["rockDensity", "Rock Scatter", 0, 100, 1],
 ]
@@ -210,6 +212,15 @@ export default function InputHUD() {
       />
     </div>
   ))}
+  <button
+  className="tg-side-panel-button"
+  onClick={() => {
+    reshuffleScatter();
+    refresh();
+  }}
+>
+  Reshuffle Scatter
+</button>
 </div>
 
             <div className="tg-dev-section">

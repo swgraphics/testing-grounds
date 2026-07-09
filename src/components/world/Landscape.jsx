@@ -40,14 +40,19 @@ function countFromSlider(value, maxCount) {
   return Math.max(1, Math.floor(maxCount * normalized));
 }
 
-const TREE_POINTS = makeScatterPoints(MAX_TREES, 10, {
-  minX: -140,
-  maxX: 130,
-  minZ: -170,
-  maxZ: 150,
-  minScale: 0.55,
-  maxScale: 1.8,
-});
+function makeTreePoints() {
+  const coverage = terrainSettings.treeCoverage ?? 50;
+  const spread = 80 + coverage * 2.2;
+
+  return makeScatterPoints(MAX_TREES, 10 + terrainSettings.scatterSeed * 100, {
+    minX: -spread,
+    maxX: spread,
+    minZ: -spread,
+    maxZ: spread,
+    minScale: 0.55,
+    maxScale: 1.8,
+  });
+}
 
 const FOLIAGE_POINTS = makeScatterPoints(MAX_FOLIAGE, 500, {
   minX: -150,
@@ -157,11 +162,12 @@ function TreeScatter() {
   const cliffSharpness = useTerrainSetting("cliffSharpness", 1);
   const rollingHills = useTerrainSetting("rollingHills", 1);
   const ridgeStrength = useTerrainSetting("ridgeStrength", 1);
-
+  const treeCoverage = useTerrainSetting("treeCoverage", 50);
+  const scatterSeed = useTerrainSetting("scatterSeed", 1);
   const trees = useMemo(() => {
     const count = countFromSlider(treeDensity, MAX_TREES);
 
-    return TREE_POINTS.slice(0, count).map((point, index) => {
+    return makeTreePoints().slice(0, count).map((point, index) => {
       const y = getTerrainHeightAt(point.x, point.z);
 
       return (
@@ -174,6 +180,8 @@ function TreeScatter() {
     });
   }, [
     treeDensity,
+    treeCoverage,
+    scatterSeed,
     heightMultiplier,
     mountainHeight,
     cliffSharpness,

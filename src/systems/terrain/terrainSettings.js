@@ -9,6 +9,8 @@ export const DEFAULT_TERRAIN_SETTINGS = {
   foliageDensity: 50,
   rockDensity: 50,
 
+  scatterSeed: 1,
+
   fogDensity: 50,
   sunHeight: 50,
   sunRotation: 50,
@@ -66,4 +68,14 @@ export function resetWorldSettings() {
   Object.assign(terrainSettings, DEFAULT_TERRAIN_SETTINGS);
 
   broadcastAllTerrainSettings();
+}
+
+export function reshuffleScatter() {
+  terrainSettings.scatterSeed += 1;
+
+  window.dispatchEvent(
+    new CustomEvent("terrain-settings-changed", {
+      detail: { key: "scatterSeed", value: terrainSettings.scatterSeed },
+    })
+  );
 }
