@@ -14,6 +14,9 @@ export const DEFAULT_TERRAIN_SETTINGS = {
   sunRotation: 50,
   skyHaze: 50,
   stars: 50,
+
+  sunCycleEnabled: 0,
+  sunCycleMinutes: 1,
 };
 
 export const terrainSettings = {

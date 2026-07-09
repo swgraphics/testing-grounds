@@ -226,13 +226,15 @@ export default function InputHUD() {
 <div className="tg-dev-section">
   <div className="tg-dev-section-title">ATMOSPHERE</div>
 
-  {[
-    ["fogDensity", "Fog Density", 0, 100, 1],
-    ["sunHeight", "Sun Height", 0, 100, 1],
-    ["sunRotation", "Sun Rotation", 0, 100, 1],
-    ["skyHaze", "Sky Haze", 0, 100, 1],
-    ["stars", "Stars", 0, 100, 1],
-  ].map(([key, label, min, max, step]) => (
+{[
+  ["fogDensity", "Fog Density", 0, 100, 1],
+  ["sunHeight", "Sun Height", 0, 100, 1],
+  ["sunRotation", "Sun Rotation", 0, 100, 1],
+  ["skyHaze", "Sky Haze", 0, 100, 1],
+  ["stars", "Stars", 0, 100, 1],
+  ["sunCycleEnabled", "Sun Cycle On / Off", 0, 1, 1],
+  ["sunCycleMinutes", "Cycle Minutes", 1, 10, 1],
+].map(([key, label, min, max, step]) => (
     <div className="tg-dev-slider-group" key={key}>
       <label className="tg-dev-slider-label">{label}</label>
 
