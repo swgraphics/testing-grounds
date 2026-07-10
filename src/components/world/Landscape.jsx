@@ -5,6 +5,7 @@ import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 const MAX_TREES = 900;
 const MAX_FOLIAGE = 1400;
 const MAX_ROCKS = 650;
+const MAX_GRASS = 1800;
 
 function seededRandom(seed) {
   const x = Math.sin(seed * 9999) * 10000;
@@ -23,6 +24,7 @@ function makeScatterPoints(count, seedOffset, bounds) {
         seededRandom(i + seedOffset + 2000) *
           (bounds.maxScale - bounds.minScale),
       rotation: seededRandom(i + seedOffset + 3000) * Math.PI * 2,
+      variant: seededRandom(i + seedOffset + 4000),
     });
   }
 
@@ -31,13 +33,9 @@ function makeScatterPoints(count, seedOffset, bounds) {
 
 function countFromSlider(value, maxCount) {
   const safeValue = Number(value) || 0;
-
   if (safeValue <= 0) return 0;
   if (safeValue >= 100) return maxCount;
-
-  const normalized = safeValue / 100;
-
-  return Math.max(1, Math.floor(maxCount * normalized));
+  return Math.max(1, Math.floor(maxCount * (safeValue / 100)));
 }
 
 function makeTreePoints() {
@@ -51,6 +49,20 @@ function makeTreePoints() {
     maxZ: spread,
     minScale: 0.55,
     maxScale: 1.8,
+  });
+}
+
+function makeGrassPoints() {
+  const coverage = terrainSettings.grassCoverage ?? 50;
+  const spread = 70 + coverage * 2.35;
+
+  return makeScatterPoints(MAX_GRASS, 1400 + terrainSettings.scatterSeed * 100, {
+    minX: -spread,
+    maxX: spread,
+    minZ: -spread,
+    maxZ: spread,
+    minScale: 0.55,
+    maxScale: 1.35,
   });
 }
 
@@ -117,11 +129,20 @@ function CrimsonFern({ position, scale = 1, rotation = 0 }) {
   );
 }
 
-function SimpleRock({ position, scale = 1, rotation = 0 }) {
+function SimpleRock({
+  position,
+  scale = 1,
+  rotation = 0,
+  boulderMultiplier = 1,
+}) {
   return (
     <mesh
       position={position}
-      scale={[scale * 1.2, scale * 0.55, scale]}
+      scale={[
+        scale * 1.2 * boulderMultiplier,
+        scale * 0.55 * boulderMultiplier,
+        scale * boulderMultiplier,
+      ]}
       rotation={[0, rotation, 0]}
       castShadow
       receiveShadow
@@ -132,13 +153,39 @@ function SimpleRock({ position, scale = 1, rotation = 0 }) {
   );
 }
 
+function GrassClump({ position, scale = 1, rotation = 0, height = 1 }) {
+  const blades = 7;
+
+  return (
+    <group position={position} scale={scale} rotation={[0, rotation, 0]}>
+      {Array.from({ length: blades }).map((_, index) => (
+        <mesh
+          key={index}
+          position={[0, height * 0.45, 0]}
+          rotation={[0.18, (Math.PI * 2 * index) / blades, 0]}
+          castShadow
+        >
+          <planeGeometry args={[0.035, height]} />
+          <meshStandardMaterial
+            color="#16070a"
+            emissive="#cd2626"
+            emissiveIntensity={0.1}
+            roughness={0.9}
+            side={2}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function useTerrainSetting(settingKey, fallbackValue) {
   const [value, setValue] = useState(
     terrainSettings[settingKey] ?? fallbackValue
   );
 
   useEffect(() => {
-    function handleTerrainChange(event) {
+    function handleTerrainChange() {
       setValue(terrainSettings[settingKey] ?? fallbackValue);
     }
 
@@ -155,15 +202,30 @@ function useTerrainSetting(settingKey, fallbackValue) {
   return value;
 }
 
-function TreeScatter() {
-  const treeDensity = useTerrainSetting("treeDensity", 25);
+function useTerrainShapeRefresh() {
   const heightMultiplier = useTerrainSetting("heightMultiplier", 1);
   const mountainHeight = useTerrainSetting("mountainHeight", 1);
   const cliffSharpness = useTerrainSetting("cliffSharpness", 1);
   const rollingHills = useTerrainSetting("rollingHills", 1);
   const ridgeStrength = useTerrainSetting("ridgeStrength", 1);
+  const plateauAmount = useTerrainSetting("plateauAmount", 0);
+
+  return [
+    heightMultiplier,
+    mountainHeight,
+    cliffSharpness,
+    rollingHills,
+    ridgeStrength,
+    plateauAmount,
+  ];
+}
+
+function TreeScatter() {
+  const treeDensity = useTerrainSetting("treeDensity", 25);
   const treeCoverage = useTerrainSetting("treeCoverage", 50);
   const scatterSeed = useTerrainSetting("scatterSeed", 1);
+  const terrainShape = useTerrainShapeRefresh();
+
   const trees = useMemo(() => {
     const count = countFromSlider(treeDensity, MAX_TREES);
 
@@ -178,27 +240,14 @@ function TreeScatter() {
         />
       );
     });
-  }, [
-    treeDensity,
-    treeCoverage,
-    scatterSeed,
-    heightMultiplier,
-    mountainHeight,
-    cliffSharpness,
-    rollingHills,
-    ridgeStrength,
-  ]);
+  }, [treeDensity, treeCoverage, scatterSeed, ...terrainShape]);
 
   return <>{trees}</>;
 }
 
 function FoliageScatter() {
   const foliageDensity = useTerrainSetting("foliageDensity", 25);
-  const heightMultiplier = useTerrainSetting("heightMultiplier", 1);
-  const mountainHeight = useTerrainSetting("mountainHeight", 1);
-  const cliffSharpness = useTerrainSetting("cliffSharpness", 1);
-  const rollingHills = useTerrainSetting("rollingHills", 1);
-  const ridgeStrength = useTerrainSetting("ridgeStrength", 1);
+  const terrainShape = useTerrainShapeRefresh();
 
   const foliage = useMemo(() => {
     const count = countFromSlider(foliageDensity, MAX_FOLIAGE);
@@ -215,31 +264,25 @@ function FoliageScatter() {
         />
       );
     });
-  }, [
-    foliageDensity,
-    heightMultiplier,
-    mountainHeight,
-    cliffSharpness,
-    rollingHills,
-    ridgeStrength,
-  ]);
+  }, [foliageDensity, ...terrainShape]);
 
   return <>{foliage}</>;
 }
 
 function RockScatter() {
   const rockDensity = useTerrainSetting("rockDensity", 20);
-  const heightMultiplier = useTerrainSetting("heightMultiplier", 1);
-  const mountainHeight = useTerrainSetting("mountainHeight", 1);
-  const cliffSharpness = useTerrainSetting("cliffSharpness", 1);
-  const rollingHills = useTerrainSetting("rollingHills", 1);
-  const ridgeStrength = useTerrainSetting("ridgeStrength", 1);
+  const boulderAmount = useTerrainSetting("boulderAmount", 0);
+  const boulderHeight = useTerrainSetting("boulderHeight", 50);
+  const terrainShape = useTerrainShapeRefresh();
 
   const rocks = useMemo(() => {
     const count = countFromSlider(rockDensity, MAX_ROCKS);
+    const boulderChance = (Number(boulderAmount) || 0) / 100;
+    const boulderSize = 1 + ((Number(boulderHeight) || 0) / 100) * 3;
 
     return ROCK_POINTS.slice(0, count).map((point, index) => {
       const y = getTerrainHeightAt(point.x, point.z) + 0.24;
+      const isBoulder = point.variant < boulderChance;
 
       return (
         <SimpleRock
@@ -247,19 +290,42 @@ function RockScatter() {
           position={[point.x, y, point.z]}
           scale={point.scale}
           rotation={point.rotation}
+          boulderMultiplier={isBoulder ? boulderSize : 1}
         />
       );
     });
-  }, [
-    rockDensity,
-    heightMultiplier,
-    mountainHeight,
-    cliffSharpness,
-    rollingHills,
-    ridgeStrength,
-  ]);
+  }, [rockDensity, boulderAmount, boulderHeight, ...terrainShape]);
 
   return <>{rocks}</>;
+}
+
+function GrassScatter() {
+  const grassDensity = useTerrainSetting("grassDensity", 0);
+  const grassCoverage = useTerrainSetting("grassCoverage", 50);
+  const grassHeight = useTerrainSetting("grassHeight", 50);
+  const scatterSeed = useTerrainSetting("scatterSeed", 1);
+  const terrainShape = useTerrainShapeRefresh();
+
+  const grass = useMemo(() => {
+    const count = countFromSlider(grassDensity, MAX_GRASS);
+    const bladeHeight = 0.35 + ((Number(grassHeight) || 0) / 100) * 1.65;
+
+    return makeGrassPoints().slice(0, count).map((point, index) => {
+      const y = getTerrainHeightAt(point.x, point.z) + 0.03;
+
+      return (
+        <GrassClump
+          key={`grass-${index}`}
+          position={[point.x, y, point.z]}
+          scale={point.scale}
+          rotation={point.rotation}
+          height={bladeHeight}
+        />
+      );
+    });
+  }, [grassDensity, grassCoverage, grassHeight, scatterSeed, ...terrainShape]);
+
+  return <>{grass}</>;
 }
 
 function PaleWaterPatch({ position, scale }) {
@@ -281,6 +347,7 @@ export default function Landscape() {
     <>
       <TreeScatter />
       <FoliageScatter />
+      <GrassScatter />
       <RockScatter />
 
       <PaleWaterPatch position={[0, 0.08, 170]} scale={[42, 24, 1]} />

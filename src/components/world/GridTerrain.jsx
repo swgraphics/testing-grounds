@@ -40,12 +40,13 @@ export default function GridTerrain() {
 
     return geo;
   }, [
-    terrainSettings.heightMultiplier,
-    terrainSettings.mountainHeight,
-    terrainSettings.cliffSharpness,
-    terrainSettings.rollingHills,
-    terrainSettings.ridgeStrength,
-  ]);
+  terrainSettings.heightMultiplier,
+  terrainSettings.mountainHeight,
+  terrainSettings.cliffSharpness,
+  terrainSettings.rollingHills,
+  terrainSettings.ridgeStrength,
+  terrainSettings.plateauAmount,
+]);
 
   return (
     <RigidBody key={JSON.stringify(terrainSettings)} type="fixed" colliders="trimesh">

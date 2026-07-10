@@ -4,10 +4,19 @@ export const DEFAULT_TERRAIN_SETTINGS = {
   cliffSharpness: 1.5,
   rollingHills: 1.5,
   ridgeStrength: 1.5,
+  plateauAmount: 0,
 
   treeDensity: 50,
+  treeCoverage: 50,
   foliageDensity: 50,
   rockDensity: 50,
+
+  grassDensity: 0,
+  grassCoverage: 50,
+  grassHeight: 50,
+
+  boulderAmount: 0,
+  boulderHeight: 50,
 
   scatterSeed: 1,
 
@@ -16,7 +25,6 @@ export const DEFAULT_TERRAIN_SETTINGS = {
   sunRotation: 50,
   skyHaze: 50,
   stars: 50,
-
   sunCycleEnabled: 0,
   sunCycleMinutes: 1,
 };
@@ -54,19 +62,15 @@ export function saveWorldSettings() {
 
 export function loadWorldSettings() {
   const saved = localStorage.getItem("testingGroundsWorldSettings");
-
   if (!saved) return;
 
   const parsed = JSON.parse(saved);
-
   Object.assign(terrainSettings, parsed);
-
   broadcastAllTerrainSettings();
 }
 
 export function resetWorldSettings() {
   Object.assign(terrainSettings, DEFAULT_TERRAIN_SETTINGS);
-
   broadcastAllTerrainSettings();
 }
 
@@ -75,7 +79,10 @@ export function reshuffleScatter() {
 
   window.dispatchEvent(
     new CustomEvent("terrain-settings-changed", {
-      detail: { key: "scatterSeed", value: terrainSettings.scatterSeed },
+      detail: {
+        key: "scatterSeed",
+        value: terrainSettings.scatterSeed,
+      },
     })
   );
 }
