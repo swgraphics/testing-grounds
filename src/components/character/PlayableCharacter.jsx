@@ -147,7 +147,15 @@ function EmbeddedAnimatedCharacter({ character, animationState }) {
   );
 }
 
-export default function PlayableCharacter({ character, animationState = "idle" }) {
+export default function PlayableCharacter({ 
+  character, 
+  animationState = "idle", 
+  hidden = false,
+}) {
+  if (hidden) {
+    return null;
+  }
+
   if (character.animationSource === "embedded") {
     return (
       <EmbeddedAnimatedCharacter

@@ -376,7 +376,41 @@ canvas {
 
   background: transparent;
 }
+/* =======================================================
+   Dev Tool Button Rows
+======================================================= */
 
+.tg-dev-button-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 8px 0;
+}
+
+.tg-dev-speed-button {
+  min-width: 0;
+  height: 34px;
+  border: 1px solid rgba(205, 38, 38, 0.72);
+  background: rgba(5, 6, 8, 0.72);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.tg-dev-speed-button:hover,
+.tg-dev-speed-button.active,
+.tg-side-panel-button.active {
+  border-color: var(--tg-crimson);
+  background: linear-gradient(
+    90deg,
+    var(--tg-maroon) 0%,
+    var(--tg-crimson) 100%
+  );
+  box-shadow: 0 0 14px rgba(205, 38, 38, 0.28);
+}
 /* Track */
 
 .tg-dev-slider::-webkit-slider-runnable-track {

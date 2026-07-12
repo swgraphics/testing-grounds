@@ -8,6 +8,10 @@ import {
   resetWorldSettings,
   reshuffleScatter,
 } from "../../systems/terrain/terrainSettings";
+import {
+  devSettings,
+  updateDevSetting,
+} from "../../systems/dev/devSettings";
 function KeyBox({ label, active }) {
   return <div className={`tg-key-box ${active ? "active" : ""}`}>{label}</div>;
 }
@@ -17,7 +21,10 @@ export default function InputHUD() {
   const [stickPosition, setStickPosition] = useState({ x: 0, y: 0 });
   const [sprintOn, setSprintOn] = useState(false);
   const [devToolsOpen, setDevToolsOpen] = useState(false);
-
+  const [fpvMode, setFpvMode] = useState(devSettings.fpvMode);
+  const [speedMultiplier, setSpeedMultiplier] = useState(
+  devSettings.speedMultiplier
+);
   const joystickRef = useRef({
     active: false,
     startX: 0,
@@ -233,16 +240,49 @@ export default function InputHUD() {
 </div>
 
             <div className="tg-dev-section">
-              <div className="tg-dev-section-title">CAMERA</div>
-              <div className="tg-dev-placeholder">Controls coming soon</div>
-            </div>
+  <div className="tg-dev-section-title">CAMERA</div>
+
+  <button
+    className={`tg-side-panel-button ${fpvMode ? "active" : ""}`}
+    onClick={() => {
+      const nextValue = !fpvMode;
+
+      setFpvMode(nextValue);
+      updateDevSetting("fpvMode", nextValue);
+    }}
+  >
+    FPV Mode: {fpvMode ? "ON" : "OFF"}
+  </button>
+
+  <div className="tg-dev-placeholder">
+    In FPV: Sprint raises view, Crouch lowers view
+  </div>
+</div>
 
             <div className="tg-dev-section">
-              <div className="tg-dev-section-title">PHYSICS</div>
-              <div className="tg-dev-placeholder">
-                Debug tools coming soon
-              </div>
-            </div>
+  <div className="tg-dev-section-title">PHYSICS</div>
+
+  <div className="tg-dev-button-row">
+    {[1, 10, 25, 50].map((multiplier) => (
+      <button
+        key={multiplier}
+        className={`tg-dev-speed-button ${
+          speedMultiplier === multiplier ? "active" : ""
+        }`}
+        onClick={() => {
+          setSpeedMultiplier(multiplier);
+          updateDevSetting("speedMultiplier", multiplier);
+        }}
+      >
+        {multiplier === 1 ? "NORMAL" : `${multiplier}X`}
+      </button>
+    ))}
+  </div>
+
+  <div className="tg-dev-placeholder">
+    Debug speed affects character movement
+  </div>
+</div>
 <div className="tg-dev-section">
   <div className="tg-dev-section-title">ATMOSPHERE</div>
 
