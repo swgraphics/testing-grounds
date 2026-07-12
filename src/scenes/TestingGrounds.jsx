@@ -1,6 +1,6 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-
+import XboxController from "../systems/input/XboxController";
 import PlayerController from "../components/character/PlayerController";
 import Atmosphere from "../components/world/Atmosphere";
 import Lighting from "../components/world/Lighting";
@@ -39,7 +39,7 @@ export default function TestingGrounds({ titleMode = false }) {
   return (
     <>
       <TitleOrbitCamera active={titleMode} />
-
+      <XboxController />
       <Atmosphere titleMode={titleMode} />
       <Lighting />
 

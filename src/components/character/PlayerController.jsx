@@ -5,6 +5,7 @@ import * as THREE from "three";
 
 import { cameraConfig } from "../../config/cameraConfig";
 import { inputState } from "../../systems/input/inputState";
+import { gamepadState } from "../../systems/input/gamepadState";
 import {
   characterRegistry,
   activeCharacterId,
@@ -111,6 +112,27 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
   }, [fpvMode]);
 
   useFrame((_, delta) => {
+      if (gamepadState.connected) {
+        const controllerYawSpeed = 2.4;
+        const controllerPitchSpeed = 1.8;
+
+      yawRef.current -=
+        gamepadState.rightStickX *
+        controllerYawSpeed *
+        delta;
+
+      pitchRef.current -=
+        gamepadState.rightStickY *
+        controllerPitchSpeed *
+        delta;
+
+      pitchRef.current = THREE.MathUtils.clamp(
+        pitchRef.current,
+        fpvMode ? -1.25 : cameraConfig.minPitch,
+        fpvMode ? 1.25 : cameraConfig.maxPitch
+      );
+    }
+
     if (!controllerRef.current) return;
 
     const target = controllerRef.current.currPos;
@@ -120,15 +142,21 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
     if (fpvMode) {
       const verticalSpeed = 15;
 
-      if (inputState.run) {
-        fpvAltitudeRef.current +=
-          verticalSpeed * delta;
-      }
+      const raiseCamera =
+        inputState.run || gamepadState.sprint;
 
-      if (inputState.crouch) {
-        fpvAltitudeRef.current -=
-          verticalSpeed * delta;
-      }
+      const lowerCamera =
+       inputState.crouch || gamepadState.crouch;
+
+if (raiseCamera) {
+  fpvAltitudeRef.current +=
+    verticalSpeed * delta;
+}
+
+if (lowerCamera) {
+  fpvAltitudeRef.current -=
+    verticalSpeed * delta;
+}
 
       fpvAltitudeRef.current =
         THREE.MathUtils.clamp(
@@ -245,23 +273,16 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
 export default function PlayerController() {
   const controllerRef = useRef();
 
-  const [animationState, setAnimationState] =
-    useState("idle");
+  const [animationState, setAnimationState] = useState("idle");
 
-  const [
-    currentCharacterId,
-    setCurrentCharacterId,
-  ] = useState(activeCharacterId);
+  const [currentCharacterId, setCurrentCharacterId] =
+    useState(activeCharacterId);
 
   const [fpvMode, setFpvMode] =
     useState(devSettings.fpvMode);
 
-  const [
-    speedMultiplier,
-    setSpeedMultiplier,
-  ] = useState(
-    devSettings.speedMultiplier
-  );
+  const [speedMultiplier, setSpeedMultiplier] =
+    useState(devSettings.speedMultiplier);
 
   const activeCharacter =
     characterRegistry[currentCharacterId];
@@ -294,10 +315,7 @@ export default function PlayerController() {
         );
       }
 
-      if (
-        event.detail.key ===
-        "speedMultiplier"
-      ) {
+      if (event.detail.key === "speedMultiplier") {
         setSpeedMultiplier(
           Number(event.detail.value) || 1
         );
@@ -318,63 +336,105 @@ export default function PlayerController() {
   }, []);
 
   useFrame(() => {
-    const isMoving =
-      inputState.forward ||
-      inputState.backward ||
-      inputState.leftward ||
-      inputState.rightward;
+    const controllerForward =
+      gamepadState.leftStickY < -0.2;
 
-    if (inputState.slide && isMoving) {
+    const controllerBackward =
+      gamepadState.leftStickY > 0.2;
+
+    const controllerLeft =
+      gamepadState.leftStickX < -0.2;
+
+    const controllerRight =
+      gamepadState.leftStickX > 0.2;
+
+    const forward =
+      inputState.forward || controllerForward;
+
+    const backward =
+      inputState.backward || controllerBackward;
+
+    const leftward =
+      inputState.leftward || controllerLeft;
+
+    const rightward =
+      inputState.rightward || controllerRight;
+
+    const jump =
+      inputState.jump || gamepadState.jump;
+
+    const slide =
+      inputState.slide || gamepadState.slide;
+
+    const crouch =
+      inputState.crouch || gamepadState.crouch;
+
+    const sprint =
+      inputState.run || gamepadState.sprint;
+
+    const isMoving =
+      forward ||
+      backward ||
+      leftward ||
+      rightward;
+
+    if (slide && isMoving) {
       setAnimationState("slide");
     } else if (
-      inputState.jump &&
-      inputState.run &&
+      jump &&
+      sprint &&
       isMoving
     ) {
       setAnimationState("runJump");
-    } else if (inputState.jump) {
+    } else if (jump) {
       setAnimationState("jump");
     } else if (
-      inputState.crouch &&
+      crouch &&
       isMoving
     ) {
       setAnimationState("crouchWalk");
     } else if (!isMoving) {
       setAnimationState("idle");
-    } else if (inputState.run) {
+    } else if (sprint) {
       setAnimationState("run");
     } else {
       setAnimationState("walk");
     }
 
-const developerSpeedActive = speedMultiplier > 1;
+    const developerSpeedActive =
+      speedMultiplier > 1;
 
-controllerRef.current?.setMovement({
-  forward: inputState.forward,
-  backward: inputState.backward,
-  leftward: inputState.leftward,
-  rightward: inputState.rightward,
-  jump: inputState.jump,
+    controllerRef.current?.setMovement({
+      forward,
+      backward,
+      leftward,
+      rightward,
+      jump,
 
-  // Developer speed modes activate Ecctrl's sprint multiplier.
-  // In Normal mode, regular Sprint still works outside FPV.
-  run: developerSpeedActive
-    ? true
-    : fpvMode
-      ? false
-      : inputState.run,
+      run: developerSpeedActive
+        ? true
+        : fpvMode
+          ? false
+          : sprint,
+    });
   });
-});
+
   return (
     <>
       <Ecctrl
-  key={activeCharacter.id}
-  ref={controllerRef}
-  position={[0, 3, 0]}
-  mode="FixedCamera"
-  maxVelLimit={12 * Math.max(speedMultiplier, 1)}
-  sprintMult={speedMultiplier > 1 ? speedMultiplier : 2}
->
+        key={activeCharacter.id}
+        ref={controllerRef}
+        position={[0, 3, 0]}
+        mode="FixedCamera"
+        maxVelLimit={
+          12 * Math.max(speedMultiplier, 1)
+        }
+        sprintMult={
+          speedMultiplier > 1
+            ? speedMultiplier
+            : 2
+        }
+      >
         <PlayableCharacter
           character={activeCharacter}
           animationState={animationState}
