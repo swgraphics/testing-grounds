@@ -118,7 +118,7 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
     if (!target) return;
 
     if (fpvMode) {
-      const verticalSpeed = 3.5;
+      const verticalSpeed = 15;
 
       if (inputState.run) {
         fpvAltitudeRef.current +=
@@ -134,7 +134,7 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
         THREE.MathUtils.clamp(
           fpvAltitudeRef.current,
           -1.1,
-          12
+          250
         );
 
       const normalEyeHeight =
@@ -372,7 +372,7 @@ controllerRef.current?.setMovement({
   ref={controllerRef}
   position={[0, 3, 0]}
   mode="FixedCamera"
-  maxVelLimit={5 * Math.max(speedMultiplier, 1)}
+  maxVelLimit={12 * Math.max(speedMultiplier, 1)}
   sprintMult={speedMultiplier > 1 ? speedMultiplier : 2}
 >
         <PlayableCharacter

@@ -263,7 +263,7 @@ export default function InputHUD() {
   <div className="tg-dev-section-title">PHYSICS</div>
 
   <div className="tg-dev-button-row">
-    {[1, 10, 25, 50].map((multiplier) => (
+    {[1, 50, 100, 500].map((multiplier) => (
       <button
         key={multiplier}
         className={`tg-dev-speed-button ${
