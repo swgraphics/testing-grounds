@@ -203,6 +203,9 @@ export default function InputHUD() {
   ["foliageDensity", "Foliage Scatter", 0, 100, 1],
   ["rockDensity", "Rock Scatter", 0, 100, 1],
 
+  ["windStrength", "Wind Strength", 0, 100, 1],
+  ["windSpeed", "Wind Speed", 0, 100, 1],
+
   ["boulderAmount", "Boulder Amount", 0, 100, 1],
   ["boulderHeight", "Boulder Height", 0, 100, 1],
 ]

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 
@@ -84,7 +85,12 @@ const ROCK_POINTS = makeScatterPoints(MAX_ROCKS, 900, {
   maxScale: 1.55,
 });
 
-function CrimsonTree({ position, scale = 1 }) {
+function CrimsonTree({
+  position,
+  scale = 1,
+  crownRef,
+  windPhase = 0,
+}) {
   return (
     <group position={position} scale={scale}>
       <mesh position={[0, 2.8, 0]} castShadow>
@@ -92,30 +98,54 @@ function CrimsonTree({ position, scale = 1 }) {
         <meshStandardMaterial color="#300812" roughness={0.9} />
       </mesh>
 
-      <mesh position={[0, 6.2, 0]} castShadow>
-        <coneGeometry args={[1.4, 3.2, 6]} />
-        <meshStandardMaterial
-          color="#12060a"
-          emissive="#cd2626"
-          emissiveIntensity={0.22}
-          roughness={0.8}
-        />
-      </mesh>
+      <group
+        ref={crownRef}
+        position={[0, 5.25, 0]}
+        userData={{ windPhase }}
+      >
+        <mesh position={[0, 0.95, 0]} castShadow>
+          <coneGeometry args={[1.4, 3.2, 6]} />
+
+          <meshStandardMaterial
+            color="#12060a"
+            emissive="#cd2626"
+            emissiveIntensity={0.22}
+            roughness={0.8}
+          />
+        </mesh>
+      </group>
     </group>
   );
 }
 
-function CrimsonFern({ position, scale = 1, rotation = 0 }) {
+function CrimsonFern({
+  position,
+  scale = 1,
+  rotation = 0,
+  fernRef,
+  windPhase = 0,
+}) {
   return (
-    <group position={position} scale={scale} rotation={[0, rotation, 0]}>
+    <group
+      ref={fernRef}
+      position={position}
+      scale={scale}
+      rotation={[0, rotation, 0]}
+      userData={{ windPhase, baseRotation: rotation }}
+    >
       {[0, 1, 2, 3, 4, 5].map((leaf) => (
         <mesh
           key={leaf}
           position={[0, 0.18, 0]}
-          rotation={[-Math.PI / 2.7, 0, (Math.PI * 2 * leaf) / 6]}
+          rotation={[
+            -Math.PI / 2.7,
+            0,
+            (Math.PI * 2 * leaf) / 6,
+          ]}
           castShadow
         >
           <planeGeometry args={[0.28, 2.2]} />
+
           <meshStandardMaterial
             color="#16070a"
             emissive="#cd2626"
@@ -221,50 +251,208 @@ function useTerrainShapeRefresh() {
 }
 
 function TreeScatter() {
+  const crownRefs = useRef([]);
+  const frameCounterRef = useRef(0);
+
   const treeDensity = useTerrainSetting("treeDensity", 25);
   const treeCoverage = useTerrainSetting("treeCoverage", 50);
   const scatterSeed = useTerrainSetting("scatterSeed", 1);
+
+  const windStrength = useTerrainSetting("windStrength", 25);
+  const windSpeed = useTerrainSetting("windSpeed", 35);
+
   const terrainShape = useTerrainShapeRefresh();
 
   const trees = useMemo(() => {
-    const count = countFromSlider(treeDensity, MAX_TREES);
+    crownRefs.current = [];
 
-    return makeTreePoints().slice(0, count).map((point, index) => {
-      const y = getTerrainHeightAt(point.x, point.z);
+    const count = countFromSlider(
+      treeDensity,
+      MAX_TREES
+    );
 
-      return (
-        <CrimsonTree
-          key={`tree-${index}`}
-          position={[point.x, y, point.z]}
-          scale={point.scale}
-        />
-      );
+    return makeTreePoints()
+      .slice(0, count)
+      .map((point, index) => {
+        const y = getTerrainHeightAt(
+          point.x,
+          point.z
+        );
+
+        return (
+          <CrimsonTree
+            key={`tree-${index}`}
+            position={[point.x, y, point.z]}
+            scale={point.scale}
+            windPhase={point.variant * Math.PI * 2}
+            crownRef={(object) => {
+              crownRefs.current[index] = object;
+            }}
+          />
+        );
+      });
+  }, [
+    treeDensity,
+    treeCoverage,
+    scatterSeed,
+    ...terrainShape,
+  ]);
+
+  useFrame((state) => {
+    /*
+     * Update every second frame to reduce the amount
+     * of vegetation transform work.
+     */
+    frameCounterRef.current += 1;
+
+    if (frameCounterRef.current % 2 !== 0) {
+      return;
+    }
+
+    const strength =
+      (Number(windStrength) || 0) / 100;
+
+    if (strength <= 0) {
+      crownRefs.current.forEach((crown) => {
+        if (!crown) return;
+
+        crown.rotation.x = 0;
+        crown.rotation.z = 0;
+      });
+
+      return;
+    }
+
+    const speed =
+      0.25 +
+      ((Number(windSpeed) || 0) / 100) * 2.75;
+
+    const time =
+      state.clock.elapsedTime * speed;
+
+    crownRefs.current.forEach((crown) => {
+      if (!crown) return;
+
+      const phase =
+        crown.userData.windPhase ?? 0;
+
+      const mainSway =
+        Math.sin(time + phase) *
+        strength *
+        0.12;
+
+      const secondarySway =
+        Math.cos(time * 0.65 + phase) *
+        strength *
+        0.055;
+
+      crown.rotation.z = mainSway;
+      crown.rotation.x = secondarySway;
     });
-  }, [treeDensity, treeCoverage, scatterSeed, ...terrainShape]);
+  });
 
   return <>{trees}</>;
 }
 
 function FoliageScatter() {
-  const foliageDensity = useTerrainSetting("foliageDensity", 25);
-  const terrainShape = useTerrainShapeRefresh();
+  const fernRefs = useRef([]);
+  const frameCounterRef = useRef(0);
+
+  const foliageDensity =
+    useTerrainSetting("foliageDensity", 25);
+
+  const windStrength =
+    useTerrainSetting("windStrength", 25);
+
+  const windSpeed =
+    useTerrainSetting("windSpeed", 35);
+
+  const terrainShape =
+    useTerrainShapeRefresh();
 
   const foliage = useMemo(() => {
-    const count = countFromSlider(foliageDensity, MAX_FOLIAGE);
+    fernRefs.current = [];
 
-    return FOLIAGE_POINTS.slice(0, count).map((point, index) => {
-      const y = getTerrainHeightAt(point.x, point.z) + 0.06;
+    const count = countFromSlider(
+      foliageDensity,
+      MAX_FOLIAGE
+    );
 
-      return (
-        <CrimsonFern
-          key={`fern-${index}`}
-          position={[point.x, y, point.z]}
-          scale={point.scale}
-          rotation={point.rotation}
-        />
-      );
+    return FOLIAGE_POINTS
+      .slice(0, count)
+      .map((point, index) => {
+        const y =
+          getTerrainHeightAt(
+            point.x,
+            point.z
+          ) + 0.06;
+
+        return (
+          <CrimsonFern
+            key={`fern-${index}`}
+            position={[point.x, y, point.z]}
+            scale={point.scale}
+            rotation={point.rotation}
+            windPhase={point.variant * Math.PI * 2}
+            fernRef={(object) => {
+              fernRefs.current[index] = object;
+            }}
+          />
+        );
+      });
+  }, [
+    foliageDensity,
+    ...terrainShape,
+  ]);
+
+  useFrame((state) => {
+    frameCounterRef.current += 1;
+
+    if (frameCounterRef.current % 2 !== 0) {
+      return;
+    }
+
+    const strength =
+      (Number(windStrength) || 0) / 100;
+
+    if (strength <= 0) {
+      fernRefs.current.forEach((fern) => {
+        if (!fern) return;
+
+        fern.rotation.x = 0;
+        fern.rotation.z = 0;
+      });
+
+      return;
+    }
+
+    const speed =
+      0.35 +
+      ((Number(windSpeed) || 0) / 100) * 3.25;
+
+    const time =
+      state.clock.elapsedTime * speed;
+
+    fernRefs.current.forEach((fern) => {
+      if (!fern) return;
+
+      const phase =
+        fern.userData.windPhase ?? 0;
+
+      const sway =
+        Math.sin(time * 1.25 + phase) *
+        strength *
+        0.13;
+
+      const flutter =
+        Math.sin(time * 3.4 + phase * 1.7) *
+        strength *
+        0.035;
+
+      fern.rotation.z = sway;
+      fern.rotation.x = flutter;
     });
-  }, [foliageDensity, ...terrainShape]);
+  });
 
   return <>{foliage}</>;
 }

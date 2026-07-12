@@ -10,7 +10,10 @@ export const DEFAULT_TERRAIN_SETTINGS = {
   treeCoverage: 50,
   foliageDensity: 50,
   rockDensity: 50,
-
+  
+  windStrength: 25,
+  windSpeed: 35,
+  
   boulderAmount: 0,
   boulderHeight: 50,
 
