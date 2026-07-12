@@ -203,10 +203,6 @@ export default function InputHUD() {
   ["foliageDensity", "Foliage Scatter", 0, 100, 1],
   ["rockDensity", "Rock Scatter", 0, 100, 1],
 
-  ["grassDensity", "Grass Density", 0, 100, 1],
-  ["grassCoverage", "Grass Coverage", 0, 100, 1],
-  ["grassHeight", "Grass Height", 0, 100, 1],
-
   ["boulderAmount", "Boulder Amount", 0, 100, 1],
   ["boulderHeight", "Boulder Height", 0, 100, 1],
 ]

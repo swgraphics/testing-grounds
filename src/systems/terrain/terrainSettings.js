@@ -11,10 +11,6 @@ export const DEFAULT_TERRAIN_SETTINGS = {
   foliageDensity: 50,
   rockDensity: 50,
 
-  grassDensity: 0,
-  grassCoverage: 50,
-  grassHeight: 50,
-
   boulderAmount: 0,
   boulderHeight: 50,
 

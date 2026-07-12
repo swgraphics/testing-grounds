@@ -133,15 +133,15 @@ function SimpleRock({
   position,
   scale = 1,
   rotation = 0,
-  boulderMultiplier = 1,
+  boulderHeightMultiplier = 1,
 }) {
   return (
     <mesh
       position={position}
       scale={[
-        scale * 1.2 * boulderMultiplier,
-        scale * 0.55 * boulderMultiplier,
-        scale * boulderMultiplier,
+        scale * 1.2,
+        scale * 0.55 * boulderHeightMultiplier,
+        scale,
       ]}
       rotation={[0, rotation, 0]}
       castShadow
@@ -278,7 +278,9 @@ function RockScatter() {
   const rocks = useMemo(() => {
     const count = countFromSlider(rockDensity, MAX_ROCKS);
     const boulderChance = (Number(boulderAmount) || 0) / 100;
-    const boulderSize = 1 + ((Number(boulderHeight) || 0) / 100) * 3;
+
+    const boulderHeightMultiplier =
+      1 + ((Number(boulderHeight) || 0) / 100) * 5;
 
     return ROCK_POINTS.slice(0, count).map((point, index) => {
       const y = getTerrainHeightAt(point.x, point.z) + 0.24;
@@ -290,42 +292,20 @@ function RockScatter() {
           position={[point.x, y, point.z]}
           scale={point.scale}
           rotation={point.rotation}
-          boulderMultiplier={isBoulder ? boulderSize : 1}
+          boulderHeightMultiplier={
+            isBoulder ? boulderHeightMultiplier : 1
+          }
         />
       );
     });
-  }, [rockDensity, boulderAmount, boulderHeight, ...terrainShape]);
+  }, [
+    rockDensity,
+    boulderAmount,
+    boulderHeight,
+    ...terrainShape,
+  ]);
 
   return <>{rocks}</>;
-}
-
-function GrassScatter() {
-  const grassDensity = useTerrainSetting("grassDensity", 0);
-  const grassCoverage = useTerrainSetting("grassCoverage", 50);
-  const grassHeight = useTerrainSetting("grassHeight", 50);
-  const scatterSeed = useTerrainSetting("scatterSeed", 1);
-  const terrainShape = useTerrainShapeRefresh();
-
-  const grass = useMemo(() => {
-    const count = countFromSlider(grassDensity, MAX_GRASS);
-    const bladeHeight = 0.35 + ((Number(grassHeight) || 0) / 100) * 1.65;
-
-    return makeGrassPoints().slice(0, count).map((point, index) => {
-      const y = getTerrainHeightAt(point.x, point.z) + 0.03;
-
-      return (
-        <GrassClump
-          key={`grass-${index}`}
-          position={[point.x, y, point.z]}
-          scale={point.scale}
-          rotation={point.rotation}
-          height={bladeHeight}
-        />
-      );
-    });
-  }, [grassDensity, grassCoverage, grassHeight, scatterSeed, ...terrainShape]);
-
-  return <>{grass}</>;
 }
 
 function PaleWaterPatch({ position, scale }) {
@@ -347,7 +327,6 @@ export default function Landscape() {
     <>
       <TreeScatter />
       <FoliageScatter />
-      <GrassScatter />
       <RockScatter />
 
       <PaleWaterPatch position={[0, 0.08, 170]} scale={[42, 24, 1]} />
