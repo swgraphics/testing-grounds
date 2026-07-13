@@ -377,6 +377,63 @@ canvas {
   background: transparent;
 }
 /* =======================================================
+   Dev Tools Accordion
+======================================================= */
+
+.tg-dev-section {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.tg-dev-section-header {
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 9px;
+
+  border: none;
+  border-left: 2px solid var(--tg-crimson);
+  background: linear-gradient(
+    90deg,
+    rgba(129, 16, 18, 0.95) 0%,
+    rgba(205, 38, 38, 0.42) 58%,
+    rgba(5, 6, 8, 0) 100%
+  );
+
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 20px;
+  letter-spacing: 0.07em;
+  text-align: left;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  cursor: pointer;
+}
+
+.tg-dev-section-header:hover,
+.tg-dev-section-header.open {
+  background: linear-gradient(
+    90deg,
+    rgba(205, 38, 38, 0.92) 0%,
+    rgba(129, 16, 18, 0.58) 62%,
+    rgba(5, 6, 8, 0) 100%
+  );
+}
+
+.tg-dev-section-arrow {
+  width: 24px;
+  text-align: center;
+  font-family: var(--tg-font-copy);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.tg-dev-section-content {
+  padding: 8px 2px 4px;
+}
+/* =======================================================
    Dev Tool Button Rows
 ======================================================= */
 
