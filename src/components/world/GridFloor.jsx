@@ -6,6 +6,11 @@ const MINOR_STEP = 10;
 const MAJOR_STEP = 50;
 const CELL_STEP = 100;
 
+const FLOOR_COLOR = "#080b10";
+const MINOR_GRID_COLOR = "#3b4654";
+const MAJOR_GRID_COLOR = "#9ca8b3";
+const AXIS_GRID_COLOR = "#dfefff";
+
 function GridLabel({ children, position, fontSize = 5 }) {
   return (
     <Text
@@ -28,7 +33,17 @@ export default function GridFloor() {
     const isMajor = i % MAJOR_STEP === 0;
     const isAxis = i === 0;
 
-    const color = isAxis ? "#ffffff" : isMajor ? "#dfefff" : "#3b4654";
+    const color = isAxis
+      ? AXIS_GRID_COLOR
+      : isMajor
+        ? MAJOR_GRID_COLOR
+        : MINOR_GRID_COLOR;
+
+    const opacity = isAxis
+      ? 0.9
+      : isMajor
+        ? 0.62
+        : 0.32;
 
     lines.push(
       <line key={`x-${i}`}>
@@ -36,11 +51,25 @@ export default function GridFloor() {
           <bufferAttribute
             attach="attributes-position"
             count={2}
-            array={new Float32Array([-SIZE, 0.02, i, SIZE, 0.02, i])}
+            array={
+              new Float32Array([
+                -SIZE,
+                0.02,
+                i,
+                SIZE,
+                0.02,
+                i,
+              ])
+            }
             itemSize={3}
           />
         </bufferGeometry>
-        <lineBasicMaterial color={color} />
+
+        <lineBasicMaterial
+          color={color}
+          transparent
+          opacity={opacity}
+        />
       </line>
     );
 
@@ -50,25 +79,50 @@ export default function GridFloor() {
           <bufferAttribute
             attach="attributes-position"
             count={2}
-            array={new Float32Array([i, 0.02, -SIZE, i, 0.02, SIZE])}
+            array={
+              new Float32Array([
+                i,
+                0.02,
+                -SIZE,
+                i,
+                0.02,
+                SIZE,
+              ])
+            }
             itemSize={3}
           />
         </bufferGeometry>
-        <lineBasicMaterial color={color} />
+
+        <lineBasicMaterial
+          color={color}
+          transparent
+          opacity={opacity}
+        />
       </line>
     );
   }
 
   const distanceMarkers = [];
-  for (let value = -SIZE; value <= SIZE; value += MAJOR_STEP) {
+
+  for (
+    let value = -SIZE;
+    value <= SIZE;
+    value += MAJOR_STEP
+  ) {
     distanceMarkers.push(
-      <GridLabel key={`x-label-${value}`} position={[value, 0.08, -18]}>
+      <GridLabel
+        key={`x-label-${value}`}
+        position={[value, 0.08, -18]}
+      >
         {Math.abs(value)}m
       </GridLabel>
     );
 
     distanceMarkers.push(
-      <GridLabel key={`z-label-${value}`} position={[-18, 0.08, value]}>
+      <GridLabel
+        key={`z-label-${value}`}
+        position={[-18, 0.08, value]}
+      >
         {Math.abs(value)}m
       </GridLabel>
     );
@@ -78,10 +132,19 @@ export default function GridFloor() {
   const letters = "ABCDEFGH";
 
   let rowIndex = 0;
-  for (let z = -350; z <= 350; z += CELL_STEP) {
+
+  for (
+    let z = -350;
+    z <= 350;
+    z += CELL_STEP
+  ) {
     let columnIndex = 1;
 
-    for (let x = -350; x <= 350; x += CELL_STEP) {
+    for (
+      let x = -350;
+      x <= 350;
+      x += CELL_STEP
+    ) {
       coordinateLabels.push(
         <GridLabel
           key={`cell-${letters[rowIndex]}${columnIndex}`}
@@ -93,18 +156,27 @@ export default function GridFloor() {
         </GridLabel>
       );
 
-      columnIndex++;
+      columnIndex += 1;
     }
 
-    rowIndex++;
+    rowIndex += 1;
   }
 
   return (
     <>
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[0, -0.03, 0]}>
-          <boxGeometry args={[SIZE * 2, 0.05, SIZE * 2]} />
-          <meshStandardMaterial color="#080b10" roughness={0.95} />
+        <mesh
+          receiveShadow
+          position={[0, -0.03, 0]}
+        >
+          <boxGeometry
+            args={[SIZE * 2, 0.05, SIZE * 2]}
+          />
+
+          <meshStandardMaterial
+            color={FLOOR_COLOR}
+            roughness={0.95}
+          />
         </mesh>
       </RigidBody>
 
