@@ -76,23 +76,35 @@ function makeGrassPoints() {
   });
 }
 
-const FOLIAGE_POINTS = makeScatterPoints(MAX_FOLIAGE, 500, {
-  minX: -150,
-  maxX: 150,
-  minZ: -180,
-  maxZ: 170,
-  minScale: 0.45,
-  maxScale: 1.55,
-});
+function makeFoliagePoints() {
+  return makeScatterPoints(
+    MAX_FOLIAGE,
+    500 + terrainSettings.scatterSeed * 100,
+    {
+      minX: -150,
+      maxX: 150,
+      minZ: -180,
+      maxZ: 170,
+      minScale: 0.45,
+      maxScale: 1.55,
+    }
+  );
+}
 
-const ROCK_POINTS = makeScatterPoints(MAX_ROCKS, 900, {
-  minX: -160,
-  maxX: 160,
-  minZ: -190,
-  maxZ: 180,
-  minScale: 0.3,
-  maxScale: 1.55,
-});
+function makeRockPoints() {
+  return makeScatterPoints(
+    MAX_ROCKS,
+    900 + terrainSettings.scatterSeed * 100,
+    {
+      minX: -160,
+      maxX: 160,
+      minZ: -190,
+      maxZ: 180,
+      minScale: 0.3,
+      maxScale: 1.55,
+    }
+  );
+}
 
 function CrimsonTree({
   position,
@@ -100,6 +112,7 @@ function CrimsonTree({
   crownRef,
   windPhase = 0,
   collisionEnabled = false,
+  physicsKey,
 }) {
   const treeVisual = (
     <group scale={scale}>
@@ -148,10 +161,11 @@ function CrimsonTree({
 
   return (
     <RigidBody
-      type="fixed"
-      colliders={false}
-      position={position}
-    >
+  key={physicsKey}
+  type="fixed"
+  colliders={false}
+  position={position}
+>
       <CylinderCollider
         args={[
           trunkHalfHeight,
@@ -217,15 +231,22 @@ function SimpleRock({
   rotation = 0,
   boulderHeightMultiplier = 1,
   collisionEnabled = false,
+  physicsKey,
 }) {
   const halfWidth = scale * 1.2;
   const halfHeight =
     scale * 0.55 * boulderHeightMultiplier;
   const halfDepth = scale;
+  const burialDepth = Math.min(
+  halfHeight * 0.28,
+  scale * 0.75
+);
 
+const rockCenterHeight =
+  halfHeight - burialDepth;
   const rockVisual = (
     <mesh
-      position={[0, halfHeight, 0]}
+      position={[0, rockCenterHeight, 0]}
       scale={[
         halfWidth,
         halfHeight,
@@ -256,6 +277,7 @@ function SimpleRock({
 
   return (
     <RigidBody
+      key={physicsKey}
       type="fixed"
       colliders={false}
       position={position}
@@ -267,7 +289,7 @@ function SimpleRock({
           halfHeight * 0.9,
           halfDepth * 0.82,
         ]}
-        position={[0, halfHeight, 0]}
+        position={[0, rockCenterHeight, 0]}
         friction={0.85}
       />
 
@@ -374,15 +396,16 @@ function TreeScatter() {
 
         return (
           <CrimsonTree
-            key={`tree-${index}`}
-            position={[point.x, y, point.z]}
-            scale={point.scale}
-            windPhase={point.variant * Math.PI * 2}
-            collisionEnabled={index < MAX_TREE_COLLIDERS}
-            crownRef={(object) => {
-              crownRefs.current[index] = object;
-          }}
-        />
+  key={`tree-${index}`}
+  position={[point.x, y, point.z]}
+  scale={point.scale}
+  windPhase={point.variant * Math.PI * 2}
+  collisionEnabled={index < MAX_TREE_COLLIDERS}
+  physicsKey={`tree-body-${index}-${scatterSeed}-${y.toFixed(3)}`}
+  crownRef={(object) => {
+    crownRefs.current[index] = object;
+  }}
+/>
         );
       });
   }, [
@@ -454,6 +477,8 @@ function FoliageScatter() {
 
   const foliageDensity =
     useTerrainSetting("foliageDensity", 25);
+  const scatterSeed =
+    useTerrainSetting("scatterSeed", 1);
 
   const windStrength =
     useTerrainSetting("windStrength", 25);
@@ -472,7 +497,7 @@ function FoliageScatter() {
       MAX_FOLIAGE
     );
 
-    return FOLIAGE_POINTS
+    return makeFoliagePoints()
       .slice(0, count)
       .map((point, index) => {
         const y =
@@ -496,6 +521,7 @@ function FoliageScatter() {
       });
   }, [
     foliageDensity,
+    scatterSeed,
     ...terrainShape,
   ]);
 
@@ -555,6 +581,7 @@ function RockScatter() {
   const rockDensity = useTerrainSetting("rockDensity", 20);
   const boulderAmount = useTerrainSetting("boulderAmount", 0);
   const boulderHeight = useTerrainSetting("boulderHeight", 50);
+  const scatterSeed = useTerrainSetting("scatterSeed", 1);
   const terrainShape = useTerrainShapeRefresh();
 
   const rocks = useMemo(() => {
@@ -564,27 +591,29 @@ function RockScatter() {
     const boulderHeightMultiplier =
       1 + ((Number(boulderHeight) || 0) / 100) * 5;
 
-    return ROCK_POINTS.slice(0, count).map((point, index) => {
+    return makeRockPoints().slice(0, count).map((point, index) => {
       const y = getTerrainHeightAt(point.x, point.z);
       const isBoulder = point.variant < boulderChance;
 
       return (
         <SimpleRock
-  key={`rock-${index}`}
-  position={[point.x, y, point.z]}
-  scale={point.scale}
-  rotation={point.rotation}
-  collisionEnabled={index < MAX_ROCK_COLLIDERS}
-  boulderHeightMultiplier={
-    isBoulder ? boulderHeightMultiplier : 1
-  }
-/>
+          key={`rock-${index}`}
+          position={[point.x, y, point.z]}
+          scale={point.scale}
+          rotation={point.rotation}
+          collisionEnabled={index < MAX_ROCK_COLLIDERS}
+          physicsKey={`rock-body-${index}-${scatterSeed}-${y.toFixed(3)}-${boulderHeightMultiplier.toFixed(3)}`}
+          boulderHeightMultiplier={
+            isBoulder ? boulderHeightMultiplier : 1
+          }
+        />
       );
     });
   }, [
     rockDensity,
     boulderAmount,
     boulderHeight,
+    scatterSeed,
     ...terrainShape,
   ]);
 
