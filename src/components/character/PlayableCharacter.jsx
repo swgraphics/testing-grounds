@@ -7,6 +7,14 @@ function FBXAnimatedCharacter({ character, animationState }) {
 
   const { scene } = useGLTF(character.modelPath);
 
+  useEffect(() => {
+  scene.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+}, [scene]);
 
   const idle = useFBX(character.animations.idle);
   const walk = useFBX(character.animations.walk);
@@ -102,6 +110,16 @@ function EmbeddedAnimatedCharacter({ character, animationState }) {
   const groupRef = useRef();
 
   const { scene, animations } = useGLTF(character.modelPath);
+
+  useEffect(() => {
+  scene.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+}, [scene]);
+
   console.log("Available animations:");
   scene.animations.forEach((clip) => console.log(clip.name));
   const renamedAnimations = useMemo(() => {
