@@ -9,7 +9,6 @@ import GridFloor from "../components/world/GridFloor";
 import Landscape from "../components/world/Landscape";
 import SpawnPad from "../components/world/SpawnPad";
 import WorldGizmos from "../components/world/WorldGizmos";
-import TestBuildings from "../components/world/TestBuildings";
 import TestCourse from "../components/world/TestCourse";
 import Helpers from "../components/world/Helpers";
 
@@ -50,7 +49,6 @@ export default function TestingGrounds({ titleMode = false }) {
       <SpawnPad />
       <WorldGizmos />
 
-      <TestBuildings />
       <TestCourse />
 
       {!titleMode && <PlayerController />}

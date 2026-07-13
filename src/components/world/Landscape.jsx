@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
+
+import {
+  RigidBody,
+  CylinderCollider,
+  CuboidCollider,
+} from "@react-three/rapier";
+
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 
 const MAX_TREES = 900;
 const MAX_FOLIAGE = 1400;
 const MAX_ROCKS = 650;
-const MAX_GRASS = 1800;
+
+const MAX_TREE_COLLIDERS = 160;
+const MAX_ROCK_COLLIDERS = 180;
 
 function seededRandom(seed) {
   const x = Math.sin(seed * 9999) * 10000;
@@ -90,12 +99,17 @@ function CrimsonTree({
   scale = 1,
   crownRef,
   windPhase = 0,
+  collisionEnabled = false,
 }) {
-  return (
-    <group position={position} scale={scale}>
-      <mesh position={[0, 2.8, 0]} castShadow>
+  const treeVisual = (
+    <group scale={scale}>
+      <mesh position={[0, 2.8, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[0.12, 0.22, 5.6, 5]} />
-        <meshStandardMaterial color="#300812" roughness={0.9} />
+
+        <meshStandardMaterial
+          color="#300812"
+          roughness={0.9}
+        />
       </mesh>
 
       <group
@@ -103,7 +117,11 @@ function CrimsonTree({
         position={[0, 5.25, 0]}
         userData={{ windPhase }}
       >
-        <mesh position={[0, 0.95, 0]} castShadow>
+        <mesh
+          position={[0, 0.95, 0]}
+          castShadow
+          receiveShadow
+        >
           <coneGeometry args={[1.4, 3.2, 6]} />
 
           <meshStandardMaterial
@@ -115,6 +133,40 @@ function CrimsonTree({
         </mesh>
       </group>
     </group>
+  );
+
+  if (!collisionEnabled) {
+    return (
+      <group position={position}>
+        {treeVisual}
+      </group>
+    );
+  }
+
+  const trunkHalfHeight = 2.8 * scale;
+  const trunkRadius = 0.22 * scale;
+
+  return (
+    <RigidBody
+      type="fixed"
+      colliders={false}
+      position={position}
+    >
+      <CylinderCollider
+        args={[
+          trunkHalfHeight,
+          trunkRadius,
+        ]}
+        position={[
+          0,
+          trunkHalfHeight,
+          0,
+        ]}
+        friction={0.8}
+      />
+
+      {treeVisual}
+    </RigidBody>
   );
 }
 
@@ -164,22 +216,63 @@ function SimpleRock({
   scale = 1,
   rotation = 0,
   boulderHeightMultiplier = 1,
+  collisionEnabled = false,
 }) {
-  return (
+  const halfWidth = scale * 1.2;
+  const halfHeight =
+    scale * 0.55 * boulderHeightMultiplier;
+  const halfDepth = scale;
+
+  const rockVisual = (
     <mesh
-      position={position}
+      position={[0, halfHeight, 0]}
       scale={[
-        scale * 1.2,
-        scale * 0.55 * boulderHeightMultiplier,
-        scale,
+        halfWidth,
+        halfHeight,
+        halfDepth,
       ]}
-      rotation={[0, rotation, 0]}
       castShadow
       receiveShadow
     >
       <dodecahedronGeometry args={[1, 0]} />
-      <meshStandardMaterial color="#20272d" roughness={0.95} />
+
+      <meshStandardMaterial
+        color="#20272d"
+        roughness={0.95}
+      />
     </mesh>
+  );
+
+  if (!collisionEnabled) {
+    return (
+      <group
+        position={position}
+        rotation={[0, rotation, 0]}
+      >
+        {rockVisual}
+      </group>
+    );
+  }
+
+  return (
+    <RigidBody
+      type="fixed"
+      colliders={false}
+      position={position}
+      rotation={[0, rotation, 0]}
+    >
+      <CuboidCollider
+        args={[
+          halfWidth * 0.82,
+          halfHeight * 0.9,
+          halfDepth * 0.82,
+        ]}
+        position={[0, halfHeight, 0]}
+        friction={0.85}
+      />
+
+      {rockVisual}
+    </RigidBody>
   );
 }
 
@@ -285,10 +378,11 @@ function TreeScatter() {
             position={[point.x, y, point.z]}
             scale={point.scale}
             windPhase={point.variant * Math.PI * 2}
+            collisionEnabled={index < MAX_TREE_COLLIDERS}
             crownRef={(object) => {
               crownRefs.current[index] = object;
-            }}
-          />
+          }}
+        />
         );
       });
   }, [
@@ -471,19 +565,20 @@ function RockScatter() {
       1 + ((Number(boulderHeight) || 0) / 100) * 5;
 
     return ROCK_POINTS.slice(0, count).map((point, index) => {
-      const y = getTerrainHeightAt(point.x, point.z) + 0.24;
+      const y = getTerrainHeightAt(point.x, point.z);
       const isBoulder = point.variant < boulderChance;
 
       return (
         <SimpleRock
-          key={`rock-${index}`}
-          position={[point.x, y, point.z]}
-          scale={point.scale}
-          rotation={point.rotation}
-          boulderHeightMultiplier={
-            isBoulder ? boulderHeightMultiplier : 1
-          }
-        />
+  key={`rock-${index}`}
+  position={[point.x, y, point.z]}
+  scale={point.scale}
+  rotation={point.rotation}
+  collisionEnabled={index < MAX_ROCK_COLLIDERS}
+  boulderHeightMultiplier={
+    isBoulder ? boulderHeightMultiplier : 1
+  }
+/>
       );
     });
   }, [
