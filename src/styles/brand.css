@@ -594,17 +594,26 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 6, 8, 0.28);
-  backdrop-filter: brightness(0.72) saturate(0.9);
+  background:
+        radial-gradient(
+            circle,
+            rgba(0,0,0,.50) 0%,
+            rgba(0,0,0,.25) 35%,
+            rgba(0,0,0,0) 70%
+        );
+
+    backdrop-filter:none;
 }
 
 .tg-title-panel {
   width: 330px;
   min-height: 540px;
   padding: 34px 30px 18px;
-  border: 2px solid rgba(232, 238, 245, 0);
-  background: rgba(5, 6, 8, 0.25);
-  box-shadow: 0 0 34px rgba(0, 0, 0, 0.55);
+  .tg-title-panel {
+    background: transparent;
+    box-shadow:none;
+    border:none;
+}
   display: flex;
   flex-direction: column;
   align-items: center;
