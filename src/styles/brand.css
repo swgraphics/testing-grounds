@@ -911,3 +911,104 @@ canvas {
     font-size: 9px;
   }
 }
+/* =======================================================
+   Loading Overlay
+======================================================= */
+
+.tg-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(5, 6, 8, 0.88);
+  backdrop-filter: blur(5px) brightness(0.48);
+
+  opacity: 1;
+  pointer-events: all;
+}
+
+.tg-loading-overlay-content {
+  position: relative;
+
+  width: 180px;
+  min-height: 180px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.tg-loading-compass-glow {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+
+  width: 92px;
+  height: 92px;
+
+  border-radius: 50%;
+
+  background: radial-gradient(
+    circle,
+    rgba(205, 38, 38, 0.74) 0%,
+    rgba(129, 16, 18, 0.42) 38%,
+    rgba(205, 38, 38, 0) 74%
+  );
+
+  filter: blur(14px);
+
+  transform: translateX(-50%);
+  animation: tg-loading-glow-pulse 1.8s ease-in-out infinite;
+}
+
+.tg-loading-compass-icon {
+  position: relative;
+  z-index: 2;
+
+  width: 76px;
+  height: 76px;
+
+  object-fit: contain;
+
+  /*
+   * This keeps the compass dark while its red glow
+   * remains visible behind it.
+   */
+  filter:
+    brightness(0.42)
+    saturate(0.45)
+    drop-shadow(0 0 5px rgba(205, 38, 38, 0.7))
+    drop-shadow(0 0 16px rgba(205, 38, 38, 0.45));
+}
+
+.tg-loading-overlay-message {
+  position: relative;
+  z-index: 2;
+
+  margin-top: 22px;
+
+  color: rgba(232, 238, 245, 0.9);
+
+  font-family: var(--tg-font-display);
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+@keyframes tg-loading-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateX(-50%) scale(0.86);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.2);
+  }
+}

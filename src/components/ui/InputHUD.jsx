@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { inputState } from "../../systems/input/inputState";
-
+import {
+  runWithLoadingOverlay,
+} from "../../systems/ui/loadingOverlay";
 import {
   terrainSettings,
   updateTerrainSetting,
@@ -574,50 +576,77 @@ export default function InputHUD() {
               )}
             </div>
 
-            {/* WORLD */}
-            <div className="tg-dev-section">
-              <DevSectionHeader
-                label="WORLD"
-                sectionName="world"
-                isOpen={openDevSections.world}
-                onToggle={toggleDevSection}
-              />
+{/* WORLD */}
+<div className="tg-dev-section">
+  <DevSectionHeader
+    label="WORLD"
+    sectionName="world"
+    isOpen={openDevSections.world}
+    onToggle={toggleDevSection}
+  />
 
-              {openDevSections.world && (
-                <div className="tg-dev-section-content">
-                  <button
-                    className="tg-side-panel-button"
-                    onClick={() => {
-                      saveWorldSettings();
-                      refresh();
-                    }}
-                  >
-                    Save World
-                  </button>
+  {openDevSections.world && (
+    <div className="tg-dev-section-content">
+      <button
+        className="tg-side-panel-button"
+        onClick={() => {
+          runWithLoadingOverlay(
+            async () => {
+              saveWorldSettings();
+              refresh();
+            },
+            {
+              message: "SAVING WORLD",
+              minimumDuration: 700,
+            }
+          );
+        }}
+      >
+        Save World
+      </button>
 
-                  <button
-                    className="tg-side-panel-button"
-                    onClick={() => {
-                      loadWorldSettings();
-                      refresh();
-                    }}
-                  >
-                    Load World
-                  </button>
+      <button
+        className="tg-side-panel-button"
+        onClick={() => {
+          runWithLoadingOverlay(
+            async () => {
+              loadWorldSettings();
+              refresh();
 
-                  <button
-                    className="tg-side-panel-button"
-                    onClick={() => {
-                      resetWorldSettings();
-                      refresh();
-                    }}
-                  >
-                    Reset World
-                  </button>
-                </div>
-              )}
-            </div>
+              await new Promise((resolve) => {
+                window.setTimeout(resolve, 250);
+              });
+            },
+            {
+              message: "LOADING WORLD",
+              minimumDuration: 900,
+            }
+          );
+        }}
+      >
+        Load World
+      </button>
 
+      <button
+        className="tg-side-panel-button"
+        onClick={() => {
+          runWithLoadingOverlay(
+            async () => {
+              resetWorldSettings();
+              refresh();
+            },
+            {
+              message: "RESETTING WORLD",
+              minimumDuration: 800,
+            }
+          );
+        }}
+      >
+        Reset World
+      </button>
+    </div>
+  )}
+</div>
             {/* MATERIALS */}
             <div className="tg-dev-section">
               <DevSectionHeader
