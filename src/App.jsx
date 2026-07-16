@@ -7,7 +7,7 @@ import LoadingOverlay from "./components/ui/LoadingOverlay";
 import TestingGrounds from "./scenes/TestingGrounds";
 import InputHUD from "./components/ui/InputHUD";
 import TitleScreen from "./components/ui/TitleScreen";
-
+import CompassRibbon from "./components/ui/CompassRibbon";
 import {
   showLoadingOverlay,
   hideLoadingOverlay,
@@ -103,6 +103,7 @@ export default function App() {
       {!showTitleScreen && (
   <>
     <InputHUD />
+    <CompassRibbon />
     <AreaDiscovery />
   </>
 )}
