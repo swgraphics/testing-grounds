@@ -710,146 +710,6 @@ canvas {
 }
 
 /* =======================================================
-   World HUD: Compass + Area Discovery
-======================================================= */
-
-.tg-compass-bar {
-  position: fixed;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 35;
-
-  width: 260px;
-  height: 28px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 42px;
-
-  background: linear-gradient(
-    90deg,
-    rgba(129, 16, 18, 0) 0%,
-    rgba(129, 16, 18, 0.72) 22%,
-    rgba(205, 38, 38, 0.82) 50%,
-    rgba(129, 16, 18, 0.72) 78%,
-    rgba(129, 16, 18, 0) 100%
-  );
-
-  color: var(--tg-white);
-  font-family: var(--tg-font-display);
-  font-size: 20px;
-  letter-spacing: 0.12em;
-  pointer-events: none;
-}
-
-.tg-compass-mark {
-  font-size: 22px;
-  color: var(--tg-white);
-}
-
-.tg-area-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 28;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-family: var(--tg-font-display);
-  font-size: min(42vw, 160px);
-  letter-spacing: -0.04em;
-  color: rgba(232, 238, 245, 0.32);
-
-  opacity: 0;
-  transform: scale(1.08);
-  transition:
-    opacity 1.2s ease,
-    transform 1.8s ease;
-
-  pointer-events: none;
-}
-
-.tg-area-overlay.visible {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.tg-location-label {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 36;
-
-  height: 42px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-top: 1px solid rgba(205, 38, 38, 0.75);
-  background: rgba(5, 6, 8, 0.86);
-
-  color: var(--tg-white);
-  font-family: var(--tg-font-display);
-  font-size: 20px;
-  letter-spacing: 0.08em;
-
-  opacity: 0;
-  transform: translateY(100%);
-  transition:
-    opacity 0.6s ease,
-    transform 0.6s ease;
-
-  pointer-events: none;
-}
-
-.tg-location-label.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-/* =======================================================
-   Compass Bar
-======================================================= */
-
-.tg-compass-bar {
-  position: fixed;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 35;
-
-  width: 260px;
-  height: 28px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 42px;
-
-  background: linear-gradient(
-    90deg,
-    rgba(129, 16, 18, 0) 0%,
-    rgba(129, 16, 18, 0.72) 22%,
-    rgba(205, 38, 38, 0.82) 50%,
-    rgba(129, 16, 18, 0.72) 78%,
-    rgba(129, 16, 18, 0) 100%
-  );
-
-  color: var(--tg-white);
-  font-family: var(--tg-font-display);
-  font-size: 20px;
-  letter-spacing: 0.12em;
-  pointer-events: none;
-}
-
-.tg-compass-mark {
-  font-size: 22px;
-}
-/* =======================================================
    Responsive Visibility
 ======================================================= */
 
@@ -1113,12 +973,12 @@ canvas {
 
 .tg-compass-ribbon {
   position: fixed;
-  top: 16px;
+  top: 10px;
   left: 50%;
   z-index: 42;
 
-  width: min(720px, 72vw);
-  height: 72px;
+  width: min(680px, 68vw);
+  height: 92px;
 
   transform: translateX(-50%);
 
@@ -1128,25 +988,53 @@ canvas {
   color: var(--tg-white);
 }
 
+/*
+ * Low-opacity black background bar.
+ * This keeps the ribbon legible against bright skies.
+ */
+.tg-compass-ribbon::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  border-top: 1px solid rgba(205, 38, 38, 0.16);
+  border-bottom: 1px solid rgba(205, 38, 38, 0.12);
+
+  background: linear-gradient(
+    90deg,
+    rgba(5, 6, 8, 0) 0%,
+    rgba(5, 6, 8, 0.48) 12%,
+    rgba(5, 6, 8, 0.68) 32%,
+    rgba(5, 6, 8, 0.72) 50%,
+    rgba(5, 6, 8, 0.68) 68%,
+    rgba(5, 6, 8, 0.48) 88%,
+    rgba(5, 6, 8, 0) 100%
+  );
+
+  backdrop-filter: blur(2px);
+}
+
 .tg-compass-ribbon-viewport {
   position: absolute;
   inset: 0;
+  z-index: 1;
 
   overflow: hidden;
 
   mask-image: linear-gradient(
     90deg,
     transparent 0%,
-    black 12%,
-    black 88%,
+    black 10%,
+    black 90%,
     transparent 100%
   );
 
   -webkit-mask-image: linear-gradient(
     90deg,
     transparent 0%,
-    black 12%,
-    black 88%,
+    black 10%,
+    black 90%,
     transparent 100%
   );
 }
@@ -1156,30 +1044,36 @@ canvas {
   inset: 0;
 }
 
+/*
+ * Main horizontal compass line.
+ */
 .tg-compass-ribbon-track::before {
   content: "";
 
   position: absolute;
-  top: 40px;
-  left: 8%;
-  right: 8%;
+  top: 44px;
+  left: 7%;
+  right: 7%;
 
   height: 1px;
 
   background: linear-gradient(
     90deg,
     rgba(205, 38, 38, 0),
-    rgba(205, 38, 38, 0.6) 28%,
-    rgba(232, 238, 245, 0.7) 50%,
-    rgba(205, 38, 38, 0.6) 72%,
+    rgba(205, 38, 38, 0.55) 25%,
+    rgba(232, 238, 245, 0.72) 50%,
+    rgba(205, 38, 38, 0.55) 75%,
     rgba(205, 38, 38, 0)
   );
 }
 
-.tg-compass-direction,
-.tg-compass-area-marker {
+/* =======================================================
+   Direction Markers — above line
+======================================================= */
+
+.tg-compass-direction {
   position: absolute;
-  top: 9px;
+  top: 8px;
   left: 50%;
 
   width: 70px;
@@ -1195,10 +1089,13 @@ canvas {
 
 .tg-compass-direction span {
   font-family: var(--tg-font-display);
-  font-size: 17px;
+  font-size: 16px;
   letter-spacing: 0.1em;
 
-  color: rgba(232, 238, 245, 0.82);
+  color: rgba(232, 238, 245, 0.72);
+
+  text-shadow:
+    0 1px 5px rgba(0, 0, 0, 0.9);
 }
 
 .tg-compass-direction.cardinal span {
@@ -1211,65 +1108,93 @@ canvas {
 
   width: 1px;
   height: 8px;
-  margin-top: 3px;
+  margin-top: 4px;
 
-  background: rgba(232, 238, 245, 0.58);
+  background: rgba(232, 238, 245, 0.54);
 }
 
 .tg-compass-direction.cardinal i {
   height: 13px;
-  background: rgba(232, 238, 245, 0.9);
+  background: rgba(232, 238, 245, 0.88);
 }
 
-.tg-compass-area-marker {
-  top: 3px;
+/* =======================================================
+   Area Markers — below line
+======================================================= */
 
-  width: 88px;
-  margin-left: -44px;
+.tg-compass-area-marker {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+
+  width: 92px;
+  margin-left: -46px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   color: var(--tg-crimson);
+
+  transition: transform 0.06s linear;
+  will-change: transform;
+}
+
+.tg-compass-area-marker i {
+  /*
+   * Marker line rises upward toward the main ribbon line.
+   */
+  order: -1;
+
+  display: block;
+
+  width: 1px;
+  height: 9px;
+  margin-bottom: 3px;
+
+  background: var(--tg-crimson);
+
+  box-shadow:
+    0 0 7px rgba(205, 38, 38, 0.85);
 }
 
 .tg-compass-area-grid {
   font-family: var(--tg-font-display);
-  font-size: 21px;
+  font-size: 20px;
   letter-spacing: 0.07em;
-  line-height: 1;
+  line-height: 0.95;
+
+  color: var(--tg-crimson);
 
   text-shadow:
-    0 0 9px rgba(205, 38, 38, 0.7);
+    0 0 9px rgba(205, 38, 38, 0.82),
+    0 2px 5px rgba(0, 0, 0, 0.9);
 }
 
 .tg-compass-area-distance {
-  margin-top: 1px;
+  margin-top: 2px;
 
   font-family: var(--tg-font-copy);
   font-size: 9px;
   font-weight: 600;
 
-  color: rgba(232, 238, 245, 0.72);
+  color: rgba(232, 238, 245, 0.76);
+
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.95);
 }
 
-.tg-compass-area-marker i {
-  display: block;
-
-  width: 1px;
-  height: 11px;
-  margin-top: 2px;
-
-  background: var(--tg-crimson);
-
-  box-shadow:
-    0 0 7px rgba(205, 38, 38, 0.8);
-}
+/* =======================================================
+   Fixed Center Indicator
+======================================================= */
 
 .tg-compass-center-indicator {
   position: absolute;
-  top: 25px;
+  top: 29px;
   left: 50%;
-  z-index: 3;
+  z-index: 4;
 
-  width: 52px;
+  width: 54px;
 
   transform: translateX(-50%);
 
@@ -1282,14 +1207,14 @@ canvas {
   content: "";
 
   position: absolute;
-  top: 3px;
+  top: 2px;
 
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
 
   border-radius: 50%;
 
-  background: rgba(205, 38, 38, 0.34);
+  background: rgba(205, 38, 38, 0.36);
   filter: blur(12px);
 }
 
@@ -1302,7 +1227,7 @@ canvas {
   filter:
     brightness(0.72)
     drop-shadow(
-      0 0 6px rgba(205, 38, 38, 0.75)
+      0 0 6px rgba(205, 38, 38, 0.78)
     );
 }
 
@@ -1313,32 +1238,42 @@ canvas {
   font-size: 8px;
   font-weight: 600;
 
-  color: rgba(232, 238, 245, 0.76);
+  color: rgba(232, 238, 245, 0.78);
+
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.95);
 }
+
+/* =======================================================
+   Mobile Compass
+======================================================= */
 
 @media (max-width: 899px) {
   .tg-compass-ribbon {
-    top: 10px;
+    top: 6px;
 
-    width: min(560px, 82vw);
-    height: 64px;
+    width: min(600px, 86vw);
+    height: 84px;
   }
 
-  .tg-compass-direction,
-  .tg-compass-area-marker {
-    /*
-     * The JSX uses four pixels per degree.
-     * We retain the same scale initially so area
-     * positions remain easy to interpret.
-     */
+  .tg-compass-ribbon-track::before {
+    top: 40px;
+  }
+
+  .tg-compass-direction {
+    top: 6px;
   }
 
   .tg-compass-direction span {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .tg-compass-direction.cardinal span {
     font-size: 18px;
+  }
+
+  .tg-compass-area-marker {
+    top: 46px;
   }
 
   .tg-compass-area-grid {
@@ -1346,7 +1281,7 @@ canvas {
   }
 
   .tg-compass-center-indicator {
-    top: 24px;
+    top: 26px;
   }
 
   .tg-compass-center-indicator img {

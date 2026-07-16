@@ -19,7 +19,7 @@ export const characterRegistry = {
     },
 
     scale: 1,
-    height: 0.02,
+    height: -0.34,
   
 
     rotation: {
@@ -46,7 +46,7 @@ export const characterRegistry = {
 },
 
     scale: 0.25,
-    height: -0.85,
+    height: -0.83,
 
     cameraHeight: 0.9,
     cameraDistance: 4.8,
