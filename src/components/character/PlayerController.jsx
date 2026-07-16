@@ -272,7 +272,7 @@ if (lowerCamera) {
 
 export default function PlayerController() {
   const controllerRef = useRef();
-
+  const positionBroadcastTimeRef = useRef(0);
   const [animationState, setAnimationState] = useState("idle");
 
   const [currentCharacterId, setCurrentCharacterId] =
@@ -335,7 +335,36 @@ export default function PlayerController() {
     };
   }, []);
 
-  useFrame(() => {
+  useFrame((state) => {
+        const currentPosition =
+      controllerRef.current?.currPos;
+
+    const currentTime =
+      state.clock.elapsedTime;
+
+    if (
+      currentPosition &&
+      currentTime -
+        positionBroadcastTimeRef.current >=
+        0.1
+    ) {
+      positionBroadcastTimeRef.current =
+        currentTime;
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "player-position-changed",
+          {
+            detail: {
+              x: currentPosition.x,
+              y: currentPosition.y,
+              z: currentPosition.z,
+            },
+          }
+        )
+      );
+    }
+    
     const controllerForward =
       gamepadState.leftStickY < -0.2;
 

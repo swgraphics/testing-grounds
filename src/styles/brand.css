@@ -1012,3 +1012,98 @@ canvas {
     transform: translateX(-50%) scale(1.2);
   }
 }
+/* =======================================================
+   Area Discovery
+======================================================= */
+
+.tg-area-discovery {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  pointer-events: none;
+
+  opacity: 0;
+  transform: scale(1.035);
+
+  transition:
+    opacity 0.9s ease,
+    transform 1.15s ease;
+}
+
+.tg-area-discovery.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.tg-area-discovery-grid {
+  position: absolute;
+
+  font-family: var(--tg-font-display);
+  font-size: clamp(240px, 48vw, 610px);
+  line-height: 0.72;
+  letter-spacing: -0.055em;
+
+  color: rgba(232, 238, 245, 0.16);
+
+  text-shadow:
+    0 0 30px rgba(0, 0, 0, 0.3);
+
+  white-space: nowrap;
+}
+
+.tg-area-discovery-banner {
+  position: relative;
+  z-index: 2;
+
+  min-width: min(520px, 78vw);
+  padding: 8px 38px;
+
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(5, 6, 8, 0) 0%,
+    rgba(54, 7, 10, 0.86) 15%,
+    rgba(129, 16, 18, 0.94) 50%,
+    rgba(54, 7, 10, 0.86) 85%,
+    rgba(5, 6, 8, 0) 100%
+  );
+
+  color: var(--tg-white);
+
+  font-family: var(--tg-font-display);
+  font-size: clamp(28px, 4.4vw, 48px);
+  letter-spacing: 0.035em;
+  line-height: 1;
+
+  text-align: center;
+
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.65);
+}
+
+.tg-area-discovery-banner-grid {
+  color: rgba(232, 238, 245, 0.82);
+}
+
+@media (max-width: 899px) {
+  .tg-area-discovery-grid {
+    font-size: clamp(170px, 52vw, 360px);
+  }
+
+  .tg-area-discovery-banner {
+    min-width: 82vw;
+    padding: 7px 18px;
+    gap: 8px;
+
+    font-size: clamp(24px, 6.5vw, 38px);
+  }
+}

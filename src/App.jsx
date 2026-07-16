@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Stats } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
-
+import AreaDiscovery from "./components/ui/AreaDiscovery";
 import LoadingOverlay from "./components/ui/LoadingOverlay";
 import TestingGrounds from "./scenes/TestingGrounds";
 import InputHUD from "./components/ui/InputHUD";
@@ -100,7 +100,12 @@ export default function App() {
         <Stats />
       </Canvas>
 
-      {!showTitleScreen && <InputHUD />}
+      {!showTitleScreen && (
+  <>
+    <InputHUD />
+    <AreaDiscovery />
+  </>
+)}
 
       {showTitleScreen && (
         <TitleScreen
