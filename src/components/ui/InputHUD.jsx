@@ -698,15 +698,23 @@ export default function InputHUD() {
       {/* MOBILE CONTROLS */}
       <div className="tg-mobile-controls">
         <div className="tg-joystick">
-          <div className="tg-joystick-ring">
-            <div
-              className="tg-joystick-thumb"
-              style={{
-                transform: `translate(${stickPosition.x}px, ${stickPosition.y}px)`,
-              }}
-            />
-          </div>
-        </div>
+  <img
+    src="/images/ui/joystick/joystick-base.svg"
+    alt=""
+    className="tg-joystick-base"
+    draggable="false"
+  />
+
+  <img
+    src="/images/ui/joystick/joystick-top.svg"
+    alt=""
+    className="tg-joystick-top"
+    draggable="false"
+    style={{
+      transform: `translate(${stickPosition.x}px, ${stickPosition.y}px)`,
+    }}
+  />
+</div>
 
         <div className="tg-action-buttons">
           <button
