@@ -152,13 +152,35 @@ canvas {
 }
 
 .tg-joystick-base {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: contain;
+
   z-index: 1;
 }
 
 .tg-joystick-top {
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  width: 82%;
+  height: 82%;
+
+  object-fit: contain;
+
+  transform: translate(-50%, -50%);
+
   z-index: 2;
 
   transform-origin: center center;
+
   will-change: transform;
 
   transition: transform 45ms linear;

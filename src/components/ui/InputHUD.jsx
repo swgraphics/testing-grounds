@@ -711,8 +711,8 @@ export default function InputHUD() {
     className="tg-joystick-top"
     draggable="false"
     style={{
-      transform: `translate(${stickPosition.x}px, ${stickPosition.y}px)`,
-    }}
+  transform: `translate(calc(-50% + ${stickPosition.x * 0.42}px), calc(-50% + ${stickPosition.y * 0.42}px))`,
+}}
   />
 </div>
 
