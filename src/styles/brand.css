@@ -186,6 +186,22 @@ canvas {
   transition: transform 45ms linear;
 }
 
+.tg-desktop-joystick {
+  position: fixed;
+  left: 28px;
+  bottom: 28px;
+
+  width: 132px;
+  height: 132px;
+
+  z-index: 30;
+
+  display: none;
+
+  pointer-events: none;
+  touch-action: none;
+}
+
 .tg-action-buttons {
   position: absolute;
   right: 24px;
@@ -714,6 +730,10 @@ canvas {
 @media (min-width: 900px) {
   .tg-mobile-controls {
     display: none;
+  }
+
+  .tg-desktop-joystick {
+    display: block;
   }
 }
 

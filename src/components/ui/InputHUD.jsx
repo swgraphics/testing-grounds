@@ -150,7 +150,44 @@ export default function InputHUD() {
   function refresh() {
     forceUpdate((value) => value + 1);
   }
+function updateStickFromKeyboard() {
+  let x = 0;
+  let y = 0;
 
+  if (inputState.leftward) {
+    x -= 1;
+  }
+
+  if (inputState.rightward) {
+    x += 1;
+  }
+
+  if (inputState.forward) {
+    y -= 1;
+  }
+
+  if (inputState.backward) {
+    y += 1;
+  }
+
+  const length = Math.hypot(x, y);
+
+  if (length === 0) {
+    setStickPosition({
+      x: 0,
+      y: 0,
+    });
+
+    return;
+  }
+
+  const maximumDistance = 45;
+
+  setStickPosition({
+    x: (x / length) * maximumDistance,
+    y: (y / length) * maximumDistance,
+  });
+}
   function toggleDevSection(sectionName) {
     setOpenDevSections((current) => ({
       ...current,
@@ -200,6 +237,7 @@ export default function InputHUD() {
         inputState.slide = true;
       }
 
+      updateStickFromKeyboard();
       refresh();
     }
 
@@ -236,6 +274,7 @@ export default function InputHUD() {
         inputState.slide = false;
       }
 
+      updateStickFromKeyboard();
       refresh();
     }
 
@@ -668,32 +707,28 @@ export default function InputHUD() {
         )}
       </div>
 
-      {/* DESKTOP KEYBOARD HUD */}
-      <div className="tg-keyboard-hud">
-        <div className="tg-key-row">
-          <KeyBox
-            label="W"
-            active={inputState.forward}
-          />
-        </div>
+      {/* DESKTOP JOYSTICK HUD */}
+<div className="tg-desktop-joystick">
+  <img
+    src="/images/ui/joystick/joystick-base.svg"
+    alt=""
+    className="tg-joystick-base"
+    draggable="false"
+  />
 
-        <div className="tg-key-row">
-          <KeyBox
-            label="A"
-            active={inputState.leftward}
-          />
-
-          <KeyBox
-            label="S"
-            active={inputState.backward}
-          />
-
-          <KeyBox
-            label="D"
-            active={inputState.rightward}
-          />
-        </div>
-      </div>
+  <img
+    src="/images/ui/joystick/joystick-top.svg"
+    alt=""
+    className="tg-joystick-top"
+    draggable="false"
+    style={{
+      transform: `translate(
+        calc(-50% + ${stickPosition.x * 0.42}px),
+        calc(-50% + ${stickPosition.y * 0.42}px)
+      )`,
+    }}
+  />
+</div>
 
       {/* MOBILE CONTROLS */}
       <div className="tg-mobile-controls">
