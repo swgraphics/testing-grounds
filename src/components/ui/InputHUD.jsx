@@ -723,8 +723,8 @@ function updateStickFromKeyboard() {
     draggable="false"
     style={{
       transform: `translate(
-        calc(-50% + ${stickPosition.x * 0.42}px),
-        calc(-50% + ${stickPosition.y * 0.42}px)
+        calc(-50% + ${stickPosition.x * 0.315}px),
+        calc(-50% + ${stickPosition.y * 0.315}px)
       )`,
     }}
   />
@@ -746,68 +746,100 @@ function updateStickFromKeyboard() {
     className="tg-joystick-top"
     draggable="false"
     style={{
-  transform: `translate(calc(-50% + ${stickPosition.x * 0.42}px), calc(-50% + ${stickPosition.y * 0.42}px))`,
+  transform: `translate(calc(-50% + ${stickPosition.x * 0.315}px), calc(-50% + ${stickPosition.y * 0.315}px))`,
 }}
   />
 </div>
 
-        <div className="tg-action-buttons">
-          <button
-            className="tg-action-button"
-            onPointerDown={() => {
-              tapAction("jump");
-            }}
-          >
-            <span>JUMP</span>
-          </button>
+<div className="tg-action-buttons">
+  <button
+    className="tg-action-button"
+    aria-label="Jump"
+    onPointerDown={() => {
+      tapAction("jump");
+    }}
+  >
+    <img
+      src="/images/ui/buttons/button-base.svg"
+      alt=""
+      className="tg-action-button-base"
+      draggable="false"
+    />
 
-          <button
-            className={`tg-action-button ${
-              sprintOn ? "active" : ""
-            }`}
-            onPointerDown={() => {
-              setSprintOn((current) => !current);
-            }}
-          >
-            <span>SPRINT</span>
-          </button>
+    <span className="tg-action-button-label">A</span>
+  </button>
 
-          <button
-            className="tg-action-button"
-            onPointerDown={() => {
-              inputState.crouch = true;
-              refresh();
-            }}
-            onPointerUp={() => {
-              inputState.crouch = false;
-              refresh();
-            }}
-            onPointerCancel={() => {
-              inputState.crouch = false;
-              refresh();
-            }}
-          >
-            <span>CROUCH</span>
-          </button>
+  <button
+    className={`tg-action-button ${
+      sprintOn ? "active" : ""
+    }`}
+    aria-label="Sprint"
+    onPointerDown={() => {
+      setSprintOn((current) => !current);
+    }}
+  >
+    <img
+      src="/images/ui/buttons/button-base.svg"
+      alt=""
+      className="tg-action-button-base"
+      draggable="false"
+    />
 
-          <button
-            className="tg-action-button"
-            onPointerDown={() => {
-              inputState.slide = true;
-              refresh();
-            }}
-            onPointerUp={() => {
-              inputState.slide = false;
-              refresh();
-            }}
-            onPointerCancel={() => {
-              inputState.slide = false;
-              refresh();
-            }}
-          >
-            <span>SLIDE</span>
-          </button>
-        </div>
+    <span className="tg-action-button-label">Y</span>
+  </button>
+
+  <button
+    className="tg-action-button"
+    aria-label="Crouch"
+    onPointerDown={() => {
+      inputState.crouch = true;
+      refresh();
+    }}
+    onPointerUp={() => {
+      inputState.crouch = false;
+      refresh();
+    }}
+    onPointerCancel={() => {
+      inputState.crouch = false;
+      refresh();
+    }}
+  >
+    <img
+      src="/images/ui/buttons/button-base.svg"
+      alt=""
+      className="tg-action-button-base"
+      draggable="false"
+    />
+
+    <span className="tg-action-button-label">X</span>
+  </button>
+
+  <button
+    className="tg-action-button"
+    aria-label="Slide"
+    onPointerDown={() => {
+      inputState.slide = true;
+      refresh();
+    }}
+    onPointerUp={() => {
+      inputState.slide = false;
+      refresh();
+    }}
+    onPointerCancel={() => {
+      inputState.slide = false;
+      refresh();
+    }}
+  >
+    <img
+      src="/images/ui/buttons/button-base.svg"
+      alt=""
+      className="tg-action-button-base"
+      draggable="false"
+    />
+
+    <span className="tg-action-button-label">B</span>
+  </button>
+</div>
       </div>
     </>
   );
