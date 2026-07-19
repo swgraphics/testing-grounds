@@ -213,6 +213,60 @@ canvas {
 
   pointer-events: auto;
 }
+.tg-desktop-action-buttons {
+  position: fixed;
+  right: 34px;
+  bottom: 28px;
+
+  width: 150px;
+  height: 150px;
+
+  z-index: 30;
+
+  display: none;
+
+  pointer-events: auto;
+}
+
+/* A — left */
+.tg-desktop-action-buttons
+  .tg-action-button:nth-child(1) {
+  position: absolute;
+  left: 0;
+  top: 50%;
+
+  transform: translateY(-50%);
+}
+
+/* Y — top */
+.tg-desktop-action-buttons
+  .tg-action-button:nth-child(2) {
+  position: absolute;
+  left: 50%;
+  top: 0;
+
+  transform: translateX(-50%);
+}
+
+/* X — bottom */
+.tg-desktop-action-buttons
+  .tg-action-button:nth-child(3) {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%);
+}
+
+/* B — right */
+.tg-desktop-action-buttons
+  .tg-action-button:nth-child(4) {
+  position: absolute;
+  right: 0;
+  top: 50%;
+
+  transform: translateY(-50%);
+}
 .tg-action-button:nth-child(1) {
   /* A */
   position: absolute;
@@ -633,11 +687,13 @@ canvas {
   }
 
   .tg-dev-toggle {
-    position: fixed;
-    top: 92px;
-    right: 18px;
-    width: 56px;
-    height: 56px;
+  position: fixed;
+
+  top: 16px;
+  right: 18px;
+
+  width: 56px;
+  height: 56px;
   }
 }
 
@@ -660,11 +716,13 @@ canvas {
   }
 
   .tg-dev-toggle {
-    position: fixed;
-    right: 24px;
-    bottom: 18px;
-    width: 58px;
-    height: 58px;
+  position: fixed;
+
+  top: 18px;
+  right: 22px;
+
+  width: 58px;
+  height: 58px;
   }
 }
 
@@ -804,6 +862,10 @@ canvas {
   }
 
   .tg-desktop-joystick {
+    display: block;
+  }
+
+  .tg-desktop-action-buttons {
     display: block;
   }
 }
@@ -1069,7 +1131,11 @@ canvas {
   width: min(680px, 68vw);
   height: 92px;
 
-  transform: translateX(-50%);
+  transform:
+    translateX(-50%)
+    scale(0.5);
+
+  transform-origin: top center;
 
   pointer-events: none;
   overflow: visible;
@@ -1343,6 +1409,12 @@ canvas {
 
     width: min(600px, 86vw);
     height: 84px;
+
+    transform:
+      translateX(-50%)
+      scale(0.5);
+
+    transform-origin: top center;
   }
 
   .tg-compass-ribbon-track::before {

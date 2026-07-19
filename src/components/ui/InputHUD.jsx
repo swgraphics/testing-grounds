@@ -729,7 +729,128 @@ function updateStickFromKeyboard() {
     }}
   />
 </div>
+{/* DESKTOP ACTION BUTTONS */}
+<div className="tg-desktop-action-buttons">
+  {/* A — Jump */}
+  <button
+    type="button"
+    className={`tg-action-button ${
+      inputState.jump ? "active" : ""
+    }`}
+    aria-label="Jump"
+    onPointerDown={() => {
+      inputState.jump = true;
+      refresh();
+    }}
+    onPointerUp={() => {
+      inputState.jump = false;
+      refresh();
+    }}
+    onPointerCancel={() => {
+      inputState.jump = false;
+      refresh();
+    }}
+  >
+    <img
+      src="/images/ui/buttons/button-base.svg"
+      alt=""
+      className="tg-action-button-base"
+      draggable="false"
+    />
 
+    <span className="tg-action-button-label">A</span>
+  </button>
+
+  {/* Y — Sprint */}
+  <button
+    type="button"
+    className={`tg-action-button ${
+      inputState.run ? "active" : ""
+    }`}
+    aria-label="Sprint"
+    onPointerDown={() => {
+      inputState.run = true;
+      refresh();
+    }}
+    onPointerUp={() => {
+      inputState.run = false;
+      refresh();
+    }}
+    onPointerCancel={() => {
+      inputState.run = false;
+      refresh();
+    }}
+  >
+    <img
+      src="/images/ui/buttons/button-base.svg"
+      alt=""
+      className="tg-action-button-base"
+      draggable="false"
+    />
+
+    <span className="tg-action-button-label">Y</span>
+  </button>
+
+  {/* X — Crouch */}
+  <button
+    type="button"
+    className={`tg-action-button ${
+      inputState.crouch ? "active" : ""
+    }`}
+    aria-label="Crouch"
+    onPointerDown={() => {
+      inputState.crouch = true;
+      refresh();
+    }}
+    onPointerUp={() => {
+      inputState.crouch = false;
+      refresh();
+    }}
+    onPointerCancel={() => {
+      inputState.crouch = false;
+      refresh();
+    }}
+  >
+    <img
+      src="/images/ui/buttons/button-base.svg"
+      alt=""
+      className="tg-action-button-base"
+      draggable="false"
+    />
+
+    <span className="tg-action-button-label">X</span>
+  </button>
+
+  {/* B — Slide */}
+  <button
+    type="button"
+    className={`tg-action-button ${
+      inputState.slide ? "active" : ""
+    }`}
+    aria-label="Slide"
+    onPointerDown={() => {
+      inputState.slide = true;
+      refresh();
+    }}
+    onPointerUp={() => {
+      inputState.slide = false;
+      refresh();
+    }}
+    onPointerCancel={() => {
+      inputState.slide = false;
+      refresh();
+    }}
+  >
+    <img
+      src="/images/ui/buttons/button-base.svg"
+      alt=""
+      className="tg-action-button-base"
+      draggable="false"
+    />
+
+    <span className="tg-action-button-label">B</span>
+  </button>
+</div>
       {/* MOBILE CONTROLS */}
       <div className="tg-mobile-controls">
         <div className="tg-joystick">
