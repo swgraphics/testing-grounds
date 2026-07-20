@@ -1217,10 +1217,7 @@ canvas {
   width: min(680px, 68vw);
   height: 92px;
 
-  transform:
-    translateX(-50%)
-    scale(0.5);
-
+  transform: translateX(-50%);
   transform-origin: top center;
 
   pointer-events: none;
@@ -1229,31 +1226,17 @@ canvas {
   color: var(--tg-white);
 }
 
-/*
- * Low-opacity black background bar.
- * This keeps the ribbon legible against bright skies.
- */
 .tg-compass-ribbon::before {
   content: "";
 
   position: absolute;
   inset: 0;
 
-  border-top: 1px solid rgba(205, 38, 38, 0.16);
-  border-bottom: 1px solid rgba(205, 38, 38, 0.12);
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
 
-  background: linear-gradient(
-    90deg,
-    rgba(5, 6, 8, 0) 0%,
-    rgba(5, 6, 8, 0.48) 12%,
-    rgba(5, 6, 8, 0.68) 32%,
-    rgba(5, 6, 8, 0.72) 50%,
-    rgba(5, 6, 8, 0.68) 68%,
-    rgba(5, 6, 8, 0.48) 88%,
-    rgba(5, 6, 8, 0) 100%
-  );
-
-  backdrop-filter: blur(2px);
+  pointer-events: none;
 }
 
 .tg-compass-ribbon-viewport {
@@ -1299,13 +1282,13 @@ canvas {
   height: 1px;
 
   background: linear-gradient(
-    90deg,
-    rgba(205, 38, 38, 0),
-    rgba(205, 38, 38, 0.55) 25%,
-    rgba(232, 238, 245, 0.72) 50%,
-    rgba(205, 38, 38, 0.55) 75%,
-    rgba(205, 38, 38, 0)
-  );
+  90deg,
+  rgba(255, 255, 255, 0),
+  rgba(255, 255, 255, 0.72) 20%,
+  rgba(255, 255, 255, 1) 50%,
+  rgba(255, 255, 255, 0.72) 80%,
+  rgba(255, 255, 255, 0)
+);
 }
 
 /* =======================================================
@@ -1333,7 +1316,7 @@ canvas {
   font-size: 16px;
   letter-spacing: 0.1em;
 
-  color: rgba(232, 238, 245, 0.72);
+  color: rgba(255, 255, 255, 0.82);
 
   text-shadow:
     0 1px 5px rgba(0, 0, 0, 0.9);
@@ -1341,7 +1324,7 @@ canvas {
 
 .tg-compass-direction.cardinal span {
   font-size: 22px;
-  color: var(--tg-white);
+  color: #ffffff;
 }
 
 .tg-compass-direction i {
@@ -1351,12 +1334,12 @@ canvas {
   height: 8px;
   margin-top: 4px;
 
-  background: rgba(232, 238, 245, 0.54);
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .tg-compass-direction.cardinal i {
   height: 13px;
-  background: rgba(232, 238, 245, 0.88);
+  background: #ffffff;
 }
 
 /* =======================================================
@@ -1375,7 +1358,7 @@ canvas {
   flex-direction: column;
   align-items: center;
 
-  color: var(--tg-crimson);
+  color: #ffffff;
 
   transition: transform 0.06s linear;
   will-change: transform;
@@ -1393,10 +1376,10 @@ canvas {
   height: 9px;
   margin-bottom: 3px;
 
-  background: var(--tg-crimson);
+  background: #ffffff;
 
   box-shadow:
-    0 0 7px rgba(205, 38, 38, 0.85);
+    0 0 7px rgba(225, 255, 255, 0.5);
 }
 
 .tg-compass-area-grid {
@@ -1405,11 +1388,10 @@ canvas {
   letter-spacing: 0.07em;
   line-height: 0.95;
 
-  color: var(--tg-crimson);
+  color: #ffffff;
 
   text-shadow:
-    0 0 9px rgba(205, 38, 38, 0.82),
-    0 2px 5px rgba(0, 0, 0, 0.9);
+    0 1px 5px rgba(0, 0, 0, 0.8);
 }
 
 .tg-compass-area-distance {
@@ -1419,7 +1401,7 @@ canvas {
   font-size: 9px;
   font-weight: 600;
 
-  color: rgba(232, 238, 245, 0.76);
+  color: rgba(255, 255, 255, 0.82);
 
   text-shadow:
     0 1px 4px rgba(0, 0, 0, 0.95);
@@ -1455,7 +1437,7 @@ canvas {
 
   border-radius: 50%;
 
-  background: rgba(205, 38, 38, 0.36);
+  background: rgba(255, 255, 255, 0.16);
   filter: blur(12px);
 }
 
@@ -1466,10 +1448,9 @@ canvas {
   height: 28px;
 
   filter:
-    brightness(0.72)
-    drop-shadow(
-      0 0 6px rgba(205, 38, 38, 0.78)
-    );
+  brightness(0)
+  invert(1)
+  drop-shadow(0 1px 4px rgba(0, 0, 0, 0.75));
 }
 
 .tg-compass-center-indicator span {
@@ -1479,7 +1460,7 @@ canvas {
   font-size: 8px;
   font-weight: 600;
 
-  color: rgba(232, 238, 245, 0.78);
+  color: rgba(255, 255, 255, 0.86);
 
   text-shadow:
     0 1px 4px rgba(0, 0, 0, 0.95);
@@ -1496,9 +1477,7 @@ canvas {
     width: min(600px, 86vw);
     height: 84px;
 
-    transform:
-      translateX(-50%)
-      scale(0.5);
+    transform: translateX(-50%);
 
     transform-origin: top center;
   }
