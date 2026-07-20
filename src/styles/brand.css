@@ -1712,6 +1712,28 @@ canvas {
    * above and slightly farther right than ABXY.
    */
   .tg-mobile-camera-pad {
+  left: auto;
+  right: 118px;
+  bottom: 126px;
+
+  width: 82px;
+  height: 82px;
+
+  overflow: visible;
+}
+}
+/* =======================================================
+   Final Mobile Landscape Control Lock
+======================================================= */
+
+@media (max-width: 899px) and (orientation: landscape) {
+  .tg-action-buttons {
+    left: auto;
+    right: 24px;
+    bottom: 16px;
+  }
+
+  .tg-mobile-camera-pad {
     left: auto;
     right: 10px;
     bottom: 142px;
