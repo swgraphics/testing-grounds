@@ -832,6 +832,34 @@ function toggleDevSection(sectionName) {
     }}
   />
 </div>
+{/* DESKTOP CAMERA PAD */}
+<div
+  className="tg-desktop-camera-pad"
+  onPointerDown={handleCameraPadPointerDown}
+  onPointerMove={handleCameraPadPointerMove}
+  onPointerUp={handleCameraPadPointerUp}
+  onPointerCancel={handleCameraPadPointerUp}
+>
+  <img
+    src="/images/ui/dpad/dpad-base.svg"
+    alt=""
+    className="tg-camera-pad-base"
+    draggable="false"
+  />
+
+  <img
+    src="/images/ui/dpad/dpad-top.svg"
+    alt=""
+    className="tg-camera-pad-top"
+    draggable="false"
+    style={{
+      transform: `translate(
+        calc(-50% + ${cameraPadPosition.x * 0.55}px),
+        calc(-50% + ${cameraPadPosition.y * 0.55}px)
+      )`,
+    }}
+  />
+</div>
 {/* DESKTOP ACTION BUTTONS */}
 <div className="tg-desktop-action-buttons">
   {/* A — Jump */}
@@ -974,7 +1002,33 @@ function toggleDevSection(sectionName) {
 }}
   />
 </div>
+<div
+  className="tg-mobile-camera-pad"
+  onPointerDown={handleCameraPadPointerDown}
+  onPointerMove={handleCameraPadPointerMove}
+  onPointerUp={handleCameraPadPointerUp}
+  onPointerCancel={handleCameraPadPointerUp}
+>
+  <img
+    src="/images/ui/dpad/dpad-base.svg"
+    alt=""
+    className="tg-camera-pad-base"
+    draggable="false"
+  />
 
+  <img
+    src="/images/ui/dpad/dpad-top.svg"
+    alt=""
+    className="tg-camera-pad-top"
+    draggable="false"
+    style={{
+      transform: `translate(
+        calc(-50% + ${cameraPadPosition.x * 0.55}px),
+        calc(-50% + ${cameraPadPosition.y * 0.55}px)
+      )`,
+    }}
+  />
+</div>
 <div className="tg-action-buttons">
   <button
     className="tg-action-button"

@@ -202,6 +202,68 @@ canvas {
   touch-action: none;
 }
 
+.tg-desktop-camera-pad {
+  position: fixed;
+
+  right: 185px;
+  bottom: 72px;
+
+  width: 96px;
+  height: 96px;
+
+  z-index: 31;
+  
+  display: none;
+  
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.tg-mobile-camera-pad {
+  position: absolute;
+
+  right: 34px;
+  bottom: 190px;
+
+  width: 96px;
+  height: 96px;
+
+  z-index: 31;
+
+  display: none;
+  overflow: hidden;
+
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.tg-camera-pad-base,
+.tg-camera-pad-top {
+  position: absolute;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.tg-camera-pad-base {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tg-camera-pad-top {
+  left: 50%;
+  top: 50%;
+
+  width: 72%;
+  height: 72%;
+
+  transform-origin: center;
+  will-change: transform;
+}
+
 .tg-action-buttons {
   position: absolute;
 
@@ -861,12 +923,14 @@ canvas {
     display: none;
   }
 
-  .tg-desktop-joystick {
+  .tg-desktop-joystick,
+  .tg-desktop-action-buttons,
+  .tg-desktop-camera-pad {
     display: block;
   }
 
-  .tg-desktop-action-buttons {
-    display: block;
+  .tg-mobile-camera-pad {
+    display: none;
   }
 }
 
@@ -874,7 +938,22 @@ canvas {
   .tg-keyboard-hud {
     display: none;
   }
+
+  .tg-desktop-joystick,
+  .tg-desktop-action-buttons,
+  .tg-desktop-camera-pad {
+    display: none;
+  }
+
+  .tg-mobile-controls {
+    display: block;
+  }
+
+  .tg-mobile-camera-pad {
+    display: block;
+  }
 }
+
 /* =======================================================
    Mobile Landscape Title Screen
 ======================================================= */
@@ -922,6 +1001,7 @@ canvas {
     font-size: 9px;
   }
 }
+
 /* =======================================================
    Loading Overlay
 ======================================================= */
@@ -1023,6 +1103,7 @@ canvas {
     transform: translateX(-50%) scale(1.2);
   }
 }
+
 /* =======================================================
    Area Discovery
 ======================================================= */
