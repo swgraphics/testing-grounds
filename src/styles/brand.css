@@ -1578,3 +1578,147 @@ canvas {
     font-size: 20px;
   }
 }
+/* =======================================================
+   Final HUD Layout Overrides
+======================================================= */
+
+/* Prevent compass distances from being cropped vertically */
+.tg-compass-ribbon {
+  height: 112px;
+}
+
+.tg-compass-ribbon-viewport {
+  overflow: visible;
+}
+
+/* =======================================================
+   Desktop HUD
+======================================================= */
+
+@media (min-width: 900px) {
+  /* Mirrored lower-corner placement */
+  .tg-desktop-joystick {
+    left: 28px;
+    right: auto;
+    bottom: 28px;
+  }
+
+  .tg-desktop-action-buttons {
+    left: auto;
+    right: 28px;
+    bottom: 28px;
+  }
+
+  /*
+   * Always above and slightly farther right
+   * than the action-button cluster.
+   */
+  .tg-desktop-camera-pad {
+    left: auto;
+    right: 14px;
+    bottom: 184px;
+
+    width: 96px;
+    height: 96px;
+  }
+}
+
+/* =======================================================
+   Mobile Portrait HUD
+======================================================= */
+
+@media (max-width: 899px) and (orientation: portrait) {
+  .tg-compass-ribbon {
+    height: 106px;
+  }
+
+  /* Mirror the two primary lower controls */
+  .tg-joystick {
+    left: 26px;
+    right: auto;
+    bottom: 54px;
+  }
+
+  .tg-action-buttons {
+    left: auto;
+    right: 26px;
+    bottom: 54px;
+
+    width: 126px;
+    height: 126px;
+  }
+
+  .tg-action-buttons .tg-action-button {
+    width: 54px;
+    height: 54px;
+  }
+
+  .tg-action-buttons .tg-action-button-label {
+    font-size: 22px;
+  }
+
+  /*
+   * Lower than before so it stays away from the compass,
+   * but still above and to the right of ABXY.
+   */
+  .tg-mobile-camera-pad {
+    left: auto;
+    right: 10px;
+    bottom: 242px;
+
+    width: 92px;
+    height: 92px;
+
+    overflow: visible;
+  }
+}
+
+/* =======================================================
+   Mobile Landscape HUD
+======================================================= */
+
+@media (max-width: 899px) and (orientation: landscape) {
+  .tg-compass-ribbon {
+    height: 102px;
+  }
+
+  /* Mirror lower-left and lower-right controls */
+  .tg-joystick {
+    left: 24px;
+    right: auto;
+    bottom: 16px;
+  }
+
+  .tg-action-buttons {
+    left: auto;
+    right: 24px;
+    bottom: 16px;
+
+    width: 112px;
+    height: 112px;
+  }
+
+  .tg-action-buttons .tg-action-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .tg-action-buttons .tg-action-button-label {
+    font-size: 20px;
+  }
+
+  /*
+   * Preserve the Desktop 1 relationship:
+   * above and slightly farther right than ABXY.
+   */
+  .tg-mobile-camera-pad {
+    left: auto;
+    right: 10px;
+    bottom: 142px;
+
+    width: 82px;
+    height: 82px;
+
+    overflow: visible;
+  }
+}
