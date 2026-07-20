@@ -146,10 +146,11 @@ export default function InputHUD() {
   );
 
   const joystickRef = useRef({
-    active: false,
-    startX: 0,
-    startY: 0,
-  });
+  active: false,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+});
 
 const cameraPadRef = useRef({
   active: false,
@@ -198,6 +199,93 @@ function updateStickFromKeyboard() {
     x: (x / length) * maximumDistance,
     y: (y / length) * maximumDistance,
   });
+}
+function resetMovementJoystick() {
+  joystickRef.current.active = false;
+  joystickRef.current.pointerId = null;
+
+  inputState.forward = false;
+  inputState.backward = false;
+  inputState.leftward = false;
+  inputState.rightward = false;
+
+  setStickPosition({
+    x: 0,
+    y: 0,
+  });
+
+  refresh();
+}
+
+function handleMovementJoystickPointerDown(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  joystickRef.current.active = true;
+  joystickRef.current.pointerId = event.pointerId;
+  joystickRef.current.startX = event.clientX;
+  joystickRef.current.startY = event.clientY;
+
+  event.currentTarget.setPointerCapture(event.pointerId);
+}
+
+function handleMovementJoystickPointerMove(event) {
+  if (
+    !joystickRef.current.active ||
+    joystickRef.current.pointerId !== event.pointerId
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const maximumDistance = 45;
+
+  const deltaX =
+    event.clientX - joystickRef.current.startX;
+
+  const deltaY =
+    event.clientY - joystickRef.current.startY;
+
+  const distance = Math.hypot(deltaX, deltaY);
+
+  const scale =
+    distance > maximumDistance
+      ? maximumDistance / distance
+      : 1;
+
+  const clampedX = deltaX * scale;
+  const clampedY = deltaY * scale;
+
+  setStickPosition({
+    x: clampedX,
+    y: clampedY,
+  });
+
+  inputState.forward = clampedY < -12;
+  inputState.backward = clampedY > 12;
+  inputState.leftward = clampedX < -12;
+  inputState.rightward = clampedX > 12;
+
+  refresh();
+}
+
+function handleMovementJoystickPointerUp(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (
+    event.currentTarget.hasPointerCapture(
+      event.pointerId
+    )
+  ) {
+    event.currentTarget.releasePointerCapture(
+      event.pointerId
+    );
+  }
+
+  resetMovementJoystick();
 }
 
 function sendCameraInput(x, y) {
@@ -811,7 +899,13 @@ function toggleDevSection(sectionName) {
       </div>
 
       {/* DESKTOP JOYSTICK HUD */}
-<div className="tg-desktop-joystick">
+<div
+  className="tg-desktop-joystick"
+  onPointerDown={handleMovementJoystickPointerDown}
+  onPointerMove={handleMovementJoystickPointerMove}
+  onPointerUp={handleMovementJoystickPointerUp}
+  onPointerCancel={handleMovementJoystickPointerUp}
+>
   <img
     src="/images/ui/joystick/joystick-base.svg"
     alt=""

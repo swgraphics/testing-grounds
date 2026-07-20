@@ -198,8 +198,13 @@ canvas {
 
   display: none;
 
-  pointer-events: none;
+  pointer-events: auto;
   touch-action: none;
+  cursor: grab;
+}
+
+.tg-desktop-joystick:active {
+  cursor: grabbing;
 }
 
 .tg-desktop-camera-pad {
@@ -1529,5 +1534,65 @@ canvas {
   .tg-compass-center-indicator img {
     width: 24px;
     height: 24px;
+  }
+}
+/* =======================================================
+   Mobile Control Layout Refinement
+======================================================= */
+
+@media (max-width: 899px) {
+  /* Camera D-pad */
+  .tg-mobile-camera-pad {
+    right: 18px;
+    bottom: 184px;
+
+    width: 92px;
+    height: 92px;
+
+    overflow: visible;
+  }
+
+  /* Smaller ABXY cluster, shifted left */
+  .tg-action-buttons {
+    right: 74px;
+    bottom: 24px;
+
+    width: 126px;
+    height: 126px;
+  }
+
+  .tg-action-buttons .tg-action-button {
+    width: 54px;
+    height: 54px;
+  }
+
+  .tg-action-buttons .tg-action-button-label {
+    font-size: 22px;
+  }
+}
+@media (max-width: 899px) and (orientation: landscape) {
+  .tg-mobile-camera-pad {
+    right: 18px;
+    bottom: 142px;
+
+    width: 82px;
+    height: 82px;
+  }
+
+  .tg-action-buttons {
+    right: 72px;
+    bottom: 12px;
+
+    width: 112px;
+    height: 112px;
+  }
+
+  .tg-action-buttons .tg-action-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .tg-action-buttons .tg-action-button-label {
+    font-size: 20px;
   }
 }
