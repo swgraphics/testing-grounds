@@ -20,6 +20,11 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
   const pitchRef = useRef(0.25);
   const fpvAltitudeRef = useRef(0);
 
+  const mobileCameraInputRef = useRef({
+    x: 0,
+    y: 0,
+  });
+
   const isOrbitingRef = useRef(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
 
@@ -110,28 +115,61 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
       fpvAltitudeRef.current = 0;
     }
   }, [fpvMode]);
+useEffect(() => {
+  function handleMobileCameraInput(event) {
+    mobileCameraInputRef.current = {
+      x: Number(event.detail?.x) || 0,
+      y: Number(event.detail?.y) || 0,
+    };
+  }
 
+  window.addEventListener(
+    "mobile-camera-input",
+    handleMobileCameraInput
+  );
+
+  return () => {
+    window.removeEventListener(
+      "mobile-camera-input",
+      handleMobileCameraInput
+    );
+  };
+}, []);
   useFrame((_, delta) => {
-      if (gamepadState.connected) {
-        const controllerYawSpeed = 2.4;
-        const controllerPitchSpeed = 1.8;
+      const controllerYawSpeed = 2.4;
+const controllerPitchSpeed = 1.8;
 
-      yawRef.current -=
-        gamepadState.rightStickX *
-        controllerYawSpeed *
-        delta;
+const gamepadCameraX = gamepadState.connected
+  ? gamepadState.rightStickX
+  : 0;
 
-      pitchRef.current -=
-        gamepadState.rightStickY *
-        controllerPitchSpeed *
-        delta;
+const gamepadCameraY = gamepadState.connected
+  ? gamepadState.rightStickY
+  : 0;
 
-      pitchRef.current = THREE.MathUtils.clamp(
-        pitchRef.current,
-        fpvMode ? -1.25 : cameraConfig.minPitch,
-        fpvMode ? 1.25 : cameraConfig.maxPitch
-      );
-    }
+const cameraInputX =
+  gamepadCameraX +
+  mobileCameraInputRef.current.x;
+
+const cameraInputY =
+  gamepadCameraY +
+  mobileCameraInputRef.current.y;
+
+yawRef.current -=
+  cameraInputX *
+  controllerYawSpeed *
+  delta;
+
+pitchRef.current -=
+  cameraInputY *
+  controllerPitchSpeed *
+  delta;
+
+pitchRef.current = THREE.MathUtils.clamp(
+  pitchRef.current,
+  fpvMode ? -1.25 : cameraConfig.minPitch,
+  fpvMode ? 1.25 : cameraConfig.maxPitch
+);
 
     if (!controllerRef.current) return;
 
@@ -274,7 +312,7 @@ export default function PlayerController() {
   const controllerRef = useRef();
   const positionBroadcastTimeRef = useRef(0);
   const [animationState, setAnimationState] = useState("idle");
-
+  const animationStateRef = useRef("idle");
   const [currentCharacterId, setCurrentCharacterId] =
     useState(activeCharacterId);
 
@@ -407,28 +445,38 @@ export default function PlayerController() {
       leftward ||
       rightward;
 
-    if (slide && isMoving) {
-      setAnimationState("slide");
-    } else if (
-      jump &&
-      sprint &&
-      isMoving
-    ) {
-      setAnimationState("runJump");
-    } else if (jump) {
-      setAnimationState("jump");
-    } else if (
-      crouch &&
-      isMoving
-    ) {
-      setAnimationState("crouchWalk");
-    } else if (!isMoving) {
-      setAnimationState("idle");
-    } else if (sprint) {
-      setAnimationState("run");
-    } else {
-      setAnimationState("walk");
-    }
+   let nextAnimationState = "idle";
+
+if (slide && isMoving) {
+  nextAnimationState = "slide";
+} else if (
+  jump &&
+  sprint &&
+  isMoving
+) {
+  nextAnimationState = "runJump";
+} else if (jump) {
+  nextAnimationState = "jump";
+} else if (
+  crouch &&
+  isMoving
+) {
+  nextAnimationState = "crouchWalk";
+} else if (isMoving && sprint) {
+  nextAnimationState = "run";
+} else if (isMoving) {
+  nextAnimationState = "walk";
+}
+
+if (
+  animationStateRef.current !==
+  nextAnimationState
+) {
+  animationStateRef.current =
+    nextAnimationState;
+
+  setAnimationState(nextAnimationState);
+}
 
     const developerSpeedActive =
       speedMultiplier > 1;

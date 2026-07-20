@@ -119,7 +119,11 @@ export default function InputHUD() {
     x: 0,
     y: 0,
   });
-
+  const [cameraPadPosition, setCameraPadPosition] =
+  useState({
+    x: 0,
+    y: 0,
+  });
   const [sprintOn, setSprintOn] = useState(false);
   const [devToolsOpen, setDevToolsOpen] = useState(false);
 
@@ -146,6 +150,13 @@ export default function InputHUD() {
     startX: 0,
     startY: 0,
   });
+
+const cameraPadRef = useRef({
+  active: false,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+});
 
   function refresh() {
     forceUpdate((value) => value + 1);
@@ -183,12 +194,104 @@ function updateStickFromKeyboard() {
 
   const maximumDistance = 45;
 
-  setStickPosition({
+    setStickPosition({
     x: (x / length) * maximumDistance,
     y: (y / length) * maximumDistance,
   });
 }
-  function toggleDevSection(sectionName) {
+
+function sendCameraInput(x, y) {
+  window.dispatchEvent(
+    new CustomEvent("mobile-camera-input", {
+      detail: {
+        x,
+        y,
+      },
+    })
+  );
+}
+
+function resetCameraPad() {
+  cameraPadRef.current.active = false;
+  cameraPadRef.current.pointerId = null;
+
+  setCameraPadPosition({
+    x: 0,
+    y: 0,
+  });
+
+  sendCameraInput(0, 0);
+}
+function handleCameraPadPointerDown(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  cameraPadRef.current.active = true;
+  cameraPadRef.current.pointerId = event.pointerId;
+  cameraPadRef.current.startX = event.clientX;
+  cameraPadRef.current.startY = event.clientY;
+
+  event.currentTarget.setPointerCapture(event.pointerId);
+}
+
+function handleCameraPadPointerMove(event) {
+  if (
+    !cameraPadRef.current.active ||
+    cameraPadRef.current.pointerId !== event.pointerId
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const maximumDistance = 32;
+
+  const deltaX =
+    event.clientX - cameraPadRef.current.startX;
+
+  const deltaY =
+    event.clientY - cameraPadRef.current.startY;
+
+  const distance = Math.hypot(deltaX, deltaY);
+
+  const scale =
+    distance > maximumDistance
+      ? maximumDistance / distance
+      : 1;
+
+  const clampedX = deltaX * scale;
+  const clampedY = deltaY * scale;
+
+  setCameraPadPosition({
+    x: clampedX,
+    y: clampedY,
+  });
+
+  sendCameraInput(
+    clampedX / maximumDistance,
+    clampedY / maximumDistance
+  );
+}
+
+function handleCameraPadPointerUp(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (
+    event.currentTarget.hasPointerCapture(
+      event.pointerId
+    )
+  ) {
+    event.currentTarget.releasePointerCapture(
+      event.pointerId
+    );
+  }
+
+  resetCameraPad();
+}
+
+function toggleDevSection(sectionName) {
     setOpenDevSections((current) => ({
       ...current,
       [sectionName]: !current[sectionName],
