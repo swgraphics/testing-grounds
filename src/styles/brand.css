@@ -1549,17 +1549,20 @@ canvas {
     font-size: 22px;
   }
 }
+
 @media (max-width: 899px) and (orientation: landscape) {
   .tg-mobile-camera-pad {
-    right: 18px;
-    bottom: 142px;
+    right: 124px;
+    bottom: 128px;
 
     width: 82px;
     height: 82px;
+
+    overflow: visible;
   }
 
   .tg-action-buttons {
-    right: 72px;
+    right: 88px;
     bottom: 12px;
 
     width: 112px;
