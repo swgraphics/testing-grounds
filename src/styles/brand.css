@@ -1812,3 +1812,125 @@ canvas {
     height: calc(100vh - 88px);
   }
 }
+/* =======================================================
+   Camera Workspace
+======================================================= */
+
+.tg-dev-profile-label {
+  margin-bottom: 10px;
+
+  font-family: var(--tg-font-display);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+
+  color: rgba(232, 238, 245, 0.82);
+}
+
+.tg-dev-camera-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  margin: 12px 0;
+}
+
+.tg-dev-slider-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 5px;
+}
+
+.tg-dev-slider-heading
+  .tg-dev-slider-label {
+  margin-bottom: 0;
+}
+
+.tg-dev-slider-value {
+  font-family: var(--tg-font-copy);
+  font-size: 10px;
+  font-weight: 600;
+
+  color: rgba(232, 238, 245, 0.78);
+}
+
+.tg-dev-camera-preset-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+
+  margin-top: 14px;
+}
+
+/* =======================================================
+   Reusable Dev Section Lock
+======================================================= */
+
+.tg-dev-section-lock {
+  width: 100%;
+  min-height: 30px;
+
+  margin-bottom: 10px;
+  padding: 4px 9px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border: 1px solid
+    rgba(232, 238, 245, 0.28);
+
+  background: rgba(5, 6, 8, 0.66);
+  color: rgba(232, 238, 245, 0.82);
+
+  font-family: var(--tg-font-display);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+
+  cursor: pointer;
+  touch-action: none;
+}
+
+.tg-dev-section-lock.locked {
+  border-color:
+    rgba(205, 38, 38, 0.78);
+
+  background:
+    rgba(129, 16, 18, 0.42);
+
+  color: var(--tg-white);
+}
+
+.tg-dev-section-lock-icon {
+  color: var(--tg-crimson);
+  font-size: 16px;
+}
+
+.tg-dev-section-lockable {
+  opacity: 1;
+
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
+.tg-dev-section-lockable.locked {
+  opacity: 0.38;
+  filter: grayscale(0.35);
+}
+
+.tg-dev-section-lockable.locked
+  button,
+.tg-dev-section-lockable.locked
+  input {
+  pointer-events: none;
+}
+
+.tg-dev-slider:disabled {
+  cursor: not-allowed;
+}
+
+.tg-side-panel-button:disabled {
+  cursor: not-allowed;
+}

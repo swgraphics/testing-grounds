@@ -30,13 +30,6 @@ export const characterRegistry = {
     y: 0,
     z: 0,
   },
-
-  cameraHeight: 1.4,
-  cameraDistance: 4.8,
-  cameraLookAtHeight: 2.1,
-  cameraShoulderOffset: 0.65,
-  cameraLookAheadDistance: 3.0,
-  cameraPitchHeightStrength: 1.4,
 },
 
   velociraptor: {
@@ -57,9 +50,6 @@ export const characterRegistry = {
 
     scale: 0.25,
     height: -0.83,
-
-    cameraHeight: 0.9,
-    cameraDistance: 4.8,
 
     rotation: {
       x: 0,

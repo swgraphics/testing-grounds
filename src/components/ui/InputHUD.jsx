@@ -17,6 +17,18 @@ import {
   devSettings,
   updateDevSetting,
 } from "../../systems/dev/devSettings";
+import {
+  cameraSettings,
+  updateCameraSetting,
+  saveCameraPreset,
+  loadCameraPreset,
+  resetCameraPreset,
+} from "../../systems/camera/cameraSettings";
+
+import {
+  isDevSectionLocked,
+  toggleDevSectionLock,
+} from "../../systems/dev/devSectionLocks";
 
 function KeyBox({ label, active }) {
   return (
@@ -77,6 +89,64 @@ const ATMOSPHERE_SLIDERS = [
   ["sunCycleEnabled", "Sun Cycle On / Off", 0, 1, 1],
   ["sunCycleMinutes", "Cycle Minutes", 1, 10, 1],
 ];
+const CAMERA_SLIDERS = [
+  [
+    "height",
+    "Camera Height",
+    0.2,
+    12,
+    0.1,
+  ],
+  [
+    "distance",
+    "Camera Distance",
+    1,
+    20,
+    0.1,
+  ],
+  [
+    "lookAtHeight",
+    "Look-at Height",
+    -2,
+    8,
+    0.1,
+  ],
+  [
+    "shoulderOffset",
+    "Shoulder Offset",
+    -5,
+    5,
+    0.05,
+  ],
+  [
+    "lookAheadDistance",
+    "Look Ahead",
+    0,
+    15,
+    0.1,
+  ],
+  [
+    "pitchHeightStrength",
+    "Pitch Strength",
+    0,
+    8,
+    0.1,
+  ],
+  [
+    "smoothing",
+    "Smoothing",
+    0.01,
+    0.35,
+    0.01,
+  ],
+  [
+    "fov",
+    "Field of View",
+    30,
+    100,
+    1,
+  ],
+];
 
 function DevSlider({
   settingKey,
@@ -109,6 +179,142 @@ function DevSlider({
         }}
       />
     </div>
+  );
+}
+
+
+function CameraSlider({
+  characterId,
+  settingKey,
+  label,
+  min,
+  max,
+  step,
+  locked,
+  onRefresh,
+}) {
+  const value =
+    cameraSettings[characterId]?.[
+      settingKey
+    ] ?? min;
+
+  return (
+    <div className="tg-dev-slider-group">
+      <div className="tg-dev-slider-heading">
+        <label className="tg-dev-slider-label">
+          {label}
+        </label>
+
+        <span className="tg-dev-slider-value">
+          {Number(value).toFixed(
+            step < 0.1 ? 2 : 1
+          )}
+        </span>
+      </div>
+
+      <input
+        className="tg-dev-slider"
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        disabled={locked}
+        onChange={(event) => {
+          updateCameraSetting(
+            characterId,
+            settingKey,
+            Number(event.target.value)
+          );
+
+          onRefresh();
+        }}
+      />
+    </div>
+  );
+}
+
+function DevSectionLockButton({
+  sectionName,
+  locked,
+  onRefresh,
+}) {
+  const holdTimerRef = useRef(null);
+  const longPressTriggeredRef =
+    useRef(false);
+
+  function toggleLock() {
+    toggleDevSectionLock(sectionName);
+    onRefresh();
+  }
+
+  function beginHold(event) {
+    event.stopPropagation();
+
+    longPressTriggeredRef.current =
+      false;
+
+    holdTimerRef.current =
+      window.setTimeout(() => {
+        longPressTriggeredRef.current =
+          true;
+
+        toggleLock();
+      }, 800);
+  }
+
+  function cancelHold(event) {
+    event.stopPropagation();
+
+    if (holdTimerRef.current) {
+      window.clearTimeout(
+        holdTimerRef.current
+      );
+
+      holdTimerRef.current = null;
+    }
+  }
+
+  function handleClick(event) {
+    event.stopPropagation();
+
+    if (
+      longPressTriggeredRef.current
+    ) {
+      longPressTriggeredRef.current =
+        false;
+
+      return;
+    }
+
+    toggleLock();
+  }
+
+  return (
+    <button
+      type="button"
+      className={`tg-dev-section-lock ${
+        locked ? "locked" : ""
+      }`}
+      onPointerDown={beginHold}
+      onPointerUp={cancelHold}
+      onPointerCancel={cancelHold}
+      onPointerLeave={cancelHold}
+      onClick={handleClick}
+      aria-label={
+        locked
+          ? `Unlock ${sectionName}`
+          : `Lock ${sectionName}`
+      }
+    >
+      <span>
+        {locked ? "LOCKED" : "UNLOCKED"}
+      </span>
+
+      <span className="tg-dev-section-lock-icon">
+        {locked ? "●" : "○"}
+      </span>
+    </button>
   );
 }
 
@@ -148,7 +354,15 @@ export default function InputHUD() {
   const [speedMultiplier, setSpeedMultiplier] = useState(
     devSettings.speedMultiplier
   );
+const [
+  currentCharacterId,
+  setCurrentCharacterId,
+] = useState("adventurer");
 
+const [cameraLocked, setCameraLocked] =
+  useState(
+    isDevSectionLocked("camera")
+  );
   const joystickRef = useRef({
   active: false,
   pointerId: null,
@@ -391,12 +605,82 @@ function toggleDevSection(sectionName) {
   }
 
   function changeCharacter(characterId) {
-    window.dispatchEvent(
-      new CustomEvent("change-character", {
-        detail: { characterId },
-      })
-    );
+  setCurrentCharacterId(characterId);
+
+  window.dispatchEvent(
+    new CustomEvent("change-character", {
+      detail: { characterId },
+    })
+  );
+}
+useEffect(() => {
+  function handleCharacterChange(event) {
+    const characterId =
+      event.detail?.characterId;
+
+    if (characterId) {
+      setCurrentCharacterId(
+        characterId
+      );
+    }
   }
+
+  function handleCameraSettingsChange(
+    event
+  ) {
+    if (
+      event.detail?.characterId ===
+      currentCharacterId
+    ) {
+      refresh();
+    }
+  }
+
+  function handleSectionLockChange(
+    event
+  ) {
+    if (
+      event.detail?.sectionName ===
+      "camera"
+    ) {
+      setCameraLocked(
+        Boolean(event.detail.locked)
+      );
+    }
+  }
+
+  window.addEventListener(
+    "change-character",
+    handleCharacterChange
+  );
+
+  window.addEventListener(
+    "camera-settings-changed",
+    handleCameraSettingsChange
+  );
+
+  window.addEventListener(
+    "dev-section-lock-changed",
+    handleSectionLockChange
+  );
+
+  return () => {
+    window.removeEventListener(
+      "change-character",
+      handleCharacterChange
+    );
+
+    window.removeEventListener(
+      "camera-settings-changed",
+      handleCameraSettingsChange
+    );
+
+    window.removeEventListener(
+      "dev-section-lock-changed",
+      handleSectionLockChange
+    );
+  };
+}, [currentCharacterId]);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -700,58 +984,158 @@ function toggleDevSection(sectionName) {
               )}
             </div>
 
-            {/* CAMERA */}
-            <div className="tg-dev-section">
-              <DevSectionHeader
-                label="CAMERA"
-                sectionName="camera"
-                isOpen={openDevSections.camera}
-                onToggle={toggleDevSection}
+{/* CAMERA */}
+<div className="tg-dev-section">
+  <DevSectionHeader
+    label="CAMERA"
+    sectionName="camera"
+    isOpen={openDevSections.camera}
+    onToggle={toggleDevSection}
+  />
+
+  {openDevSections.camera && (
+    <div className="tg-dev-section-content">
+      <DevSectionLockButton
+        sectionName="camera"
+        locked={cameraLocked}
+        onRefresh={refresh}
+      />
+
+      <div
+        className={`tg-dev-section-lockable ${
+          cameraLocked ? "locked" : ""
+        }`}
+      >
+        <div className="tg-dev-profile-label">
+          ACTIVE PROFILE:{" "}
+          {currentCharacterId ===
+          "adventurer"
+            ? "HUMAN"
+            : "VELOCIRAPTOR"}
+        </div>
+
+        <button
+          disabled={cameraLocked}
+          className={`tg-side-panel-button ${
+            fpvMode ? "active" : ""
+          }`}
+          onClick={() => {
+            const nextValue = !fpvMode;
+
+            setFpvMode(nextValue);
+
+            updateDevSetting(
+              "fpvMode",
+              nextValue
+            );
+          }}
+        >
+          FPV Mode:{" "}
+          {fpvMode ? "ON" : "OFF"}
+        </button>
+
+        <button
+          disabled={cameraLocked}
+          className={`tg-side-panel-button ${
+            invertCameraY ? "active" : ""
+          }`}
+          onClick={() => {
+            const nextValue =
+              !invertCameraY;
+
+            setInvertCameraY(nextValue);
+
+            updateDevSetting(
+              "invertCameraY",
+              nextValue
+            );
+          }}
+        >
+          Invert Camera Y:{" "}
+          {invertCameraY ? "ON" : "OFF"}
+        </button>
+
+        <div className="tg-dev-camera-sliders">
+          {CAMERA_SLIDERS.map(
+            ([
+              key,
+              label,
+              min,
+              max,
+              step,
+            ]) => (
+              <CameraSlider
+                key={key}
+                characterId={
+                  currentCharacterId
+                }
+                settingKey={key}
+                label={label}
+                min={min}
+                max={max}
+                step={step}
+                locked={cameraLocked}
+                onRefresh={refresh}
               />
+            )
+          )}
+        </div>
 
-              {openDevSections.camera && (
-                <div className="tg-dev-section-content">
-                  <button
-                    className={`tg-side-panel-button ${
-                      fpvMode ? "active" : ""
-                    }`}
-                    onClick={() => {
-                      const nextValue = !fpvMode;
+        <div className="tg-dev-camera-preset-row">
+          <button
+            type="button"
+            disabled={cameraLocked}
+            className="tg-side-panel-button"
+            onClick={() => {
+              saveCameraPreset(
+                currentCharacterId
+              );
 
-                      setFpvMode(nextValue);
+              refresh();
+            }}
+          >
+            Save Preset
+          </button>
 
-                      updateDevSetting(
-                        "fpvMode",
-                        nextValue
-                      );
-                    }}
-                  >
-                    FPV Mode: {fpvMode ? "ON" : "OFF"}
-                  </button>
-<button
-  className={`tg-side-panel-button ${
-    invertCameraY ? "active" : ""
-  }`}
-  onClick={() => {
-    const nextValue = !invertCameraY;
+          <button
+            type="button"
+            disabled={cameraLocked}
+            className="tg-side-panel-button"
+            onClick={() => {
+              loadCameraPreset(
+                currentCharacterId
+              );
 
-    setInvertCameraY(nextValue);
+              refresh();
+            }}
+          >
+            Load Preset
+          </button>
 
-    updateDevSetting(
-      "invertCameraY",
-      nextValue
-    );
-  }}
->
-  Invert Camera Y: {invertCameraY ? "ON" : "OFF"}
-</button>
-                  <div className="tg-dev-placeholder">
-                    In FPV: Sprint raises view, Crouch
-                    lowers view
-                  </div>
-                </div>
-              )}
-            </div>
+          <button
+            type="button"
+            disabled={cameraLocked}
+            className="tg-side-panel-button"
+            onClick={() => {
+              resetCameraPreset(
+                currentCharacterId
+              );
+
+              refresh();
+            }}
+          >
+            Reset Preset
+          </button>
+        </div>
+
+        <div className="tg-dev-placeholder">
+          Camera presets are saved separately
+          for each character.
+        </div>
+      </div>
+    </div>
+  )}
+</div>
 
             {/* PHYSICS */}
             <div className="tg-dev-section">

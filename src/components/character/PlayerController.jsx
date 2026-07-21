@@ -12,6 +12,9 @@ import {
 } from "./characterRegistry";
 import PlayableCharacter from "./PlayableCharacter";
 import { devSettings } from "../../systems/dev/devSettings";
+import {
+  getCameraSettings,
+} from "../../systems/camera/cameraSettings";
 
 function FollowCamera({ controllerRef, character, fpvMode }) {
   const { camera, gl } = useThree();
@@ -256,26 +259,29 @@ if (lowerCamera) {
       window.innerWidth < 900 &&
       window.innerHeight > window.innerWidth;
 
-    const baseHeight =
-  character.cameraHeight ??
+    const cameraProfile =
+  getCameraSettings(character.id);
+
+const baseHeight =
+  cameraProfile.height ??
   cameraConfig.height;
 
 const baseDistance =
-  character.cameraDistance ??
+  cameraProfile.distance ??
   cameraConfig.distance;
 
 const baseLookAtHeight =
-  character.cameraLookAtHeight ??
+  cameraProfile.lookAtHeight ??
   cameraConfig.lookAtHeight;
 
 const pitchHeightStrength =
-  character.cameraPitchHeightStrength ?? 2;
+  cameraProfile.pitchHeightStrength ?? 2;
 
 const shoulderOffset =
-  character.cameraShoulderOffset ?? 0;
+  cameraProfile.shoulderOffset ?? 0;
 
 const lookAheadDistance =
-  character.cameraLookAheadDistance ?? 0;
+  cameraProfile.lookAheadDistance ?? 0;
 
 const finalHeight =
   isPortraitMobile
@@ -337,9 +343,20 @@ const desiredPosition =
     target.z + cameraOffset.z
   );
 
+const desiredFov =
+  cameraProfile.fov ?? 55;
+
+if (
+  Math.abs(camera.fov - desiredFov) >
+  0.01
+) {
+  camera.fov = desiredFov;
+  camera.updateProjectionMatrix();
+}
 camera.position.lerp(
   desiredPosition,
-  cameraConfig.smoothing
+  cameraProfile.smoothing ??
+    cameraConfig.smoothing
 );
 
 camera.lookAt(
