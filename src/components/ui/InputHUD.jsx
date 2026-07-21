@@ -1242,7 +1242,8 @@ function handleSectionLockChange(event) {
       </div>
 
       <div className="tg-dev-placeholder">
-        Debug speed affects character movement
+          Debug speed increases movement velocity and
+  acceleration. Animation speed remains stable.
       </div>
     </div>
   </div>

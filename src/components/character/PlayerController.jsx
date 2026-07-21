@@ -343,7 +343,7 @@ const desiredPosition =
     target.z + cameraOffset.z
   );
 
-const desiredFov =
+  const desiredFov =
   cameraProfile.fov ?? 55;
 
 if (
@@ -372,7 +372,42 @@ camera.lookAt(
 
   return null;
 }
+const SPEED_PROFILES = {
+  1: {
+    maxVelLimit: 12,
+    sprintMult: 2,
+    accDeltaTime: 8,
+    turnVelMultiplier: 0.2,
+  },
 
+  50: {
+    maxVelLimit: 50,
+    sprintMult: 1,
+    accDeltaTime: 35,
+    turnVelMultiplier: 0.5,
+  },
+
+  100: {
+    maxVelLimit: 100,
+    sprintMult: 1,
+    accDeltaTime: 60,
+    turnVelMultiplier: 0.75,
+  },
+
+  500: {
+    maxVelLimit: 500,
+    sprintMult: 1,
+    accDeltaTime: 120,
+    turnVelMultiplier: 1,
+  },
+};
+
+function getSpeedProfile(speedMultiplier) {
+  return (
+    SPEED_PROFILES[speedMultiplier] ??
+    SPEED_PROFILES[1]
+  );
+}
 export default function PlayerController() {
   const controllerRef = useRef();
   const positionBroadcastTimeRef = useRef(0);
@@ -389,6 +424,9 @@ export default function PlayerController() {
 
   const activeCharacter =
     characterRegistry[currentCharacterId];
+  
+    const speedProfile =
+  getSpeedProfile(speedMultiplier);
 
   useEffect(() => {
     function handleCharacterChange(event) {
@@ -564,18 +602,22 @@ if (
   return (
     <>
       <Ecctrl
-        ref={controllerRef}
-        position={[0, 3, 0]}
-        mode="FixedCamera"
-        maxVelLimit={
-          12 * Math.max(speedMultiplier, 1)
-        }
-        sprintMult={
-          speedMultiplier > 1
-            ? speedMultiplier
-            : 2
-        }
-      >
+  ref={controllerRef}
+  position={[0, 3, 0]}
+  mode="FixedCamera"
+  maxVelLimit={
+    speedProfile.maxVelLimit
+  }
+  sprintMult={
+    speedProfile.sprintMult
+  }
+  accDeltaTime={
+    speedProfile.accDeltaTime
+  }
+  turnVelMultiplier={
+    speedProfile.turnVelMultiplier
+  }
+>
         <PlayableCharacter
           character={activeCharacter}
           animationState={animationState}
