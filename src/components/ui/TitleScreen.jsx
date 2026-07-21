@@ -19,8 +19,7 @@ export default function TitleScreen({ onStart }) {
         </div>
 
         <div className="tg-title-footer">
-  <span>TESTING GROUNDS</span>
-  <span>V{TG_VERSION}</span>
+  <span>CREATED BY STEPHEN WILSON</span>
 </div>
       </div>
     </div>
