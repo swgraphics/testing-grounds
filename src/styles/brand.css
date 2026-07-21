@@ -1745,25 +1745,18 @@ canvas {
     overflow: visible;
   }
 }
+
 /* =======================================================
-   Mobile Landscape — Compass / Dev Tools / D-pad Separation
+   Final Mobile Landscape HUD Layout
 ======================================================= */
 
 @media (max-width: 899px) and (orientation: landscape) {
   /*
-   * Keep the compass ribbon by itself at the top.
-   */
-  .tg-compass-ribbon {
-    top: 6px;
-    height: 102px;
-  }
-
-  /*
-   * Move the Dev Tools compass below the ribbon.
-   * This prevents it from covering compass markers.
+   * Dev Tools button:
+   * raised close to the upper-right corner.
    */
   .tg-dev-toggle {
-    top: 88px;
+    top: 18px;
     right: 18px;
 
     width: 52px;
@@ -1771,13 +1764,14 @@ canvas {
   }
 
   /*
-   * Move the camera D-pad left of the Dev Tools button
-   * and above the ABXY cluster.
+   * Camera D-pad:
+   * closer to the ABXY cluster while remaining
+   * slightly above and to its left.
    */
   .tg-mobile-camera-pad {
     left: auto;
-    right: 118px;
-    bottom: 126px;
+    right: 96px;
+    bottom: 108px;
 
     width: 82px;
     height: 82px;
@@ -1786,7 +1780,7 @@ canvas {
   }
 
   /*
-   * Keep ABXY in the lower-right corner.
+   * Keep ABXY anchored in the lower-right.
    */
   .tg-action-buttons {
     left: auto;
@@ -1797,12 +1791,20 @@ canvas {
     height: 112px;
   }
 
+  .tg-action-buttons .tg-action-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .tg-action-buttons .tg-action-button-label {
+    font-size: 20px;
+  }
+
   /*
-   * When opened, begin the Dev Tools panel below
-   * the compass ribbon instead of underneath it.
+   * Open Dev Tools below the top button.
    */
   .tg-side-panel {
-    top: 108px;
-    height: calc(100vh - 118px);
+    top: 78px;
+    height: calc(100vh - 88px);
   }
 }
