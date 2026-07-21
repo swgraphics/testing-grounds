@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Stats } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import AreaDiscovery from "./components/ui/AreaDiscovery";
 import LoadingOverlay from "./components/ui/LoadingOverlay";
@@ -97,7 +96,6 @@ export default function App() {
           />
         </Physics>
 
-        <Stats />
       </Canvas>
 
       {!showTitleScreen && (

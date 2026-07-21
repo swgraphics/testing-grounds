@@ -141,6 +141,10 @@ export default function InputHUD() {
     devSettings.fpvMode
   );
 
+  const [invertCameraY, setInvertCameraY] = useState(
+  devSettings.invertCameraY
+  );
+
   const [speedMultiplier, setSpeedMultiplier] = useState(
     devSettings.speedMultiplier
   );
@@ -724,7 +728,23 @@ function toggleDevSection(sectionName) {
                   >
                     FPV Mode: {fpvMode ? "ON" : "OFF"}
                   </button>
+<button
+  className={`tg-side-panel-button ${
+    invertCameraY ? "active" : ""
+  }`}
+  onClick={() => {
+    const nextValue = !invertCameraY;
 
+    setInvertCameraY(nextValue);
+
+    updateDevSetting(
+      "invertCameraY",
+      nextValue
+    );
+  }}
+>
+  Invert Camera Y: {invertCameraY ? "ON" : "OFF"}
+</button>
                   <div className="tg-dev-placeholder">
                     In FPV: Sprint raises view, Crouch
                     lowers view

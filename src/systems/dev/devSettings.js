@@ -1,5 +1,6 @@
 export const devSettings = {
   fpvMode: false,
+  invertCameraY: true,
   speedMultiplier: 1,
 };
 

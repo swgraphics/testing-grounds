@@ -135,6 +135,7 @@ useEffect(() => {
     );
   };
 }, []);
+
   useFrame((_, delta) => {
       const controllerYawSpeed = 2.4;
 const controllerPitchSpeed = 1.8;
@@ -151,9 +152,13 @@ const cameraInputX =
   gamepadCameraX +
   mobileCameraInputRef.current.x;
 
+const mobileCameraY = devSettings.invertCameraY
+  ? -mobileCameraInputRef.current.y
+  : mobileCameraInputRef.current.y;
+
 const cameraInputY =
   gamepadCameraY +
-  mobileCameraInputRef.current.y;
+  mobileCameraY;
 
 yawRef.current -=
   cameraInputX *
