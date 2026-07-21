@@ -23,7 +23,7 @@ export const characterRegistry = {
   },
 
   scale: 1,
-  height: 0.34,
+  height: -0.34,
 
   rotation: {
     x: -Math.PI / 2,

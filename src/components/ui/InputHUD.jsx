@@ -154,6 +154,7 @@ function DevSlider({
   min,
   max,
   step,
+  locked = false,
   onRefresh,
 }) {
   return (
@@ -169,6 +170,7 @@ function DevSlider({
         max={max}
         step={step}
         value={terrainSettings[settingKey]}
+        disabled={locked}
         onChange={(event) => {
           updateTerrainSetting(
             settingKey,
@@ -369,7 +371,27 @@ const [cameraLocked, setCameraLocked] =
   startX: 0,
   startY: 0,
 });
+const [terrainLocked, setTerrainLocked] =
+  useState(
+    isDevSectionLocked("terrain")
+  );
 
+const [physicsLocked, setPhysicsLocked] =
+  useState(
+    isDevSectionLocked("physics")
+  );
+
+const [
+  atmosphereLocked,
+  setAtmosphereLocked,
+] = useState(
+  isDevSectionLocked("atmosphere")
+);
+
+const [worldLocked, setWorldLocked] =
+  useState(
+    isDevSectionLocked("world")
+  );
 const cameraPadRef = useRef({
   active: false,
   pointerId: null,
@@ -636,18 +658,34 @@ useEffect(() => {
     }
   }
 
-  function handleSectionLockChange(
-    event
-  ) {
-    if (
-      event.detail?.sectionName ===
-      "camera"
-    ) {
-      setCameraLocked(
-        Boolean(event.detail.locked)
-      );
-    }
+function handleSectionLockChange(event) {
+  const sectionName =
+    event.detail?.sectionName;
+
+  const locked = Boolean(
+    event.detail?.locked
+  );
+
+  if (sectionName === "camera") {
+    setCameraLocked(locked);
   }
+
+  if (sectionName === "terrain") {
+    setTerrainLocked(locked);
+  }
+
+  if (sectionName === "physics") {
+    setPhysicsLocked(locked);
+  }
+
+  if (sectionName === "atmosphere") {
+    setAtmosphereLocked(locked);
+  }
+
+  if (sectionName === "world") {
+    setWorldLocked(locked);
+  }
+}
 
   window.addEventListener(
     "change-character",
@@ -946,43 +984,58 @@ useEffect(() => {
               )}
             </div>
 
-            {/* TERRAIN */}
-            <div className="tg-dev-section">
-              <DevSectionHeader
-                label="TERRAIN"
-                sectionName="terrain"
-                isOpen={openDevSections.terrain}
-                onToggle={toggleDevSection}
-              />
+{/* TERRAIN */}
+<div className="tg-dev-section">
+  <DevSectionHeader
+    label="TERRAIN"
+    sectionName="terrain"
+    isOpen={openDevSections.terrain}
+    onToggle={toggleDevSection}
+  />
 
-              {openDevSections.terrain && (
-                <div className="tg-dev-section-content">
-                  {TERRAIN_SLIDERS.map(
-                    ([key, label, min, max, step]) => (
-                      <DevSlider
-                        key={key}
-                        settingKey={key}
-                        label={label}
-                        min={min}
-                        max={max}
-                        step={step}
-                        onRefresh={refresh}
-                      />
-                    )
-                  )}
+  {openDevSections.terrain && (
+    <div className="tg-dev-section-content">
+      <DevSectionLockButton
+        sectionName="terrain"
+        locked={terrainLocked}
+        onRefresh={refresh}
+      />
 
-                  <button
-                    className="tg-side-panel-button"
-                    onClick={() => {
-                      reshuffleScatter();
-                      refresh();
-                    }}
-                  >
-                    Reshuffle Scatter
-                  </button>
-                </div>
-              )}
-            </div>
+      <div
+        className={`tg-dev-section-lockable ${
+          terrainLocked ? "locked" : ""
+        }`}
+      >
+        {TERRAIN_SLIDERS.map(
+          ([key, label, min, max, step]) => (
+            <DevSlider
+              key={key}
+              settingKey={key}
+              label={label}
+              min={min}
+              max={max}
+              step={step}
+              locked={terrainLocked}
+              onRefresh={refresh}
+            />
+          )
+        )}
+
+        <button
+          type="button"
+          disabled={terrainLocked}
+          className="tg-side-panel-button"
+          onClick={() => {
+            reshuffleScatter();
+            refresh();
+          }}
+        >
+          Reshuffle Scatter
+        </button>
+      </div>
+    </div>
+  )}
+</div>
 
 {/* CAMERA */}
 <div className="tg-dev-section">
@@ -1147,39 +1200,53 @@ useEffect(() => {
               />
 
               {openDevSections.physics && (
-                <div className="tg-dev-section-content">
-                  <div className="tg-dev-button-row">
-                    {[1, 50, 100, 500].map(
-                      (multiplier) => (
-                        <button
-                          key={multiplier}
-                          className={`tg-dev-speed-button ${
-                            speedMultiplier === multiplier
-                              ? "active"
-                              : ""
-                          }`}
-                          onClick={() => {
-                            setSpeedMultiplier(multiplier);
+  <div className="tg-dev-section-content">
+    <DevSectionLockButton
+      sectionName="physics"
+      locked={physicsLocked}
+      onRefresh={refresh}
+    />
 
-                            updateDevSetting(
-                              "speedMultiplier",
-                              multiplier
-                            );
-                          }}
-                        >
-                          {multiplier === 1
-                            ? "NORMAL"
-                            : `${multiplier}X`}
-                        </button>
-                      )
-                    )}
-                  </div>
+    <div
+      className={`tg-dev-section-lockable ${
+        physicsLocked ? "locked" : ""
+      }`}
+    >
+      <div className="tg-dev-button-row">
+        {[1, 50, 100, 500].map(
+          (multiplier) => (
+            <button
+              key={multiplier}
+              type="button"
+              disabled={physicsLocked}
+              className={`tg-dev-speed-button ${
+                speedMultiplier === multiplier
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() => {
+                setSpeedMultiplier(multiplier);
 
-                  <div className="tg-dev-placeholder">
-                    Debug speed affects character movement
-                  </div>
-                </div>
-              )}
+                updateDevSetting(
+                  "speedMultiplier",
+                  multiplier
+                );
+              }}
+            >
+              {multiplier === 1
+                ? "NORMAL"
+                : `${multiplier}X`}
+            </button>
+          )
+        )}
+      </div>
+
+      <div className="tg-dev-placeholder">
+        Debug speed affects character movement
+      </div>
+    </div>
+  </div>
+)}
             </div>
 
             {/* ATMOSPHERE */}
@@ -1192,22 +1259,35 @@ useEffect(() => {
               />
 
               {openDevSections.atmosphere && (
-                <div className="tg-dev-section-content">
-                  {ATMOSPHERE_SLIDERS.map(
-                    ([key, label, min, max, step]) => (
-                      <DevSlider
-                        key={key}
-                        settingKey={key}
-                        label={label}
-                        min={min}
-                        max={max}
-                        step={step}
-                        onRefresh={refresh}
-                      />
-                    )
-                  )}
-                </div>
-              )}
+  <div className="tg-dev-section-content">
+    <DevSectionLockButton
+      sectionName="atmosphere"
+      locked={atmosphereLocked}
+      onRefresh={refresh}
+    />
+
+    <div
+      className={`tg-dev-section-lockable ${
+        atmosphereLocked ? "locked" : ""
+      }`}
+    >
+      {ATMOSPHERE_SLIDERS.map(
+        ([key, label, min, max, step]) => (
+          <DevSlider
+            key={key}
+            settingKey={key}
+            label={label}
+            min={min}
+            max={max}
+            step={step}
+            locked={atmosphereLocked}
+            onRefresh={refresh}
+          />
+        )
+      )}
+    </div>
+  </div>
+)}
             </div>
 
 {/* WORLD */}
@@ -1220,8 +1300,21 @@ useEffect(() => {
   />
 
   {openDevSections.world && (
-    <div className="tg-dev-section-content">
+  <div className="tg-dev-section-content">
+    <DevSectionLockButton
+      sectionName="world"
+      locked={worldLocked}
+      onRefresh={refresh}
+    />
+
+    <div
+      className={`tg-dev-section-lockable ${
+        worldLocked ? "locked" : ""
+      }`}
+    >
       <button
+        type="button"
+        disabled={worldLocked}
         className="tg-side-panel-button"
         onClick={() => {
           runWithLoadingOverlay(
@@ -1240,6 +1333,8 @@ useEffect(() => {
       </button>
 
       <button
+        type="button"
+        disabled={worldLocked}
         className="tg-side-panel-button"
         onClick={() => {
           runWithLoadingOverlay(
@@ -1248,7 +1343,10 @@ useEffect(() => {
               refresh();
 
               await new Promise((resolve) => {
-                window.setTimeout(resolve, 250);
+                window.setTimeout(
+                  resolve,
+                  250
+                );
               });
             },
             {
@@ -1262,6 +1360,8 @@ useEffect(() => {
       </button>
 
       <button
+        type="button"
+        disabled={worldLocked}
         className="tg-side-panel-button"
         onClick={() => {
           runWithLoadingOverlay(
@@ -1279,7 +1379,8 @@ useEffect(() => {
         Reset World
       </button>
     </div>
-  )}
+  </div>
+)}
 </div>
             {/* MATERIALS */}
             <div className="tg-dev-section">

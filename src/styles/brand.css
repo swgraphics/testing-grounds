@@ -1934,3 +1934,16 @@ canvas {
 .tg-side-panel-button:disabled {
   cursor: not-allowed;
 }
+/* =======================================================
+   Locked Dev Tool Controls
+======================================================= */
+
+.tg-dev-speed-button:disabled,
+.tg-side-panel-button:disabled,
+.tg-dev-slider:disabled {
+  cursor: not-allowed;
+}
+
+.tg-dev-speed-button:disabled {
+  pointer-events: none;
+}
