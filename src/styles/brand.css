@@ -1763,7 +1763,7 @@ canvas {
    * This prevents it from covering compass markers.
    */
   .tg-dev-toggle {
-    top: 112px;
+    top: 88px;
     right: 18px;
 
     width: 52px;
