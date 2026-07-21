@@ -257,57 +257,100 @@ if (lowerCamera) {
       window.innerHeight > window.innerWidth;
 
     const baseHeight =
-      character.cameraHeight ??
-      cameraConfig.height;
+  character.cameraHeight ??
+  cameraConfig.height;
 
-    const baseDistance =
-      character.cameraDistance ??
-      cameraConfig.distance;
+const baseDistance =
+  character.cameraDistance ??
+  cameraConfig.distance;
 
-    const finalHeight =
-      isPortraitMobile
-        ? baseHeight + 3.2
-        : baseHeight;
+const baseLookAtHeight =
+  character.cameraLookAtHeight ??
+  cameraConfig.lookAtHeight;
 
-    const finalDistance =
-      isPortraitMobile
-        ? baseDistance + 2.6
-        : baseDistance;
+const pitchHeightStrength =
+  character.cameraPitchHeightStrength ?? 2;
 
-    const finalLookAtHeight =
-      isPortraitMobile
-        ? cameraConfig.lookAtHeight - 1.35
-        : cameraConfig.lookAtHeight;
+const shoulderOffset =
+  character.cameraShoulderOffset ?? 0;
 
-    const cameraOffset =
-      new THREE.Vector3(
-        Math.sin(yawRef.current) *
-          finalDistance,
+const lookAheadDistance =
+  character.cameraLookAheadDistance ?? 0;
 
-        finalHeight +
-          Math.sin(pitchRef.current) * 2,
+const finalHeight =
+  isPortraitMobile
+    ? baseHeight + 3.2
+    : baseHeight;
 
-        Math.cos(yawRef.current) *
-          finalDistance
-      );
+const finalDistance =
+  isPortraitMobile
+    ? baseDistance + 2.6
+    : baseDistance;
 
-    const desiredPosition =
-      new THREE.Vector3(
-        target.x + cameraOffset.x,
-        target.y + cameraOffset.y,
-        target.z + cameraOffset.z
-      );
+const finalLookAtHeight =
+  isPortraitMobile
+    ? baseLookAtHeight - 1.35
+    : baseLookAtHeight;
 
-    camera.position.lerp(
-      desiredPosition,
-      cameraConfig.smoothing
-    );
+/*
+  Right-facing vector based on camera yaw.
 
-    camera.lookAt(
-      target.x,
-      target.y + finalLookAtHeight,
-      target.z
-    );
+  A positive shoulderOffset moves the camera to the
+  character's right, which places the character slightly
+  left of screen center.
+*/
+const cameraRightX =
+  Math.cos(yawRef.current);
+
+const cameraRightZ =
+  -Math.sin(yawRef.current);
+
+/*
+  Forward-facing vector used to aim farther into the world
+  instead of always aiming directly at the character.
+*/
+const cameraForwardX =
+  -Math.sin(yawRef.current);
+
+const cameraForwardZ =
+  -Math.cos(yawRef.current);
+
+const cameraOffset =
+  new THREE.Vector3(
+    Math.sin(yawRef.current) *
+      finalDistance +
+      cameraRightX * shoulderOffset,
+
+    finalHeight +
+      Math.sin(pitchRef.current) *
+        pitchHeightStrength,
+
+    Math.cos(yawRef.current) *
+      finalDistance +
+      cameraRightZ * shoulderOffset
+  );
+
+const desiredPosition =
+  new THREE.Vector3(
+    target.x + cameraOffset.x,
+    target.y + cameraOffset.y,
+    target.z + cameraOffset.z
+  );
+
+camera.position.lerp(
+  desiredPosition,
+  cameraConfig.smoothing
+);
+
+camera.lookAt(
+  target.x +
+    cameraForwardX * lookAheadDistance,
+
+  target.y + finalLookAtHeight,
+
+  target.z +
+    cameraForwardZ * lookAheadDistance
+);
   });
 
   return null;
@@ -504,7 +547,6 @@ if (
   return (
     <>
       <Ecctrl
-        key={activeCharacter.id}
         ref={controllerRef}
         position={[0, 3, 0]}
         mode="FixedCamera"

@@ -1,33 +1,43 @@
 export const characterRegistry = {
   adventurer: {
-    id: "adventurer",
-    displayName: "Adventurer",
+  id: "adventurer",
+  displayName: "Adventurer",
 
-    animationSource: "fbx",
+  animationSource: "fbx",
 
-    modelPath: "/models/characters/Adventurer.glb",
+  modelPath: "/models/characters/Adventurer.glb",
 
-    animations: {
-      idle: "/animations/adventurer/Breathing Idle.fbx",
-      walk: "/animations/adventurer/Walking.fbx",
-      run: "/animations/adventurer/Running.fbx",
-      crouchWalk: "/animations/adventurer/Crouched Walking.fbx",
-      jump: "/animations/adventurer/Jumping.fbx",
-      runJump: "/animations/adventurer/Run Jump.fbx",
-      slide: "/animations/adventurer/Running Slide.fbx",
-      wallRun: "/animations/adventurer/Wall Run.fbx",
-    },
-
-    scale: 1,
-    height: -0.34,
-  
-
-    rotation: {
-      x: -Math.PI / 2,
-      y: 0,
-      z: 0,
-    },
+  animations: {
+    idle: "/animations/adventurer/Breathing Idle.fbx",
+    walk: "/animations/adventurer/Walking.fbx",
+    run: "/animations/adventurer/Running.fbx",
+    crouchWalk:
+      "/animations/adventurer/Crouched Walking.fbx",
+    jump: "/animations/adventurer/Jumping.fbx",
+    runJump:
+      "/animations/adventurer/Run Jump.fbx",
+    slide:
+      "/animations/adventurer/Running Slide.fbx",
+    wallRun:
+      "/animations/adventurer/Wall Run.fbx",
   },
+
+  scale: 1,
+  height: -0.34,
+
+  rotation: {
+    x: -Math.PI / 2,
+    y: 0,
+    z: 0,
+  },
+
+  cameraHeight: 1.4,
+  cameraDistance: 4.8,
+  cameraLookAtHeight: 2.1,
+  cameraShoulderOffset: 0.65,
+  cameraLookAheadDistance: 3.0,
+  cameraPitchHeightStrength: 1.4,
+},
 
   velociraptor: {
     id: "velociraptor",
