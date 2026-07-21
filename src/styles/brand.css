@@ -1352,8 +1352,8 @@ canvas {
   top: 50px;
   left: 50%;
 
-  width: 92px;
-  margin-left: -46px;
+  width: 72px;
+  margin-left: -36px;
 
   display: flex;
   flex-direction: column;
@@ -1680,8 +1680,12 @@ canvas {
 
 @media (max-width: 899px) and (orientation: landscape) {
   .tg-compass-ribbon {
+    top: 6px;
+
+    width: min(480px, 66vw);
+
     height: 102px;
-  }
+}
 
   /* Mirror lower-left and lower-right controls */
   .tg-joystick {
