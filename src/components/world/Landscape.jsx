@@ -348,12 +348,47 @@ function useTerrainSetting(settingKey, fallbackValue) {
 }
 
 function useTerrainShapeRefresh() {
-  const heightMultiplier = useTerrainSetting("heightMultiplier", 1);
-  const mountainHeight = useTerrainSetting("mountainHeight", 1);
-  const cliffSharpness = useTerrainSetting("cliffSharpness", 1);
-  const rollingHills = useTerrainSetting("rollingHills", 1);
-  const ridgeStrength = useTerrainSetting("ridgeStrength", 1);
-  const plateauAmount = useTerrainSetting("plateauAmount", 0);
+  const heightMultiplier =
+    useTerrainSetting(
+      "heightMultiplier",
+      1
+    );
+
+  const mountainHeight =
+    useTerrainSetting(
+      "mountainHeight",
+      1
+    );
+
+  const cliffSharpness =
+    useTerrainSetting(
+      "cliffSharpness",
+      1
+    );
+
+  const rollingHills =
+    useTerrainSetting(
+      "rollingHills",
+      1
+    );
+
+  const ridgeStrength =
+    useTerrainSetting(
+      "ridgeStrength",
+      1
+    );
+
+  const plateauAmount =
+    useTerrainSetting(
+      "plateauAmount",
+      0
+    );
+
+  const geometryStrength =
+    useTerrainSetting(
+      "geometryStrength",
+      0
+    );
 
   return [
     heightMultiplier,
@@ -362,6 +397,7 @@ function useTerrainShapeRefresh() {
     rollingHills,
     ridgeStrength,
     plateauAmount,
+    geometryStrength,
   ];
 }
 

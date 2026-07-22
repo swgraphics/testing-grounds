@@ -67,7 +67,8 @@ const TERRAIN_SLIDERS = [
   ["rollingHills", "Rolling Hills", 0, 3, 0.1],
   ["ridgeStrength", "Ridge Strength", 0, 3, 0.1],
   ["plateauAmount", "Plateau / Flat Tops", 0, 100, 1],
-
+  ["geometryStrength", "GEOMETRY STRENGTH", 0, 100, 1,],
+  
   ["treeDensity", "Tree Density", 0, 100, 1],
   ["treeCoverage", "Tree Coverage", 0, 100, 1],
   ["foliageDensity", "Foliage Scatter", 0, 100, 1],

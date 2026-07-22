@@ -5,6 +5,7 @@ export const DEFAULT_TERRAIN_SETTINGS = {
   rollingHills: 1.5,
   ridgeStrength: 1.5,
   plateauAmount: 0,
+  geometryStrength: 55,
 
   treeDensity: 50,
   treeCoverage: 50,

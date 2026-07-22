@@ -124,6 +124,7 @@ export default function GridTerrain() {
     terrainSettings.rollingHills,
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
+    terrainSettings.geometryStrength,
   ]);
 
   /*
@@ -133,14 +134,15 @@ export default function GridTerrain() {
    * Wind, fog, sun and scatter changes should not
    * remount the terrain collider.
    */
-  const terrainPhysicsKey = [
-    terrainSettings.heightMultiplier,
-    terrainSettings.mountainHeight,
-    terrainSettings.cliffSharpness,
-    terrainSettings.rollingHills,
-    terrainSettings.ridgeStrength,
-    terrainSettings.plateauAmount,
-  ].join("-");
+const terrainPhysicsKey = [
+  terrainSettings.heightMultiplier,
+  terrainSettings.mountainHeight,
+  terrainSettings.cliffSharpness,
+  terrainSettings.rollingHills,
+  terrainSettings.ridgeStrength,
+  terrainSettings.plateauAmount,
+  terrainSettings.geometryStrength,
+].join("-");
 
   return (
     <RigidBody
@@ -153,13 +155,14 @@ export default function GridTerrain() {
         receiveShadow
       >
         <meshStandardMaterial
-          vertexColors
-          roughness={0.94}
-          metalness={0}
-          polygonOffset
-          polygonOffsetFactor={1}
-          polygonOffsetUnits={1}
-        />
+  vertexColors
+  flatShading
+  roughness={0.94}
+  metalness={0}
+  polygonOffset
+  polygonOffsetFactor={1}
+  polygonOffsetUnits={1}
+/>
       </mesh>
     </RigidBody>
   );

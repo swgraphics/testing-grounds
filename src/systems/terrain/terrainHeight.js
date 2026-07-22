@@ -39,17 +39,66 @@ export function getTerrainHeightAt(x, z) {
     terrainBlend *
     terrainSettings.heightMultiplier;
 
-  const plateauStrength = (terrainSettings.plateauAmount ?? 0) / 100;
-  const plateauLevel = 42 * terrainSettings.heightMultiplier;
+const plateauStrength =
+  (terrainSettings.plateauAmount ?? 0) /
+  100;
 
-  if (height > plateauLevel) {
-    const flattenedHeight = plateauLevel + (height - plateauLevel) * 0.16;
+const plateauLevel =
+  42 * terrainSettings.heightMultiplier;
 
-    height = THREE.MathUtils.lerp(height, flattenedHeight, plateauStrength);
-  }
+if (height > plateauLevel) {
+  const flattenedHeight =
+    plateauLevel +
+    (height - plateauLevel) * 0.16;
 
-  const insideSpawnSquare =
-    Math.abs(x) < flatSquareSize && Math.abs(z) < flatSquareSize;
+  height = THREE.MathUtils.lerp(
+    height,
+    flattenedHeight,
+    plateauStrength
+  );
+}
+
+/*
+ * Geometric Terrain V1
+ *
+ * Quantizes the final terrain height into broader
+ * vertical steps. The original terrain shape remains
+ * intact, but the surface becomes more angular and
+ * stylized as geometryStrength increases.
+ */
+const geometryStrength =
+  THREE.MathUtils.clamp(
+    (terrainSettings.geometryStrength ?? 0) /
+      100,
+    0,
+    1
+  );
+
+if (geometryStrength > 0) {
+  const minimumStep = 0.25;
+  const maximumStep = 8;
+
+  const geometryStep =
+    THREE.MathUtils.lerp(
+      minimumStep,
+      maximumStep,
+      geometryStrength
+    );
+
+  const quantizedHeight =
+    Math.round(height / geometryStep) *
+    geometryStep;
+
+  height = THREE.MathUtils.lerp(
+    height,
+    quantizedHeight,
+    geometryStrength
+  );
+}
+
+const insideSpawnSquare =
+  Math.abs(x) < flatSquareSize &&
+  Math.abs(z) < flatSquareSize;
 
   if (insideSpawnSquare) {
     height = 0;
