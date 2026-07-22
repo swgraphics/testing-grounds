@@ -656,20 +656,6 @@ function RockScatter() {
   return <>{rocks}</>;
 }
 
-function PaleWaterPatch({ position, scale }) {
-  return (
-    <mesh position={position} scale={scale} rotation={[-Math.PI / 2, 0, 0]}>
-      <circleGeometry args={[1, 48]} />
-      <meshStandardMaterial
-        color="#dfefff"
-        roughness={0.35}
-        transparent
-        opacity={0.62}
-      />
-    </mesh>
-  );
-}
-
 export default function Landscape() {
   return (
     <>
@@ -677,8 +663,6 @@ export default function Landscape() {
       <FoliageScatter />
       <RockScatter />
 
-      <PaleWaterPatch position={[0, 0.08, 170]} scale={[42, 24, 1]} />
-      <PaleWaterPatch position={[145, 0.08, 155]} scale={[35, 18, 1]} />
     </>
   );
 }

@@ -6,7 +6,10 @@ export const DEFAULT_TERRAIN_SETTINGS = {
   ridgeStrength: 1.5,
   plateauAmount: 0,
   geometryStrength: 55,
-
+  
+  waterHeight: -4,
+  waterWaveStrength: 20,
+  
   treeDensity: 50,
   treeCoverage: 50,
   foliageDensity: 50,

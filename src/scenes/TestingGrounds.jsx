@@ -6,6 +6,7 @@ import Atmosphere from "../components/world/Atmosphere";
 import Lighting from "../components/world/Lighting";
 import GridTerrain from "../components/world/GridTerrain";
 import GridFloor from "../components/world/GridFloor";
+import Water from "../components/world/Water";
 import Landscape from "../components/world/Landscape";
 import SpawnPad from "../components/world/SpawnPad";
 import WorldGizmos from "../components/world/WorldGizmos";
@@ -45,6 +46,7 @@ export default function TestingGrounds({ titleMode = false }) {
 
       <GridTerrain />
       <GridFloor />
+      <Water />
 
       <Landscape />
       <SpawnPad />
