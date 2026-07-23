@@ -180,9 +180,9 @@ export default function GridFloor() {
         </mesh>
       </RigidBody>
 
-      <group>{lines}</group>
-      <group>{distanceMarkers}</group>
-      <group>{coordinateLabels}</group>
+{/* Flat grid hidden while Terrain Grid V1 is active. */}
+<group>{distanceMarkers}</group>
+<group>{coordinateLabels}</group>
     </>
   );
 }
