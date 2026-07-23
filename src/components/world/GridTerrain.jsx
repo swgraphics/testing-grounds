@@ -13,26 +13,21 @@ import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 const TERRAIN_SIZE = 600;
 const TERRAIN_SEGMENTS = 120;
 
-/*
- * Distance between visible Testing Grounds
- * grid lines.
- */
-const TERRAIN_GRID_STEP = 10;
+const MINOR_GRID_STEP = 10;
+const MAJOR_GRID_STEP = 50;
+const SECTOR_GRID_STEP = 100;
 
 /*
- * Distance between sampled vertices along
- * each grid line.
- *
- * Smaller values conform more accurately but
- * create more geometry.
+ * Each visible grid line is divided into smaller
+ * segments so it can follow the terrain surface.
  */
-const TERRAIN_GRID_SAMPLE_STEP = 5;
+const GRID_SAMPLE_STEP = 5;
 
 /*
- * Raises the grid slightly above the solid
- * terrain to prevent z-fighting.
+ * Prevents grid lines from flickering against
+ * the solid terrain.
  */
-const TERRAIN_GRID_OFFSET = 0.08;
+const GRID_OFFSET = 0.08;
 
 const TERRAIN_BASE_COLOR = new THREE.Color(
   "#080b10"
@@ -44,7 +39,143 @@ const TERRAIN_HIGH_COLOR = new THREE.Color(
 
 const TERRAIN_MAX_GRADIENT_HEIGHT = 85;
 
-const TERRAIN_GRID_COLOR = "#dfefff";
+const MINOR_GRID_COLOR = "#71808d";
+const MAJOR_GRID_COLOR = "#b8c5cf";
+const SECTOR_GRID_COLOR = "#f2f7fa";
+
+/*
+ * Returns true when a number lands exactly on
+ * the requested grid interval.
+ */
+function isGridMultiple(value, interval) {
+  return (
+    Math.abs(value % interval) <
+    0.001
+  );
+}
+
+/*
+ * Creates one set of terrain-conforming grid
+ * lines.
+ *
+ * Lines can be excluded when they belong to a
+ * stronger hierarchy level.
+ */
+function createTerrainGridGeometry({
+  lineStep,
+  excludeStep = null,
+  verticalOffset,
+}) {
+  const halfSize = TERRAIN_SIZE / 2;
+
+  const linePositions = [];
+
+  /*
+   * East/west lines.
+   */
+  for (
+    let z = -halfSize;
+    z <= halfSize;
+    z += lineStep
+  ) {
+    if (
+      excludeStep &&
+      isGridMultiple(z, excludeStep)
+    ) {
+      continue;
+    }
+
+    for (
+      let x = -halfSize;
+      x < halfSize;
+      x += GRID_SAMPLE_STEP
+    ) {
+      const nextX = Math.min(
+        x + GRID_SAMPLE_STEP,
+        halfSize
+      );
+
+      const startHeight =
+        getTerrainHeightAt(x, z) +
+        verticalOffset;
+
+      const endHeight =
+        getTerrainHeightAt(nextX, z) +
+        verticalOffset;
+
+      linePositions.push(
+        x,
+        startHeight,
+        z,
+
+        nextX,
+        endHeight,
+        z
+      );
+    }
+  }
+
+  /*
+   * North/south lines.
+   */
+  for (
+    let x = -halfSize;
+    x <= halfSize;
+    x += lineStep
+  ) {
+    if (
+      excludeStep &&
+      isGridMultiple(x, excludeStep)
+    ) {
+      continue;
+    }
+
+    for (
+      let z = -halfSize;
+      z < halfSize;
+      z += GRID_SAMPLE_STEP
+    ) {
+      const nextZ = Math.min(
+        z + GRID_SAMPLE_STEP,
+        halfSize
+      );
+
+      const startHeight =
+        getTerrainHeightAt(x, z) +
+        verticalOffset;
+
+      const endHeight =
+        getTerrainHeightAt(x, nextZ) +
+        verticalOffset;
+
+      linePositions.push(
+        x,
+        startHeight,
+        z,
+
+        x,
+        endHeight,
+        nextZ
+      );
+    }
+  }
+
+  const gridGeometry =
+    new THREE.BufferGeometry();
+
+  gridGeometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      linePositions,
+      3
+    )
+  );
+
+  gridGeometry.computeBoundingBox();
+  gridGeometry.computeBoundingSphere();
+
+  return gridGeometry;
+}
 
 export default function GridTerrain() {
   const [, refresh] = useState(0);
@@ -70,7 +201,7 @@ export default function GridTerrain() {
   /*
    * Solid terrain geometry.
    */
-  const geometry = useMemo(() => {
+  const terrainGeometry = useMemo(() => {
     const geo = new THREE.PlaneGeometry(
       TERRAIN_SIZE,
       TERRAIN_SIZE,
@@ -152,114 +283,17 @@ export default function GridTerrain() {
   ]);
 
   /*
-   * Terrain Grid V1
+   * Minor grid:
    *
-   * Creates square north/south and east/west
-   * lines. Every point samples the exact same
-   * terrain-height function as the solid mesh.
+   * Every 10 meters, excluding lines that belong
+   * to the 50-meter major grid.
    */
-  const terrainGridGeometry = useMemo(() => {
-    const halfSize = TERRAIN_SIZE / 2;
-
-    const linePositions = [];
-
-    /*
-     * East/west lines.
-     *
-     * Z remains fixed while X moves across
-     * the terrain.
-     */
-    for (
-      let z = -halfSize;
-      z <= halfSize;
-      z += TERRAIN_GRID_STEP
-    ) {
-      for (
-        let x = -halfSize;
-        x < halfSize;
-        x += TERRAIN_GRID_SAMPLE_STEP
-      ) {
-        const nextX = Math.min(
-          x + TERRAIN_GRID_SAMPLE_STEP,
-          halfSize
-        );
-
-        const startHeight =
-          getTerrainHeightAt(x, z) +
-          TERRAIN_GRID_OFFSET;
-
-        const endHeight =
-          getTerrainHeightAt(nextX, z) +
-          TERRAIN_GRID_OFFSET;
-
-        linePositions.push(
-          x,
-          startHeight,
-          z,
-
-          nextX,
-          endHeight,
-          z
-        );
-      }
-    }
-
-    /*
-     * North/south lines.
-     *
-     * X remains fixed while Z moves across
-     * the terrain.
-     */
-    for (
-      let x = -halfSize;
-      x <= halfSize;
-      x += TERRAIN_GRID_STEP
-    ) {
-      for (
-        let z = -halfSize;
-        z < halfSize;
-        z += TERRAIN_GRID_SAMPLE_STEP
-      ) {
-        const nextZ = Math.min(
-          z + TERRAIN_GRID_SAMPLE_STEP,
-          halfSize
-        );
-
-        const startHeight =
-          getTerrainHeightAt(x, z) +
-          TERRAIN_GRID_OFFSET;
-
-        const endHeight =
-          getTerrainHeightAt(x, nextZ) +
-          TERRAIN_GRID_OFFSET;
-
-        linePositions.push(
-          x,
-          startHeight,
-          z,
-
-          x,
-          endHeight,
-          nextZ
-        );
-      }
-    }
-
-    const gridGeometry =
-      new THREE.BufferGeometry();
-
-    gridGeometry.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(
-        linePositions,
-        3
-      )
-    );
-
-    gridGeometry.computeBoundingBox();
-    gridGeometry.computeBoundingSphere();
-
-    return gridGeometry;
+  const minorGridGeometry = useMemo(() => {
+    return createTerrainGridGeometry({
+      lineStep: MINOR_GRID_STEP,
+      excludeStep: MAJOR_GRID_STEP,
+      verticalOffset: GRID_OFFSET,
+    });
   }, [
     terrainSettings.heightMultiplier,
     terrainSettings.mountainHeight,
@@ -271,24 +305,80 @@ export default function GridTerrain() {
   ]);
 
   /*
-   * Dispose rebuilt geometry to avoid retaining
-   * old GPU buffers after slider changes.
+   * Major grid:
+   *
+   * Every 50 meters, excluding lines that belong
+   * to the 100-meter sector grid.
+   */
+  const majorGridGeometry = useMemo(() => {
+    return createTerrainGridGeometry({
+      lineStep: MAJOR_GRID_STEP,
+      excludeStep: SECTOR_GRID_STEP,
+      verticalOffset: GRID_OFFSET + 0.01,
+    });
+  }, [
+    terrainSettings.heightMultiplier,
+    terrainSettings.mountainHeight,
+    terrainSettings.cliffSharpness,
+    terrainSettings.rollingHills,
+    terrainSettings.ridgeStrength,
+    terrainSettings.plateauAmount,
+    terrainSettings.geometryStrength,
+  ]);
+
+  /*
+   * Sector grid:
+   *
+   * Every 100 meters. These are the strongest
+   * lines and correspond to future A1, B1, C1
+   * world regions.
+   */
+  const sectorGridGeometry = useMemo(() => {
+    return createTerrainGridGeometry({
+      lineStep: SECTOR_GRID_STEP,
+      verticalOffset: GRID_OFFSET + 0.02,
+    });
+  }, [
+    terrainSettings.heightMultiplier,
+    terrainSettings.mountainHeight,
+    terrainSettings.cliffSharpness,
+    terrainSettings.rollingHills,
+    terrainSettings.ridgeStrength,
+    terrainSettings.plateauAmount,
+    terrainSettings.geometryStrength,
+  ]);
+
+  /*
+   * Dispose old geometry after terrain settings
+   * rebuild it.
    */
   useEffect(() => {
     return () => {
-      geometry.dispose();
+      terrainGeometry.dispose();
     };
-  }, [geometry]);
+  }, [terrainGeometry]);
 
   useEffect(() => {
     return () => {
-      terrainGridGeometry.dispose();
+      minorGridGeometry.dispose();
     };
-  }, [terrainGridGeometry]);
+  }, [minorGridGeometry]);
+
+  useEffect(() => {
+    return () => {
+      majorGridGeometry.dispose();
+    };
+  }, [majorGridGeometry]);
+
+  useEffect(() => {
+    return () => {
+      sectorGridGeometry.dispose();
+    };
+  }, [sectorGridGeometry]);
 
   /*
-   * Only terrain-shape settings should rebuild
-   * the Rapier terrain body.
+   * Only terrain-shape settings rebuild the
+   * Rapier terrain body.
    */
   const terrainPhysicsKey = [
     terrainSettings.heightMultiplier,
@@ -308,7 +398,7 @@ export default function GridTerrain() {
         colliders="trimesh"
       >
         <mesh
-          geometry={geometry}
+          geometry={terrainGeometry}
           receiveShadow
         >
           <meshStandardMaterial
@@ -323,14 +413,41 @@ export default function GridTerrain() {
         </mesh>
       </RigidBody>
 
+      {/* Minor 10-meter grid. */}
       <lineSegments
-        geometry={terrainGridGeometry}
+        geometry={minorGridGeometry}
         frustumCulled={false}
       >
         <lineBasicMaterial
-          color={TERRAIN_GRID_COLOR}
+          color={MINOR_GRID_COLOR}
           transparent
-          opacity={0.42}
+          opacity={0.14}
+          depthWrite={false}
+        />
+      </lineSegments>
+
+      {/* Major 50-meter grid. */}
+      <lineSegments
+        geometry={majorGridGeometry}
+        frustumCulled={false}
+      >
+        <lineBasicMaterial
+          color={MAJOR_GRID_COLOR}
+          transparent
+          opacity={0.38}
+          depthWrite={false}
+        />
+      </lineSegments>
+
+      {/* Sector 100-meter grid. */}
+      <lineSegments
+        geometry={sectorGridGeometry}
+        frustumCulled={false}
+      >
+        <lineBasicMaterial
+          color={SECTOR_GRID_COLOR}
+          transparent
+          opacity={0.68}
           depthWrite={false}
         />
       </lineSegments>
