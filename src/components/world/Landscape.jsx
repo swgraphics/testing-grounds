@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-
+import * as THREE from "three";
 import {
   RigidBody,
   CylinderCollider,
@@ -105,45 +105,283 @@ function makeRockPoints() {
     }
   );
 }
+/*
+ * Mature Tree Crown V1
+ *
+ * Creates one shared, faceted crown geometry.
+ * The alternating narrow and wide rings produce
+ * irregular branch layers instead of a simple cone.
+ *
+ * Because this geometry is created once and shared
+ * by every tree, it is significantly lighter than
+ * constructing many separate foliage meshes.
+ */
+function createMatureTreeCrownGeometry() {
+  const sides = 7;
 
+  const rings = [
+    {
+      y: 0,
+      radius: 0.08,
+    },
+    {
+      y: -0.65,
+      radius: 0.82,
+    },
+    {
+      y: -1.05,
+      radius: 0.48,
+    },
+    {
+      y: -1.55,
+      radius: 1.22,
+    },
+    {
+      y: -1.95,
+      radius: 0.7,
+    },
+    {
+      y: -2.55,
+      radius: 1.55,
+    },
+    {
+      y: -3,
+      radius: 0.88,
+    },
+    {
+      y: -3.55,
+      radius: 1.42,
+    },
+    {
+      y: -4.05,
+      radius: 0.3,
+    },
+  ];
+
+  const positions = [];
+  const indices = [];
+
+  rings.forEach((ring, ringIndex) => {
+    for (
+      let sideIndex = 0;
+      sideIndex < sides;
+      sideIndex += 1
+    ) {
+      const angle =
+        (sideIndex / sides) *
+          Math.PI *
+          2 +
+        ringIndex * 0.19;
+
+      /*
+       * Deterministic irregularity prevents the
+       * crown from appearing perfectly circular.
+       */
+      const irregularity =
+        1 +
+        Math.sin(
+          sideIndex * 2.17 +
+            ringIndex * 1.43
+        ) *
+          0.12;
+
+      const radius =
+        ring.radius * irregularity;
+
+      positions.push(
+        Math.cos(angle) * radius,
+        ring.y,
+        Math.sin(angle) * radius
+      );
+    }
+  });
+
+  for (
+    let ringIndex = 0;
+    ringIndex < rings.length - 1;
+    ringIndex += 1
+  ) {
+    for (
+      let sideIndex = 0;
+      sideIndex < sides;
+      sideIndex += 1
+    ) {
+      const nextSide =
+        (sideIndex + 1) % sides;
+
+      const current =
+        ringIndex * sides + sideIndex;
+
+      const currentNext =
+        ringIndex * sides + nextSide;
+
+      const below =
+        (ringIndex + 1) * sides +
+        sideIndex;
+
+      const belowNext =
+        (ringIndex + 1) * sides +
+        nextSide;
+
+      indices.push(
+        current,
+        below,
+        currentNext
+      );
+
+      indices.push(
+        currentNext,
+        below,
+        belowNext
+      );
+    }
+  }
+
+  const geometry =
+    new THREE.BufferGeometry();
+
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      positions,
+      3
+    )
+  );
+
+  geometry.setIndex(indices);
+
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+
+  return geometry;
+}
+
+const MATURE_TREE_CROWN_GEOMETRY =
+  createMatureTreeCrownGeometry();
+
+const MATURE_TREE_CROWN_EDGES =
+  new THREE.EdgesGeometry(
+    MATURE_TREE_CROWN_GEOMETRY,
+    18
+  );
 function CrimsonTree({
   position,
   scale = 1,
+  rotation = 0,
+  variant = 0,
   crownRef,
   windPhase = 0,
   collisionEnabled = false,
   physicsKey,
 }) {
+  /*
+   * Small per-tree proportions create visual
+   * variety without requiring separate geometry.
+   */
+  const crownWidth =
+    0.88 + variant * 0.26;
+
+  const crownHeight =
+    0.92 +
+    (1 - variant) * 0.18;
+
+  const trunkLean =
+    (variant - 0.5) * 0.055;
+
   const treeVisual = (
-    <group scale={scale}>
-      <mesh position={[0, 2.8, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.12, 0.22, 5.6, 5]} />
+    <group
+      scale={scale}
+      rotation={[0, rotation, 0]}
+    >
+      {/*
+       * Taller tapered trunk.
+       *
+       * Six radial segments preserve the
+       * geometric low-poly style.
+       */}
+      <mesh
+        position={[0, 3.15, 0]}
+        rotation={[
+          trunkLean,
+          0,
+          trunkLean * 0.65,
+        ]}
+        castShadow
+        receiveShadow
+      >
+        <cylinderGeometry
+          args={[
+            0.11,
+            0.27,
+            6.3,
+            6,
+          ]}
+        />
 
         <meshStandardMaterial
-          color="#300812"
-          roughness={0.9}
+          color="#17080b"
+          roughness={0.96}
+          metalness={0}
         />
       </mesh>
 
+      {/*
+       * The whole crown remains one wind target.
+       * Existing wind animation continues to rotate
+       * this group exactly as before.
+       */}
       <group
         ref={crownRef}
-        position={[0, 5.25, 0]}
+        position={[0, 7.2, 0]}
+        scale={[
+          crownWidth,
+          crownHeight,
+          1.02 - variant * 0.12,
+        ]}
+        rotation={[
+          0,
+          variant * Math.PI * 0.7,
+          0,
+        ]}
         userData={{ windPhase }}
       >
         <mesh
-          position={[0, 0.95, 0]}
+          geometry={
+            MATURE_TREE_CROWN_GEOMETRY
+          }
           castShadow
           receiveShadow
         >
-          <coneGeometry args={[1.4, 3.2, 6]} />
-
           <meshStandardMaterial
-            color="#12060a"
-            emissive="#cd2626"
-            emissiveIntensity={0.22}
-            roughness={0.8}
+            color="#10080b"
+            emissive="#8d121d"
+            emissiveIntensity={0.16}
+            roughness={0.9}
+            metalness={0}
+            flatShading
           />
         </mesh>
+
+        {/*
+         * Crisp wireframe-like silhouette.
+         *
+         * EdgesGeometry shows the important low-poly
+         * facets without drawing every triangle.
+         */}
+        <lineSegments
+          geometry={
+            MATURE_TREE_CROWN_EDGES
+          }
+          scale={1.006}
+        >
+          <lineBasicMaterial
+            color="#cd2626"
+            transparent
+            opacity={0.52}
+            depthWrite={false}
+          />
+        </lineSegments>
       </group>
     </group>
   );
@@ -156,16 +394,19 @@ function CrimsonTree({
     );
   }
 
-  const trunkHalfHeight = 2.8 * scale;
-  const trunkRadius = 0.22 * scale;
+  const trunkHalfHeight =
+    3.15 * scale;
+
+  const trunkRadius =
+    0.27 * scale;
 
   return (
     <RigidBody
-  key={physicsKey}
-  type="fixed"
-  colliders={false}
-  position={position}
->
+      key={physicsKey}
+      type="fixed"
+      colliders={false}
+      position={position}
+    >
       <CylinderCollider
         args={[
           trunkHalfHeight,
@@ -433,13 +674,28 @@ function TreeScatter() {
         return (
           <CrimsonTree
   key={`tree-${index}`}
-  position={[point.x, y, point.z]}
+  position={[
+    point.x,
+    y,
+    point.z,
+  ]}
   scale={point.scale}
-  windPhase={point.variant * Math.PI * 2}
-  collisionEnabled={index < MAX_TREE_COLLIDERS}
-  physicsKey={`tree-body-${index}-${scatterSeed}-${y.toFixed(3)}`}
+  rotation={point.rotation}
+  variant={point.variant}
+  windPhase={
+    point.variant * Math.PI * 2
+  }
+  collisionEnabled={
+    index < MAX_TREE_COLLIDERS
+  }
+  physicsKey={
+    `tree-body-${index}-` +
+    `${scatterSeed}-` +
+    `${y.toFixed(3)}`
+  }
   crownRef={(object) => {
-    crownRefs.current[index] = object;
+    crownRefs.current[index] =
+      object;
   }}
 />
         );

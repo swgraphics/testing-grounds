@@ -27,9 +27,53 @@ const OSWALD_FONT_URL =
  * This prevents the letters from flickering
  * against the terrain mesh or grid lines.
  */
-const DISTANCE_LABEL_OFFSET = 0.16;
-const SECTOR_LABEL_OFFSET = 0.22;
+const DISTANCE_LABEL_OFFSET = 0.22;
+const SECTOR_LABEL_OFFSET = 0.32;
+/*
+ * Samples several positions beneath a label and
+ * returns the highest terrain point.
+ *
+ * This prevents wide text from becoming partially
+ * buried on stepped or sloped terrain.
+ */
+function getLabelTerrainHeight(
+  x,
+  z,
+  halfWidth,
+  halfDepth
+) {
+  const samplePoints = [
+    [x, z],
 
+    [x - halfWidth, z],
+    [x + halfWidth, z],
+
+    [x, z - halfDepth],
+    [x, z + halfDepth],
+
+    [x - halfWidth, z - halfDepth],
+    [x + halfWidth, z - halfDepth],
+
+    [x - halfWidth, z + halfDepth],
+    [x + halfWidth, z + halfDepth],
+  ];
+
+  let highestHeight = -Infinity;
+
+  samplePoints.forEach(
+    ([sampleX, sampleZ]) => {
+      highestHeight = Math.max(
+        highestHeight,
+        getTerrainHeightAt(
+          sampleX,
+          sampleZ
+        )
+      );
+    }
+  );
+
+  return highestHeight;
+}
 /*
  * Small meter labels.
  *
@@ -42,8 +86,13 @@ function DistanceLabel({
   z,
   rotationZ = 0,
 }) {
-  const terrainHeight =
-    getTerrainHeightAt(x, z);
+const terrainHeight =
+  getLabelTerrainHeight(
+    x,
+    z,
+    5,
+    2.5
+  );
 
   return (
     <Text
@@ -85,9 +134,13 @@ function SectorLabel({
   x,
   z,
 }) {
-  const terrainHeight =
-    getTerrainHeightAt(x, z);
-
+const terrainHeight =
+  getLabelTerrainHeight(
+    x,
+    z,
+    8,
+    5
+  );
   return (
     <Text
       position={[
