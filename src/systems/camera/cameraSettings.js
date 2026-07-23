@@ -11,6 +11,7 @@ export const defaultCameraSettings = {
     pitchHeightStrength: 1.4,
     smoothing: 0.08,
     fov: 55,
+    fpvMoveSpeed: 15,
   },
 
   velociraptor: {
@@ -22,6 +23,7 @@ export const defaultCameraSettings = {
     pitchHeightStrength: 2,
     smoothing: 0.08,
     fov: 55,
+    fpvMoveSpeed: 15,
   },
 };
 

@@ -150,6 +150,13 @@ const CAMERA_SLIDERS = [
     100,
     1,
   ],
+  [
+  "fpvMoveSpeed",
+  "FPV Move Speed",
+  1,
+  50,
+  1,
+],
 ];
 
 function DevSlider({

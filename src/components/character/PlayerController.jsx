@@ -421,61 +421,94 @@ export default function PlayerController() {
 
   const [speedMultiplier, setSpeedMultiplier] =
     useState(devSettings.speedMultiplier);
-
+const [, refreshCameraSettings] =
+  useState(0);
   const activeCharacter =
     characterRegistry[currentCharacterId];
   
     const speedProfile =
   getSpeedProfile(speedMultiplier);
+const activeCameraProfile =
+  getCameraSettings(currentCharacterId);
 
-  useEffect(() => {
-    function handleCharacterChange(event) {
-      setCurrentCharacterId(
-        event.detail.characterId
-      );
-    }
+const fpvMoveSpeed =
+  activeCameraProfile.fpvMoveSpeed ?? 15;
+  
+useEffect(() => {
+  function handleCharacterChange(event) {
+    setCurrentCharacterId(
+      event.detail.characterId
+    );
+  }
 
-    window.addEventListener(
+  window.addEventListener(
+    "change-character",
+    handleCharacterChange
+  );
+
+  return () => {
+    window.removeEventListener(
       "change-character",
       handleCharacterChange
     );
+  };
+}, []);
 
-    return () => {
-      window.removeEventListener(
-        "change-character",
-        handleCharacterChange
+useEffect(() => {
+  function handleDevSettingsChange(event) {
+    if (event.detail.key === "fpvMode") {
+      setFpvMode(
+        Boolean(event.detail.value)
       );
-    };
-  }, []);
-
-  useEffect(() => {
-    function handleDevSettingsChange(event) {
-      if (event.detail.key === "fpvMode") {
-        setFpvMode(
-          Boolean(event.detail.value)
-        );
-      }
-
-      if (event.detail.key === "speedMultiplier") {
-        setSpeedMultiplier(
-          Number(event.detail.value) || 1
-        );
-      }
     }
 
-    window.addEventListener(
+    if (
+      event.detail.key ===
+      "speedMultiplier"
+    ) {
+      setSpeedMultiplier(
+        Number(event.detail.value) || 1
+      );
+    }
+  }
+
+  window.addEventListener(
+    "dev-settings-changed",
+    handleDevSettingsChange
+  );
+
+  return () => {
+    window.removeEventListener(
       "dev-settings-changed",
       handleDevSettingsChange
     );
+  };
+}, []);
 
-    return () => {
-      window.removeEventListener(
-        "dev-settings-changed",
-        handleDevSettingsChange
+useEffect(() => {
+  function handleCameraSettingsChange(event) {
+    if (
+      event.detail?.characterId ===
+      currentCharacterId
+    ) {
+      refreshCameraSettings(
+        (value) => value + 1
       );
-    };
-  }, []);
+    }
+  }
 
+  window.addEventListener(
+    "camera-settings-changed",
+    handleCameraSettingsChange
+  );
+
+  return () => {
+    window.removeEventListener(
+      "camera-settings-changed",
+      handleCameraSettingsChange
+    );
+  };
+}, [currentCharacterId]);
   useFrame((state) => {
         const currentPosition =
       controllerRef.current?.currPos;
@@ -591,28 +624,34 @@ if (
       rightward,
       jump,
 
-      run: developerSpeedActive
-        ? true
-        : fpvMode
-          ? false
-          : sprint,
+    run: fpvMode
+  ? true
+  : developerSpeedActive
+    ? true
+    : sprint,
     });
   });
 
   return (
     <>
-      <Ecctrl
+<Ecctrl
   ref={controllerRef}
   position={[0, 3, 0]}
   mode="FixedCamera"
   maxVelLimit={
-    speedProfile.maxVelLimit
+    fpvMode
+      ? fpvMoveSpeed
+      : speedProfile.maxVelLimit
   }
   sprintMult={
-    speedProfile.sprintMult
+    fpvMode
+      ? 1
+      : speedProfile.sprintMult
   }
   accDeltaTime={
-    speedProfile.accDeltaTime
+    fpvMode
+      ? 35
+      : speedProfile.accDeltaTime
   }
   turnVelMultiplier={
     speedProfile.turnVelMultiplier
