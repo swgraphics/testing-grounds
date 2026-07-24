@@ -88,9 +88,9 @@ function createCloudData() {
           28,
 
         scale:
-          0.75 +
+          0.7 +
           seededRandom(seed + 300) *
-            1.25,
+            0.75,
 
         rotation:
           seededRandom(seed + 400) *
@@ -120,27 +120,49 @@ function GeometricCloud({
   cloud,
   cloudIndex,
   material,
+  undersideMaterial,
   cloudRef,
 }) {
   const variation =
     cloud.shapeVariation;
 
-  const sectionData = [
+  /*
+   * Wide, flattened cloud sections.
+   *
+   * The lower sections create a broad shelf,
+   * while smaller upper sections add volume.
+   */
+  const mainSections = [
     {
-      position: [-8, 0, 0],
-      scale: [9, 3.2, 4.8],
+      position: [-10, 0, 0],
+      scale: [11, 1.7, 5.5],
     },
     {
-      position: [-2.5, 2.2, 0.6],
-      scale: [8.5, 4.4, 5.2],
+      position: [-3, 0.8, 0.6],
+      scale: [10, 2.2, 6],
     },
     {
-      position: [4.5, 1.1, -0.5],
-      scale: [10, 3.8, 5.6],
+      position: [5, 0.3, -0.4],
+      scale: [12, 1.9, 6.4],
     },
     {
-      position: [10, -0.3, 0.4],
-      scale: [6.8, 2.8, 4.2],
+      position: [12, -0.2, 0.3],
+      scale: [8, 1.4, 4.8],
+    },
+  ];
+
+  const upperSections = [
+    {
+      position: [-4, 3, 0],
+      scale: [6.5, 2.5, 4.2],
+    },
+    {
+      position: [3, 3.6, -0.3],
+      scale: [7.2, 2.8, 4.6],
+    },
+    {
+      position: [8, 2.5, 0.4],
+      scale: [5.4, 2.1, 3.8],
     },
   ];
 
@@ -164,7 +186,19 @@ function GeometricCloud({
           cloud.speedVariation,
       }}
     >
-      {sectionData.map(
+      {/*
+       * Dark underside creates depth and makes
+       * the formation feel suspended rather than
+       * like a single flat object.
+       */}
+      <mesh
+        geometry={CLOUD_GEOMETRY}
+        material={undersideMaterial}
+        position={[0, -1.45, 0]}
+        scale={[20, 1.1, 7]}
+      />
+
+      {mainSections.map(
         (section, sectionIndex) => {
           const widthVariation =
             1 +
@@ -172,7 +206,7 @@ function GeometricCloud({
               variation * 8 +
                 sectionIndex * 1.7
             ) *
-              0.12;
+              0.16;
 
           const heightVariation =
             1 +
@@ -180,11 +214,11 @@ function GeometricCloud({
               variation * 6 +
                 sectionIndex * 1.3
             ) *
-              0.14;
+              0.12;
 
           return (
             <mesh
-              key={sectionIndex}
+              key={`main-${sectionIndex}`}
               geometry={CLOUD_GEOMETRY}
               material={material}
               position={
@@ -199,12 +233,60 @@ function GeometricCloud({
 
                 section.scale[2],
               ]}
-              castShadow={false}
-              receiveShadow={false}
             />
           );
         }
       )}
+
+      {upperSections.map(
+        (section, sectionIndex) => {
+          const upperVariation =
+            0.88 +
+            Math.sin(
+              variation * 10 +
+                sectionIndex * 2.2
+            ) *
+              0.15;
+
+          return (
+            <mesh
+              key={`upper-${sectionIndex}`}
+              geometry={CLOUD_GEOMETRY}
+              material={material}
+              position={
+                section.position
+              }
+              scale={[
+                section.scale[0] *
+                  upperVariation,
+
+                section.scale[1],
+
+                section.scale[2] *
+                  upperVariation,
+              ]}
+            />
+          );
+        }
+      )}
+
+      {/*
+       * Thin trailing wisps break up the heavy,
+       * bulbous silhouette.
+       */}
+      <mesh
+        geometry={CLOUD_GEOMETRY}
+        material={material}
+        position={[-18, -0.5, 1]}
+        scale={[7, 0.75, 3.2]}
+      />
+
+      <mesh
+        geometry={CLOUD_GEOMETRY}
+        material={material}
+        position={[20, -0.8, -0.5]}
+        scale={[6, 0.65, 2.8]}
+      />
     </group>
   );
 }
@@ -322,13 +404,43 @@ export default function Clouds() {
         depthWrite: false,
       });
     }, [cloudColor]);
+const undersideMaterial =
+  useMemo(() => {
+    const normalizedColor =
+      THREE.MathUtils.clamp(
+        cloudColor / 100,
+        0,
+        1
+      );
 
+    const undersideColor =
+      new THREE.Color().lerpColors(
+        new THREE.Color("#14181d"),
+        new THREE.Color("#77818a"),
+        normalizedColor
+      );
+
+    return new THREE.MeshStandardMaterial({
+      color: undersideColor,
+      roughness: 1,
+      metalness: 0,
+      flatShading: true,
+      transparent: true,
+      opacity: 0.92,
+      depthWrite: false,
+    });
+
+  }, [cloudColor]);
   useEffect(() => {
     return () => {
       cloudMaterial.dispose();
     };
   }, [cloudMaterial]);
-
+useEffect(() => {
+  return () => {
+    undersideMaterial.dispose();
+  };
+}, [undersideMaterial]);
   useFrame((state, delta) => {
     const normalizedSpeed =
       THREE.MathUtils.clamp(
@@ -410,11 +522,10 @@ export default function Clouds() {
             <GeometricCloud
               key={cloudIndex}
               cloud={cloud}
-              cloudIndex={
-                cloudIndex
-              }
-              material={
-                cloudMaterial
+              cloudIndex={cloudIndex}
+              material={cloudMaterial}
+              undersideMaterial={
+                undersideMaterial
               }
               cloudRef={(object) => {
                 cloudRefs.current[
