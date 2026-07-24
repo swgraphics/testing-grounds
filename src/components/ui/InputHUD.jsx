@@ -85,13 +85,84 @@ const TERRAIN_SLIDERS = [
 ];
 
 const ATMOSPHERE_SLIDERS = [
-  ["fogDensity", "Fog Density", 0, 100, 1],
-  ["sunHeight", "Sun Height", 0, 100, 1],
-  ["sunRotation", "Sun Rotation", 0, 100, 1],
-  ["skyHaze", "Sky Haze", 0, 100, 1],
-  ["stars", "Stars", 0, 100, 1],
-  ["sunCycleEnabled", "Sun Cycle On / Off", 0, 1, 1],
-  ["sunCycleMinutes", "Cycle Minutes", 1, 10, 1],
+  [
+    "cloudAmount",
+    "Cloud Amount",
+    0,
+    100,
+    1,
+  ],
+  [
+    "cloudHeight",
+    "Cloud Height",
+    0,
+    100,
+    1,
+  ],
+  [
+    "cloudSpeed",
+    "Cloud Speed",
+    0,
+    100,
+    1,
+  ],
+  [
+    "cloudColor",
+    "Cloud Color",
+    0,
+    100,
+    1,
+  ],
+
+  [
+    "fogDensity",
+    "Fog Density",
+    0,
+    100,
+    1,
+  ],
+  [
+    "sunHeight",
+    "Sun Height",
+    0,
+    100,
+    1,
+  ],
+  [
+    "sunRotation",
+    "Sun Rotation",
+    0,
+    100,
+    1,
+  ],
+  [
+    "skyHaze",
+    "Sky Haze",
+    0,
+    100,
+    1,
+  ],
+  [
+    "stars",
+    "Stars",
+    0,
+    100,
+    1,
+  ],
+  [
+    "sunCycleEnabled",
+    "Sun Cycle On / Off",
+    0,
+    1,
+    1,
+  ],
+  [
+    "sunCycleMinutes",
+    "Cycle Minutes",
+    1,
+    10,
+    1,
+  ],
 ];
 const CAMERA_SLIDERS = [
   [

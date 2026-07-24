@@ -23,6 +23,11 @@ export const DEFAULT_TERRAIN_SETTINGS = {
 
   scatterSeed: 1,
 
+  cloudAmount: 45,
+  cloudHeight: 55,
+  cloudSpeed: 30,
+  cloudColor: 65,
+
   fogDensity: 50,
   sunHeight: 50,
   sunRotation: 50,
