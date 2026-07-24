@@ -275,10 +275,6 @@ function CrimsonTree({
   collisionEnabled = false,
   physicsKey,
 }) {
-  /*
-   * Small per-tree proportions create visual
-   * variety without requiring separate geometry.
-   */
   const crownWidth =
     0.88 + variant * 0.26;
 
@@ -286,102 +282,111 @@ function CrimsonTree({
     0.92 +
     (1 - variant) * 0.18;
 
+  /*
+   * Adds a small permanent irregularity to the
+   * trunk without separating it from the crown.
+   */
   const trunkLean =
-    (variant - 0.5) * 0.055;
+    (variant - 0.5) * 0.045;
 
   const treeVisual = (
-    <group
-      scale={scale}
-      rotation={[0, rotation, 0]}
-    >
+    <group scale={scale}>
       {/*
-       * Taller tapered trunk.
+       * This group now contains both the trunk and
+       * foliage.
        *
-       * Six radial segments preserve the
-       * geometric low-poly style.
-       */}
-      <mesh
-        position={[0, 3.15, 0]}
-        rotation={[
-          trunkLean,
-          0,
-          trunkLean * 0.65,
-        ]}
-        castShadow
-        receiveShadow
-      >
-        <cylinderGeometry
-          args={[
-            0.11,
-            0.27,
-            6.3,
-            6,
-          ]}
-        />
-
-        <meshStandardMaterial
-          color="#17080b"
-          roughness={0.96}
-          metalness={0}
-        />
-      </mesh>
-
-      {/*
-       * The whole crown remains one wind target.
-       * Existing wind animation continues to rotate
-       * this group exactly as before.
+       * Its pivot remains at ground level, so wind
+       * bends the complete tree from its base instead
+       * of swinging only the crown.
        */}
       <group
         ref={crownRef}
-        position={[0, 7.2, 0]}
-        scale={[
-          crownWidth,
-          crownHeight,
-          1.02 - variant * 0.12,
-        ]}
         rotation={[
           0,
-          variant * Math.PI * 0.7,
+          rotation,
           0,
         ]}
-        userData={{ windPhase }}
+        userData={{
+          windPhase,
+          baseRotationY: rotation,
+        }}
       >
         <mesh
-          geometry={
-            MATURE_TREE_CROWN_GEOMETRY
-          }
+          position={[0, 3.15, 0]}
+          rotation={[
+            trunkLean,
+            0,
+            trunkLean * 0.65,
+          ]}
           castShadow
           receiveShadow
         >
+          <cylinderGeometry
+            args={[
+              0.11,
+              0.27,
+              6.3,
+              6,
+            ]}
+          />
+
           <meshStandardMaterial
-            color="#10080b"
-            emissive="#8d121d"
-            emissiveIntensity={0.16}
-            roughness={0.9}
+            color="#10080a"
+            roughness={0.96}
             metalness={0}
-            flatShading
           />
         </mesh>
 
-        {/*
-         * Crisp wireframe-like silhouette.
-         *
-         * EdgesGeometry shows the important low-poly
-         * facets without drawing every triangle.
-         */}
-        <lineSegments
-          geometry={
-            MATURE_TREE_CROWN_EDGES
-          }
-          scale={1.006}
+        <group
+          position={[0, 7.2, 0]}
+          scale={[
+            crownWidth,
+            crownHeight,
+            1.02 - variant * 0.12,
+          ]}
+          rotation={[
+            0,
+            variant * Math.PI * 0.7,
+            0,
+          ]}
         >
-          <lineBasicMaterial
-            color="#cd2626"
-            transparent
-            opacity={0.52}
-            depthWrite={false}
-          />
-        </lineSegments>
+          <mesh
+            geometry={
+              MATURE_TREE_CROWN_GEOMETRY
+            }
+            castShadow
+            receiveShadow
+          >
+            <meshStandardMaterial
+              color="#080808"
+              emissive="#353434"
+              emissiveIntensity={0.3}
+              roughness={0.92}
+              metalness={0}
+              flatShading
+              transparent={false}
+              opacity={1}
+            />
+          </mesh>
+
+          {/*
+           * White structural outline matching the
+           * Testing Grounds terrain grid.
+           */}
+          <lineSegments
+            geometry={
+              MATURE_TREE_CROWN_EDGES
+            }
+            scale={1.006}
+          >
+            <lineBasicMaterial
+              color="#fc0303"
+              transparent
+              opacity={0.82}
+              depthWrite={false}
+            />
+          </lineSegments>
+        </group>
       </group>
     </group>
   );
@@ -748,12 +753,14 @@ function TreeScatter() {
       const mainSway =
         Math.sin(time + phase) *
         strength *
-        0.12;
+        0.055;
 
       const secondarySway =
-        Math.cos(time * 0.65 + phase) *
-        strength *
-        0.055;
+        Math.cos(
+        time * 0.65 + phase
+      ) *
+      strength *
+      0.025;
 
       crown.rotation.z = mainSway;
       crown.rotation.x = secondarySway;
