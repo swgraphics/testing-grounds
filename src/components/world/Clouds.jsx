@@ -112,10 +112,7 @@ function createCloudData() {
 const CLOUD_DATA =
   createCloudData();
 
-/*
- * Each cloud consists of several angular masses
- * rather than round cartoon spheres.
- */
+
 function GeometricCloud({
   cloud,
   cloudIndex,
@@ -123,49 +120,97 @@ function GeometricCloud({
   undersideMaterial,
   cloudRef,
 }) {
+
   const variation =
     cloud.shapeVariation;
+  const sectionsRef = useRef([]);
+const cloudPieces = useMemo(() => {
+  const pieces = [];
 
-  /*
-   * Wide, flattened cloud sections.
-   *
-   * The lower sections create a broad shelf,
-   * while smaller upper sections add volume.
-   */
-  const mainSections = [
-    {
-      position: [-10, 0, 0],
-      scale: [11, 1.7, 5.5],
-    },
-    {
-      position: [-3, 0.8, 0.6],
-      scale: [10, 2.2, 6],
-    },
-    {
-      position: [5, 0.3, -0.4],
-      scale: [12, 1.9, 6.4],
-    },
-    {
-      position: [12, -0.2, 0.3],
-      scale: [8, 1.4, 4.8],
-    },
-  ];
+  const seed = variation * 1000;
 
-  const upperSections = [
-    {
-      position: [-4, 3, 0],
-      scale: [6.5, 2.5, 4.2],
-    },
-    {
-      position: [3, 3.6, -0.3],
-      scale: [7.2, 2.8, 4.6],
-    },
-    {
-      position: [8, 2.5, 0.4],
-      scale: [5.4, 2.1, 3.8],
-    },
-  ];
+  // Dense center
+  for (let i = 0; i < 16; i++) {
+    const angle = (i / 16) * Math.PI * 2;
 
+    pieces.push({
+      type: "core",
+
+      position: [
+        Math.cos(angle) * (6 + Math.sin(seed + i) * 2),
+        Math.sin(seed * 0.2 + i) * 4,
+        Math.sin(angle) * (4 + Math.cos(seed + i) * 2),
+      ],
+
+      scale: [
+        4 + seededRandom(seed + i) * 4,
+        2 + seededRandom(seed + i + 40) * 1.8,
+        3 + seededRandom(seed + i + 80) * 3,
+      ],
+    });
+  }
+
+  // Outer breakup
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2;
+
+    pieces.push({
+      type: "edge",
+
+      position: [
+        Math.cos(angle) * 10,
+        seededRandom(seed + i + 900) * 8,
+        Math.sin(angle) * 10,
+      ],
+
+      scale: [
+        2 + seededRandom(seed + i + 400) * 3,
+        1.5,
+        2 + seededRandom(seed + i + 600) * 3,
+      ],
+    });
+  }
+
+  return pieces;
+}, [variation]);
+
+useFrame(({ clock }) => {
+  const time = clock.elapsedTime;
+
+  sectionsRef.current.forEach((section, index) => {
+    if (!section) return;
+
+    const baseY =
+      section.userData.baseY ??
+      section.position.y;
+
+    section.userData.baseY = baseY;
+
+    section.position.y =
+      baseY +
+      Math.sin(
+        time * 0.35 +
+        index * 1.8 +
+        variation * 20
+      ) *
+        0.18;
+
+    section.rotation.z =
+      Math.sin(
+        time * 0.22 +
+        index
+      ) *
+      0.03;
+
+    section.scale.y =
+      1 +
+      Math.sin(
+        time * 0.27 +
+        index * 2.4
+      ) *
+      0.04;
+  });
+});
   return (
     <group
       ref={cloudRef}
@@ -197,100 +242,22 @@ function GeometricCloud({
         position={[0, -1.45, 0]}
         scale={[20, 1.1, 7]}
       />
+{cloudPieces.map((piece, index) => (
+  <mesh
+    key={index}
+    ref={(object) => {
+      sectionsRef.current[index] = object;
+    }}
+    geometry={CLOUD_GEOMETRY}
+    material={material}
+    position={piece.position}
+    scale={piece.scale}
+  />
+))}
 
-      {mainSections.map(
-        (section, sectionIndex) => {
-          const widthVariation =
-            1 +
-            Math.sin(
-              variation * 8 +
-                sectionIndex * 1.7
-            ) *
-              0.16;
-
-          const heightVariation =
-            1 +
-            Math.cos(
-              variation * 6 +
-                sectionIndex * 1.3
-            ) *
-              0.12;
-
-          return (
-            <mesh
-              key={`main-${sectionIndex}`}
-              geometry={CLOUD_GEOMETRY}
-              material={material}
-              position={
-                section.position
-              }
-              scale={[
-                section.scale[0] *
-                  widthVariation,
-
-                section.scale[1] *
-                  heightVariation,
-
-                section.scale[2],
-              ]}
-            />
-          );
-        }
-      )}
-
-      {upperSections.map(
-        (section, sectionIndex) => {
-          const upperVariation =
-            0.88 +
-            Math.sin(
-              variation * 10 +
-                sectionIndex * 2.2
-            ) *
-              0.15;
-
-          return (
-            <mesh
-              key={`upper-${sectionIndex}`}
-              geometry={CLOUD_GEOMETRY}
-              material={material}
-              position={
-                section.position
-              }
-              scale={[
-                section.scale[0] *
-                  upperVariation,
-
-                section.scale[1],
-
-                section.scale[2] *
-                  upperVariation,
-              ]}
-            />
-          );
-        }
-      )}
-
-      {/*
-       * Thin trailing wisps break up the heavy,
-       * bulbous silhouette.
-       */}
-      <mesh
-        geometry={CLOUD_GEOMETRY}
-        material={material}
-        position={[-18, -0.5, 1]}
-        scale={[7, 0.75, 3.2]}
-      />
-
-      <mesh
-        geometry={CLOUD_GEOMETRY}
-        material={material}
-        position={[20, -0.8, -0.5]}
-        scale={[6, 0.65, 2.8]}
-      />
     </group>
   );
 }
-
 export default function Clouds() {
   const cloudRefs = useRef([]);
 
@@ -486,19 +453,24 @@ useEffect(() => {
          * clouds from looking like rigid floating
          * rocks.
          */
+        const drift =
+          Math.sin(
+            time * 0.08 +
+            index * 2.73
+          ) * 1.2;
+
+        const puff =
+          Math.sin(
+            time * 0.23 +
+            index * 5.91
+          ) * 0.8;
+
         cloudObject.position.y =
           baseCloudHeight +
           cloud.heightOffset +
-          Math.sin(
-            time * 0.12 +
-              index * 1.37
-          ) *
-            1.8;
+          drift +
+          puff;
 
-        /*
-         * Wrap clouds around the world instead of
-         * destroying and recreating them.
-         */
         if (
           cloudObject.position.x >
           CLOUD_WRAP_DISTANCE
