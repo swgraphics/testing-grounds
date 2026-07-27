@@ -170,23 +170,9 @@ float vapor =
 float heightMask =
 
     smoothstep(
+        0.05,
         0.18,
-        0.48,
         horizon
-    )
-
-    *
-
-    (
-
-        1.0 -
-
-        smoothstep(
-            0.74,
-            0.96,
-            horizon
-        )
-
     );
 
 vapor *= heightMask;
