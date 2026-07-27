@@ -116,12 +116,11 @@ void main(){
         normalize(vNormal);
 
     float horizon =
-        clamp(
-            normal.y * 0.5 + 0.5,
-            0.0,
-            1.0
-        );
-
+    clamp(
+        normal.y * 0.5 + 0.5,
+        0.0,
+        1.0
+    );
     vec3 cloudColor =
         mix(
             lowerColor,
@@ -206,6 +205,9 @@ float alpha = smoothstep(
 );
 
 alpha *= density;
+
+// Build up thicker cloud bodies
+alpha = pow(alpha, 0.65);
 
 gl_FragColor = vec4(
     cloudColor,
