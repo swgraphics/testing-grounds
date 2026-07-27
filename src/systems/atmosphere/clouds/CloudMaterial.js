@@ -158,11 +158,29 @@ vec3 warp =
 
     );
 
+//----------------------------------
+// LARGE WEATHER SHAPES
+//----------------------------------
+
+float cloudMass =
+
+    fbm(
+
+        samplePosition * 0.28 +
+
+        warp * 1.5
+
+    );
+
+//----------------------------------
+// SMALL VAPOR DETAIL
+//----------------------------------
+
 float vapor =
 
     fbm(
 
-        samplePosition +
+        samplePosition * 1.45 +
 
         warp * 3.5
 
@@ -174,6 +192,25 @@ float heightMask =
         0.18,
         horizon
     );
+
+// Large cloud systems
+
+// Normalize gently instead of hard-cutting
+
+cloudMass = smoothstep(
+    0.15,
+    0.55,
+    cloudMass
+);
+
+// Don't completely erase vapor.
+// Keep some detail everywhere.
+
+vapor *= mix(
+    0.45,
+    1.0,
+    cloudMass
+);
 
 vapor *= heightMask;
 
