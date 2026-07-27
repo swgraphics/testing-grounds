@@ -3,7 +3,6 @@ import * as THREE from "three";
 import XboxController from "../systems/input/XboxController";
 import PlayerController from "../components/character/PlayerController";
 import Atmosphere from "../components/world/Atmosphere";
-import Clouds from "../components/world/Clouds";
 import Lighting from "../components/world/Lighting";
 import GridTerrain from "../components/world/GridTerrain";
 import GridFloor from "../components/world/GridFloor";
@@ -44,7 +43,6 @@ export default function TestingGrounds({ titleMode = false }) {
       <CameraTelemetry />
       
       <Atmosphere titleMode={titleMode} />
-      <Clouds />
       <Lighting />
 
       <GridTerrain />

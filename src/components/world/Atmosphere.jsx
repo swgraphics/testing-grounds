@@ -1,3 +1,4 @@
+import CloudField from "../../systems/atmosphere/clouds/CloudField";
 import {
   Stars,
 } from "@react-three/drei";
@@ -437,11 +438,11 @@ export default function Atmosphere({
 
   return (
     <>
-      <SkyDome
-        palette={palette}
-      />
+    <SkyDome palette={palette} />
 
-      <Stars
+    <CloudField />
+
+    <Stars
         radius={350}
         depth={100}
         count={visibleStarCount}
@@ -449,7 +450,7 @@ export default function Atmosphere({
         saturation={0}
         fade
         speed={0.18}
-      />
-    </>
+    />
+</>
   );
 }
