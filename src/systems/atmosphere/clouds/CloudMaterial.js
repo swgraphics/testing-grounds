@@ -1,5 +1,7 @@
 import * as THREE from "three";
-
+//==================================================
+// VERTEX SHADER
+//==================================================
 const vertexShader = /* glsl */`
 
 varying vec3 vWorldPosition;
@@ -24,7 +26,9 @@ void main(){
 }
 
 `;
-
+//==================================================
+// UNIFORMS
+//==================================================
 const fragmentShader = /* glsl */`
 
 uniform float time;
@@ -32,8 +36,6 @@ uniform float time;
 uniform float coverage;
 uniform float density;
 uniform float softness;
-uniform float fluffiness;
-uniform float wispy;
 
 uniform vec3 upperColor;
 uniform vec3 lowerColor;
@@ -72,6 +74,10 @@ float noise(vec3 p){
     );
 
 }
+
+//==================================================
+// FRACTAL NOISE
+//==================================================
 
 float fbm(vec3 p){
 
@@ -159,7 +165,7 @@ vec3 warp =
     );
 
 //----------------------------------
-// LARGE WEATHER SHAPES
+// CLOUD SHAPE
 //----------------------------------
 
 float cloudMass =
@@ -172,9 +178,6 @@ float cloudMass =
 
     );
 
-//----------------------------------
-// SMALL VAPOR DETAIL
-//----------------------------------
 
 float vapor =
 
@@ -193,18 +196,11 @@ float heightMask =
         horizon
     );
 
-// Large cloud systems
-
-// Normalize gently instead of hard-cutting
-
 cloudMass = smoothstep(
     0.15,
     0.55,
     cloudMass
 );
-
-// Don't completely erase vapor.
-// Keep some detail everywhere.
 
 vapor *= mix(
     0.45,
@@ -214,7 +210,6 @@ vapor *= mix(
 
 vapor *= heightMask;
 
-// Stretch the usable range
 vapor = smoothstep(
     0.22,
     0.72,
@@ -229,9 +224,11 @@ float alpha = smoothstep(
 
 alpha *= density;
 
-// Build up thicker cloud bodies
 alpha = pow(alpha, 0.65);
 
+//==================================================
+// FINAL COLOR
+//==================================================
 gl_FragColor = vec4(
     cloudColor,
     alpha
@@ -262,8 +259,7 @@ export function createCloudMaterial(){
             coverage:{value:0.55},
             density:{value:0.70},
             softness:{value:0.60},
-            fluffiness:{value:0.80},
-            wispy:{value:0.35},
+
 
             upperColor:{
                 value:new THREE.Color("#ffffff")
