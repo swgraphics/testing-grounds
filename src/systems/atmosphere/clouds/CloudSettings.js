@@ -1,27 +1,31 @@
 export const cloudSettings = {
 
+  brightness: 1.0,
+
+  shadowStrength: 0.65,
+
   coverage: 0.55,
 
-  density: 0.70,
+  density: 0.90,
 
-  softness: 0.65,
+  softness: 0.60,
 
-  fluffiness: 0.75,
+  fluffiness: 1.75,
 
-  wispy: 0.30,
+  wispy: 0.50,
 
-  scale: 1.0,
+  scale: 4.0,
 
   detail: 0.45,
 
   height: 130,
 
-  speed: 0.20,
+  speed: 0.50,
 
   windDirection: 0,
 
-  upperColor: "#ffffff",
+  upperColor: "#f1ebee",
 
-  lowerColor: "#6f7788"
+  lowerColor: "#c5a1ad"
 
 };

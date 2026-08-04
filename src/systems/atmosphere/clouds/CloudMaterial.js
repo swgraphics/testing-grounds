@@ -37,8 +37,12 @@ uniform float coverage;
 uniform float density;
 uniform float softness;
 
+uniform float brightness;
+uniform float shadowStrength;
+
 uniform vec3 upperColor;
 uniform vec3 lowerColor;
+
 float hash(vec3 p){
 
     p = fract(p * 0.3183099 + .1);
@@ -128,23 +132,26 @@ void main(){
         1.0
     );
     vec3 cloudColor =
-        mix(
-            lowerColor,
-            upperColor,
-            horizon
-        );
+    mix(
+        lowerColor,
+        upperColor,
+        horizon
+    );
+
+cloudColor *= brightness;
 
    vec3 samplePosition =
+    vWorldPosition;
 
-    vec3(
+    samplePosition.y *= 0.22;
 
-        vWorldPosition.x,
+    samplePosition *= 0.006;
 
-        vWorldPosition.y * 0.22,
-
-        vWorldPosition.z
-
-    ) * 0.006 +
+    samplePosition += vec3(
+        time * 0.01,
+        0.0,
+        0.0
+    );
 
     vec3(
 
@@ -225,12 +232,26 @@ float alpha = smoothstep(
 alpha *= density;
 
 alpha = pow(alpha, 0.65);
+float lighting =
+
+    mix(
+
+        shadowStrength,
+
+        1.0,
+
+        cloudMass
+
+    );
+
+cloudColor *= lighting;
 
 //==================================================
 // FINAL COLOR
 //==================================================
+
 gl_FragColor = vec4(
-    cloudColor,
+    vec3(1.0),
     alpha
 );
 
@@ -254,12 +275,14 @@ export function createCloudMaterial(){
 
         uniforms:{
 
-            time:{value:0},
+            time:{ value:0 },
 
-            coverage:{value:0.55},
-            density:{value:0.70},
-            softness:{value:0.60},
+            coverage:{ value:0.55 },
+            density:{ value:0.70 },
+            softness:{ value:0.60 },
 
+            brightness:{ value:1.0 },
+            shadowStrength:{ value:0.65 },
 
             upperColor:{
                 value:new THREE.Color("#ffffff")

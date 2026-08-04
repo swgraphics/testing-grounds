@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
-
+import { cloudSettings } from "./CloudSettings";
 import { createCloudMaterial } from "./CloudMaterial";
 import { getAtmospherePalette } from "../atmospherePalette";
 
@@ -32,18 +32,30 @@ export default function CloudField() {
         };
     }, [material]);
 
-    useFrame(({ camera }) => {
-        if (!meshRef.current) return;
-
-        meshRef.current.position.copy(camera.position);
-    });
 useFrame((state) => {
+
     material.uniforms.time.value =
         state.clock.elapsedTime;
+
+    material.uniforms.coverage.value =
+        cloudSettings.coverage;
+
+    material.uniforms.density.value =
+        cloudSettings.density;
+
+    material.uniforms.softness.value =
+        cloudSettings.softness;
+
+    material.uniforms.brightness.value =
+        cloudSettings.brightness;
+
+    material.uniforms.shadowStrength.value =
+        cloudSettings.shadowStrength;
 
     meshRef.current.position.copy(
         state.camera.position
     );
+
 });
     return (
         <mesh ref={meshRef}>
