@@ -16,21 +16,17 @@ export default function CloudField() {
         []
     );
 
-    useEffect(() => {
-        material.uniforms.upperColor.value.copy(
-            palette.cloudTopColor
-        );
+useEffect(() => {
 
-        material.uniforms.lowerColor.value.copy(
-            palette.cloudBottomColor
-        );
-    }, [material, palette]);
+    material.uniforms.upperColor.value.set(
+        cloudSettings.upperColor
+    );
 
-    useEffect(() => {
-        return () => {
-            material.dispose();
-        };
-    }, [material]);
+    material.uniforms.lowerColor.value.set(
+        cloudSettings.lowerColor
+    );
+
+}, [material]);
 
 useFrame((state) => {
 
@@ -52,6 +48,27 @@ useFrame((state) => {
     material.uniforms.shadowStrength.value =
         cloudSettings.shadowStrength;
 
+    material.uniforms.cloudScale.value =
+        cloudSettings.scale;
+
+    material.uniforms.cloudStretch.value =
+        cloudSettings.stretch;
+
+    material.uniforms.cloudRotation.value =
+        cloudSettings.rotation;
+    
+        material.uniforms.upperColor.value.set(
+        cloudSettings.upperColor
+);
+
+material.uniforms.lowerColor.value.set(
+    cloudSettings.lowerColor
+);    
+    
+    console.log(
+        material.uniforms.upperColor.value,
+        material.uniforms.lowerColor.value
+);
     meshRef.current.position.copy(
         state.camera.position
     );

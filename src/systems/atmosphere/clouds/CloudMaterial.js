@@ -40,6 +40,10 @@ uniform float softness;
 uniform float brightness;
 uniform float shadowStrength;
 
+uniform float cloudScale;
+uniform float cloudStretch;
+uniform float cloudRotation;
+
 uniform vec3 upperColor;
 uniform vec3 lowerColor;
 
@@ -138,39 +142,41 @@ void main(){
         horizon
     );
 
-cloudColor *= brightness;
-
-   vec3 samplePosition =
+vec3 samplePosition =
     vWorldPosition;
 
-    samplePosition.y *= 0.22;
+// Compress vertically
+samplePosition.y *= 0.22;
 
-    samplePosition *= 0.006;
+// Rotate the weather pattern
+float angle = cloudRotation;
 
-    samplePosition += vec3(
-        time * 0.01,
-        0.0,
-        0.0
-    );
+float s = sin(angle);
+float c = cos(angle);
 
-    vec3(
+samplePosition.xz =
+    mat2(
+        c, -s,
+        s,  c
+    ) * samplePosition.xz;
 
-        time * 0.01,
+// Stretch horizontally
+samplePosition.x *= cloudStretch;
 
-        0.0,
+// Overall cloud scale
+samplePosition *=
+    0.006 * cloudScale;
 
-        0.0
-
-    );
-
+// Animate
+samplePosition += vec3(
+    time * 0.01,
+    0.0,
+    0.0
+);
 vec3 warp =
-
     domainWarp(
-
         samplePosition * 0.55
-
     );
-
 //----------------------------------
 // CLOUD SHAPE
 //----------------------------------
@@ -245,13 +251,10 @@ float lighting =
     );
 
 cloudColor *= lighting;
-
-//==================================================
-// FINAL COLOR
-//==================================================
+cloudColor *= brightness;
 
 gl_FragColor = vec4(
-    vec3(1.0),
+    upperColor,
     alpha
 );
 
@@ -283,6 +286,10 @@ export function createCloudMaterial(){
 
             brightness:{ value:1.0 },
             shadowStrength:{ value:0.65 },
+
+            cloudScale:{ value:4.0 },
+            cloudStretch:{ value:1.0 },
+            cloudRotation:{ value:0.0 },
 
             upperColor:{
                 value:new THREE.Color("#ffffff")
