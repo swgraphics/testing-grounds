@@ -10,26 +10,26 @@ export const cloudSettings = {
 
   softness: 0.60,
 
-  fluffiness: 2.75,
+  fluffiness: 1.0,
 
-  wispy: 1.50,
+  wispy: 0.50,
 
-  scale: 4.0,
+  scale: 1.0,
 
-  stretch: 1.0,
+  stretch: 2.0,
 
-  rotation: 0.0,
+  rotation: 0.75,
 
   detail: 0.45,
 
   height: 130,
 
-  speed: 1.50,
+  speed: 2.50,
 
   windDirection: 0,
 
-  upperColor: "#f3f3f3",
+  upperColor: "#eeeae7",
 
-  lowerColor: "#0e0d0d"
+  lowerColor: "#ec3c10"
 
 };

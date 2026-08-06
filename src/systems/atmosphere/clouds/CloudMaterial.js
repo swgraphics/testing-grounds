@@ -43,6 +43,9 @@ uniform float shadowStrength;
 uniform float cloudScale;
 uniform float cloudStretch;
 uniform float cloudRotation;
+uniform float fluffiness;
+uniform float wispy;
+uniform float detail;
 
 uniform vec3 upperColor;
 uniform vec3 lowerColor;
@@ -163,9 +166,14 @@ samplePosition.xz =
 // Stretch horizontally
 samplePosition.x *= cloudStretch;
 
-// Overall cloud scale
+//----------------------------------
+// Overall Cloud Scale
+//----------------------------------
+
+// Larger slider = larger clouds
+
 samplePosition *=
-    0.006 * cloudScale;
+    0.006 / cloudScale;
 
 // Animate
 samplePosition += vec3(
@@ -185,27 +193,36 @@ float cloudMass =
 
     fbm(
 
-        samplePosition * 0.28 +
+        samplePosition *
 
-        warp * 1.5
+        (0.28 / fluffiness)
+
+        +
+
+        warp * wispy
 
     );
-
 
 float vapor =
 
     fbm(
 
-        samplePosition * 1.45 +
+        samplePosition *
 
-        warp * 3.5
+        (1.45 * detail)
+
+        +
+
+        warp *
+
+        (wispy * 2.0)
 
     );
 float heightMask =
 
     smoothstep(
-        0.05,
-        0.18,
+        -0.08,
+        0.28,
         horizon
     );
 
@@ -254,7 +271,7 @@ cloudColor *= lighting;
 cloudColor *= brightness;
 
 gl_FragColor = vec4(
-    upperColor,
+    cloudColor,
     alpha
 );
 
@@ -276,31 +293,35 @@ export function createCloudMaterial(){
 
         fragmentShader,
 
-        uniforms:{
+    uniforms:{
 
-            time:{ value:0 },
+        time:{ value:0 },
 
-            coverage:{ value:0.55 },
-            density:{ value:0.70 },
-            softness:{ value:0.60 },
+        coverage:{ value:0.55 },
+        density:{ value:0.70 },
+        softness:{ value:0.60 },
 
-            brightness:{ value:1.0 },
-            shadowStrength:{ value:0.65 },
+        brightness:{ value:1.0 },
+        shadowStrength:{ value:0.65 },
 
-            cloudScale:{ value:4.0 },
-            cloudStretch:{ value:1.0 },
-            cloudRotation:{ value:0.0 },
+        cloudScale:{ value:4.0 },
+        cloudStretch:{ value:1.0 },
+        cloudRotation:{ value:0.0 },
 
-            upperColor:{
-                value:new THREE.Color("#ffffff")
-            },
+        fluffiness:{ value:2.75 },
+        wispy:{ value:1.50 },
+        detail:{ value:0.45 },
 
-            lowerColor:{
-                value:new THREE.Color("#707785")
-            }
+        upperColor:{
+            value:new THREE.Color("#ffffff")
+        },
 
+        lowerColor:{
+            value:new THREE.Color("#707785")
         }
 
-    });
+    }
+
+});
 
 }

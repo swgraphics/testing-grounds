@@ -16,22 +16,19 @@ export default function CloudField() {
         []
     );
 
-useEffect(() => {
-
-    material.uniforms.upperColor.value.set(
-        cloudSettings.upperColor
-    );
-
-    material.uniforms.lowerColor.value.set(
-        cloudSettings.lowerColor
-    );
-
-}, [material]);
-
 useFrame((state) => {
 
     material.uniforms.time.value =
         state.clock.elapsedTime;
+    
+    material.uniforms.fluffiness.value =
+        cloudSettings.fluffiness;
+
+    material.uniforms.wispy.value =
+        cloudSettings.wispy;
+
+    material.uniforms.detail.value =
+        cloudSettings.detail;
 
     material.uniforms.coverage.value =
         cloudSettings.coverage;
