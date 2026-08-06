@@ -17,7 +17,18 @@ export default function CloudField() {
     );
 
 useFrame((state) => {
-
+    
+    const palette = getAtmospherePalette();
+    console.log(
+    palette.cloudTopColor.getHexString(),
+    palette.cloudBottomColor.getHexString(),
+    palette.cloudEdgeColor.getHexString()
+);
+console.log(
+    palette.normalizedSunHeight,
+    palette.daylightAmount,
+    palette.sunsetAmount
+);
     material.uniforms.time.value =
         state.clock.elapsedTime;
     
@@ -54,17 +65,14 @@ useFrame((state) => {
     material.uniforms.cloudRotation.value =
         cloudSettings.rotation;
     
-        material.uniforms.upperColor.value.set(
-        cloudSettings.upperColor
+    material.uniforms.upperColor.value.copy(
+        palette.cloudTopColor
 );
-
-material.uniforms.lowerColor.value.set(
-    cloudSettings.lowerColor
-);    
-    
-    console.log(
-        material.uniforms.upperColor.value,
-        material.uniforms.lowerColor.value
+    material.uniforms.lowerColor.value.copy(
+        palette.cloudBottomColor
+);   
+    material.uniforms.edgeColor.value.copy(
+        palette.cloudEdgeColor
 );
     meshRef.current.position.copy(
         state.camera.position
@@ -81,7 +89,7 @@ material.uniforms.lowerColor.value.set(
                     0,
                     Math.PI * 2,
                     0,
-                    Math.PI / 2,
+                    Math.PI * 0.72,
                 ]}
             />
 

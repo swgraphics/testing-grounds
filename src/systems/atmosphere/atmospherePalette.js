@@ -204,9 +204,9 @@ export function getAtmospherePalette() {
     );
 
   ambientColor.lerp(
-    "#e894b7",
+    new THREE.Color("#e894b7"),
     sunsetAmount * 0.48
-  );
+);
 
   const fogColor =
     mixColors(
@@ -224,9 +224,9 @@ export function getAtmospherePalette() {
     );
 
   cloudTopColor.lerp(
-    "#ffd2cf",
+    new THREE.Color("#ffd2cf"),
     sunsetAmount * 0.62
-  );
+);
 
   const cloudBottomColor =
     mixColors(
@@ -236,9 +236,9 @@ export function getAtmospherePalette() {
     );
 
   cloudBottomColor.lerp(
-    "#ff8b5c",
+    new THREE.Color("#ff8b5c"),
     sunsetAmount * 0.72
-  );
+);
 
   const cloudEdgeColor =
     mixColors(

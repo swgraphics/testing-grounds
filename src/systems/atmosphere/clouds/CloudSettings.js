@@ -1,8 +1,8 @@
 export const cloudSettings = {
 
-  brightness: 1.0,
+  brightness: 0.75,
 
-  shadowStrength: 0.0,
+  shadowStrength: 0.5,
 
   coverage: 0.55,
 
@@ -28,8 +28,10 @@ export const cloudSettings = {
 
   windDirection: 0,
 
-  upperColor: "#eeeae7",
+  upperColor: "#7a7474",
 
-  lowerColor: "#ec3c10"
+  lowerColor: "#242425",
+  
+  edgeColor: "#fdf7fd"
 
 };

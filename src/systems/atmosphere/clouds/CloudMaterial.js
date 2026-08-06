@@ -49,6 +49,7 @@ uniform float detail;
 
 uniform vec3 upperColor;
 uniform vec3 lowerColor;
+uniform vec3 edgeColor;
 
 float hash(vec3 p){
 
@@ -143,8 +144,22 @@ void main(){
         lowerColor,
         upperColor,
         horizon
+);
+
+float rimMask =
+    pow(
+        1.0 - horizon,
+        2.8
     );
 
+rimMask *= 0.45;
+
+cloudColor =
+    mix(
+        cloudColor,
+        edgeColor,
+        rimMask
+    );
 vec3 samplePosition =
     vWorldPosition;
 
@@ -255,6 +270,15 @@ float alpha = smoothstep(
 alpha *= density;
 
 alpha = pow(alpha, 0.65);
+
+// Fade out the bottom of the dome
+float domeFade = smoothstep(
+    0.08,
+    0.28,
+    horizon
+);
+
+alpha *= domeFade;
 float lighting =
 
     mix(
@@ -268,6 +292,20 @@ float lighting =
     );
 
 cloudColor *= lighting;
+
+float rim =
+    pow(
+        1.0 - horizon,
+        3.5
+    );
+
+cloudColor =
+    mix(
+        cloudColor,
+        edgeColor,
+        rim * 0.55
+    );
+
 cloudColor *= brightness;
 
 gl_FragColor = vec4(
@@ -310,16 +348,17 @@ export function createCloudMaterial(){
 
         fluffiness:{ value:2.75 },
         wispy:{ value:1.50 },
-        detail:{ value:0.45 },
+        detail:{ value:1.45 },
 
         upperColor:{
-            value:new THREE.Color("#ffffff")
+            value:new THREE.Color("#7a7474")
         },
-
         lowerColor:{
-            value:new THREE.Color("#707785")
-        }
-
+            value:new THREE.Color("#242425")
+        },
+        edgeColor:{
+            value:new THREE.Color("#fdf7fd")
+        },
     }
 
 });
