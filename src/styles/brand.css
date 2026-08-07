@@ -1907,6 +1907,20 @@ canvas {
   font-size: 16px;
 }
 
+.tg-dev-subsection-title{
+
+    margin-top:18px;
+    margin-bottom:10px;
+
+    font-size:12px;
+    font-weight:700;
+
+    letter-spacing:2px;
+
+    opacity:.55;
+
+}
+
 .tg-dev-section-lockable {
   opacity: 1;
 

@@ -12,7 +12,10 @@ import {
   resetWorldSettings,
   reshuffleScatter,
 } from "../../systems/terrain/terrainSettings";
-
+import {
+    cloudSettings,
+    updateCloudSetting,
+} from "../../systems/atmosphere/clouds/CloudSettings";
 import {
   devSettings,
   updateDevSetting,
@@ -84,86 +87,34 @@ const TERRAIN_SLIDERS = [
   ["boulderHeight", "Boulder Height", 0, 100, 1],
 ];
 
-const ATMOSPHERE_SLIDERS = [
-  [
-    "cloudAmount",
-    "Cloud Amount",
-    0,
-    100,
-    1,
-  ],
-  [
-    "cloudHeight",
-    "Cloud Height",
-    0,
-    100,
-    1,
-  ],
-  [
-    "cloudSpeed",
-    "Cloud Speed",
-    0,
-    100,
-    1,
-  ],
-  [
-    "cloudColor",
-    "Cloud Color",
-    0,
-    100,
-    1,
-  ],
+const CLOUD_SLIDERS = [
 
-  [
-    "fogDensity",
-    "Fog Density",
-    0,
-    100,
-    1,
-  ],
-  [
-    "sunHeight",
-    "Sun Height",
-    0,
-    100,
-    1,
-  ],
-  [
-    "sunRotation",
-    "Sun Rotation",
-    0,
-    100,
-    1,
-  ],
-  [
-    "skyHaze",
-    "Sky Haze",
-    0,
-    100,
-    1,
-  ],
-  [
-    "stars",
-    "Stars",
-    0,
-    100,
-    1,
-  ],
-  [
-    "sunCycleEnabled",
-    "Sun Cycle On / Off",
-    0,
-    1,
-    1,
-  ],
-  [
-    "sunCycleMinutes",
-    "Cycle Minutes",
-    1,
-    10,
-    1,
-  ],
+    ["coverage",       "Cloud Amount",      0.0, 1.0, 0.01],
+    ["height",         "Cloud Height",      40, 300, 1],
+    ["speed",          "Cloud Speed",       0.0, 10.0, 0.05],
+
+    ["scale",          "Cloud Size",        0.5, 8.0, 0.05],
+    ["stretch",        "Cloud Stretch",     0.5, 6.0, 0.05],
+    ["rotation",       "Cloud Rotation",    0.0, 6.283, 0.01],
+
+    ["fluffiness",     "Wispy → Thick",     0.2, 4.0, 0.05],
+    ["density",        "Light → Dense",     0.1, 2.0, 0.01],
+    ["detail",         "Detail",            0.2, 3.0, 0.05],
+
+    ["brightness",     "Brightness",        0.0, 2.0, 0.01],
+    ["shadowStrength", "Shadow Strength",   0.0, 1.0, 0.01],
+
 ];
+
+const SKY_SLIDERS = [
+
+    ["sunHeight",   "Sun Height",   0, 100, 1],
+    ["sunRotation", "Sun Rotation", 0, 100, 1],
+    ["skyHaze",     "Sky Haze",     0, 100, 1],
+    ["stars",       "Stars",        0, 100, 1],
+
+];
+
 const CAMERA_SLIDERS = [
   [
     "height",
@@ -266,6 +217,57 @@ function DevSlider({
   );
 }
 
+function CloudSlider({
+    settingKey,
+    label,
+    min,
+    max,
+    step,
+    locked = false,
+    onRefresh,
+}) {
+
+    return (
+
+        <div className="tg-dev-slider-row">
+
+            <div className="tg-dev-slider-header">
+
+                <span>{label}</span>
+
+                <span className="tg-dev-slider-value">
+                    {Number(
+                        cloudSettings[settingKey]
+                    ).toFixed(step < 0.1 ? 2 : 1)}
+                </span>
+
+            </div>
+
+            <input
+                className="tg-dev-slider"
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={cloudSettings[settingKey]}
+                disabled={locked}
+                onChange={(event) => {
+
+                    updateCloudSetting(
+                        settingKey,
+                        Number(event.target.value)
+                    );
+
+                    onRefresh();
+
+                }}
+            />
+
+        </div>
+
+    );
+
+}
 
 function CameraSlider({
   characterId,
@@ -1350,25 +1352,54 @@ function handleSectionLockChange(event) {
     />
 
     <div
-      className={`tg-dev-section-lockable ${
-        atmosphereLocked ? "locked" : ""
-      }`}
-    >
-      {ATMOSPHERE_SLIDERS.map(
-        ([key, label, min, max, step]) => (
-          <DevSlider
-            key={key}
-            settingKey={key}
-            label={label}
-            min={min}
-            max={max}
-            step={step}
-            locked={atmosphereLocked}
-            onRefresh={refresh}
-          />
-        )
-      )}
+  className={`tg-dev-section-lockable ${
+    atmosphereLocked ? "locked" : ""
+  }`}
+>
+
+    <div className="tg-dev-subsection-title">
+        CLOUDS
     </div>
+
+    {CLOUD_SLIDERS.map(
+        ([key, label, min, max, step]) => (
+
+            <CloudSlider
+                key={key}
+                settingKey={key}
+                label={label}
+                min={min}
+                max={max}
+                step={step}
+                locked={atmosphereLocked}
+                onRefresh={refresh}
+            />
+
+        )
+    )}
+
+    <div className="tg-dev-subsection-title">
+        SKY
+    </div>
+
+    {SKY_SLIDERS.map(
+        ([key, label, min, max, step]) => (
+
+            <DevSlider
+                key={key}
+                settingKey={key}
+                label={label}
+                min={min}
+                max={max}
+                step={step}
+                locked={atmosphereLocked}
+                onRefresh={refresh}
+            />
+
+        )
+    )}
+
+</div>
   </div>
 )}
             </div>

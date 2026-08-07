@@ -35,3 +35,8 @@ export const cloudSettings = {
   edgeColor: "#fdf7fd"
 
 };
+export function updateCloudSetting(key, value) {
+
+    cloudSettings[key] = value;
+
+}
