@@ -75,9 +75,12 @@ console.log(
         palette.cloudEdgeColor
 );
     meshRef.current.position.copy(
-        state.camera.position
-    );
+    state.camera.position
+);
 
+    meshRef.current.position.y +=
+    cloudSettings.height;
+    
 });
     return (
         <mesh ref={meshRef}>
