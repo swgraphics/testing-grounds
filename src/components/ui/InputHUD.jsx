@@ -107,12 +107,11 @@ const CLOUD_SLIDERS = [
 ];
 
 const SKY_SLIDERS = [
-
-    ["sunHeight",   "Sun Height",   0, 100, 1],
-    ["sunRotation", "Sun Rotation", 0, 100, 1],
-    ["skyHaze",     "Sky Haze",     0, 100, 1],
-    ["stars",       "Stars",        0, 100, 1],
-
+  ["fogDensity",  "Fog Density",  0, 100, 1],
+  ["sunHeight",   "Sun Height",   0, 100, 1],
+  ["sunRotation", "Sun Rotation", 0, 100, 1],
+  ["skyHaze",     "Sky Haze",     0, 100, 1],
+  ["stars",       "Stars",        0, 100, 1],
 ];
 
 const CAMERA_SLIDERS = [
@@ -190,11 +189,21 @@ function DevSlider({
   locked = false,
   onRefresh,
 }) {
+  const value = terrainSettings[settingKey];
+
   return (
     <div className="tg-dev-slider-group">
-      <label className="tg-dev-slider-label">
-        {label}
-      </label>
+      <div className="tg-dev-slider-heading">
+        <label className="tg-dev-slider-label">
+          {label}
+        </label>
+
+        <span className="tg-dev-slider-value">
+          {Number(value).toFixed(
+            step < 0.1 ? 2 : 1
+          )}
+        </span>
+      </div>
 
       <input
         className="tg-dev-slider"
@@ -202,7 +211,7 @@ function DevSlider({
         min={min}
         max={max}
         step={step}
-        value={terrainSettings[settingKey]}
+        value={value}
         disabled={locked}
         onChange={(event) => {
           updateTerrainSetting(

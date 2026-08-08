@@ -1842,17 +1842,35 @@ canvas {
   margin-bottom: 5px;
 }
 
+.tg-dev-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 5px;
+}
+
+.tg-dev-slider-header > span:first-child {
+  font-family: var(--tg-font-copy);
+  font-size: 11px;
+  color: rgba(232, 238, 245, 0.75);
+}
+
 .tg-dev-slider-heading
   .tg-dev-slider-label {
   margin-bottom: 0;
 }
 
 .tg-dev-slider-value {
+  min-width: 42px;
+
   font-family: var(--tg-font-copy);
   font-size: 10px;
   font-weight: 600;
 
   color: rgba(232, 238, 245, 0.78);
+
+  text-align: right;
 }
 
 .tg-dev-camera-preset-row {
@@ -1907,18 +1925,20 @@ canvas {
   font-size: 16px;
 }
 
-.tg-dev-subsection-title{
+.tg-dev-subsection-title {
+  margin-top: 16px;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
 
-    margin-top:18px;
-    margin-bottom:10px;
+  font-family: var(--tg-font-display);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
 
-    font-size:12px;
-    font-weight:700;
+  color: rgba(232, 238, 245, 0.68);
 
-    letter-spacing:2px;
-
-    opacity:.55;
-
+  border-bottom: 1px solid
+    rgba(205, 38, 38, 0.42);
 }
 
 .tg-dev-section-lockable {
@@ -1948,6 +1968,13 @@ canvas {
 .tg-side-panel-button:disabled {
   cursor: not-allowed;
 }
+
+.tg-dev-slider-group,
+.tg-dev-slider-row {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
 /* =======================================================
    Locked Dev Tool Controls
 ======================================================= */
