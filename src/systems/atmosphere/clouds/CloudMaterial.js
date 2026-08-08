@@ -43,7 +43,6 @@ uniform float shadowStrength;
 
 uniform float cloudScale;
 uniform float cloudStretch;
-uniform float cloudRotation;
 uniform float fluffiness;
 uniform float wispy;
 uniform float detail;
@@ -166,18 +165,6 @@ vec3 samplePosition =
 
 // Compress vertically
 samplePosition.y *= 0.22;
-
-// Rotate the weather pattern
-float angle = cloudRotation;
-
-float s = sin(angle);
-float c = cos(angle);
-
-samplePosition.xz =
-    mat2(
-        c, -s,
-        s,  c
-    ) * samplePosition.xz;
 
 // Stretch horizontally
 samplePosition.x *= cloudStretch;
@@ -336,7 +323,7 @@ export function createCloudMaterial(){
 
         time:{ value:0 },
         speed:{ value:2.5 },
-        
+
         coverage:{ value:0.55 },
         density:{ value:0.70 },
         softness:{ value:0.60 },

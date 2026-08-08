@@ -14,11 +14,11 @@ export const cloudSettings = {
 
   wispy: 0.50,
 
+  puffiness: 0.50,
+
   scale: 1.0,
 
   stretch: 2.0,
-
-  rotation: 0.75,
 
   detail: 0.45,
 
