@@ -34,7 +34,10 @@ console.log(
     
     material.uniforms.fluffiness.value =
         cloudSettings.fluffiness;
-
+    
+    material.uniforms.speed.value =
+        cloudSettings.speed;
+    
     material.uniforms.wispy.value =
         cloudSettings.wispy;
 
@@ -80,7 +83,7 @@ console.log(
 
     meshRef.current.position.y +=
     cloudSettings.height;
-    
+
 });
     return (
         <mesh ref={meshRef}>

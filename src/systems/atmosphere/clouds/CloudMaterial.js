@@ -32,6 +32,7 @@ void main(){
 const fragmentShader = /* glsl */`
 
 uniform float time;
+uniform float speed;
 
 uniform float coverage;
 uniform float density;
@@ -192,7 +193,7 @@ samplePosition *=
 
 // Animate
 samplePosition += vec3(
-    time * 0.01,
+    time * speed * 0.01,
     0.0,
     0.0
 );
@@ -334,7 +335,8 @@ export function createCloudMaterial(){
     uniforms:{
 
         time:{ value:0 },
-
+        speed:{ value:2.5 },
+        
         coverage:{ value:0.55 },
         density:{ value:0.70 },
         softness:{ value:0.60 },

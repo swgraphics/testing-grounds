@@ -91,7 +91,7 @@ const CLOUD_SLIDERS = [
 
     ["coverage",       "Cloud Amount",      0.0, 1.0, 0.01],
     ["height",         "Cloud Height",      40, 300, 1],
-    ["speed",          "Cloud Speed",       0.0, 10.0, 0.05],
+    ["speed",          "Cloud Speed",       0.0, 25.0, 0.05],
 
     ["scale",          "Cloud Size",        0.5, 8.0, 0.05],
     ["stretch",        "Cloud Stretch",     0.5, 6.0, 0.05],
