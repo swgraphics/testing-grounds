@@ -12,7 +12,7 @@ import SpawnPad from "../components/world/SpawnPad";
 import WorldGizmos from "../components/world/WorldGizmos";
 import TestCourse from "../components/world/TestCourse";
 import CameraTelemetry from "../components/ui/CameraTelemetry";
-
+import MeshPlacementSystem from "../components/world/MeshPlacementSystem";
 function TitleOrbitCamera({ active }) {
   const { camera } = useThree();
 
@@ -41,7 +41,7 @@ export default function TestingGrounds({ titleMode = false }) {
       <TitleOrbitCamera active={titleMode} />
       <XboxController />
       <CameraTelemetry />
-      
+      <MeshPlacementSystem />
       <Atmosphere titleMode={titleMode} />
       <Lighting />
 
