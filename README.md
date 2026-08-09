@@ -1,3 +1,5 @@
+![Testing Grounds](public/images/screenshots/testing-grounds.png)
+
 # TESTING GROUNDS
 
 ### A real-time world-building sandbox for game creators.
