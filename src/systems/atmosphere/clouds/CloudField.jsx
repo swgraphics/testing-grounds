@@ -32,8 +32,8 @@ console.log(
     material.uniforms.time.value =
         state.clock.elapsedTime;
     
-    material.uniforms.fluffiness.value =
-        cloudSettings.fluffiness;
+    material.uniforms.puffiness.value =
+        cloudSettings.puffiness;
     
     material.uniforms.speed.value =
         cloudSettings.speed;
@@ -81,8 +81,8 @@ console.log(
     state.camera.position
 );
 
-    meshRef.current.position.y +=
-    cloudSettings.height;
+// TEST: temporarily disable cloud height offset
+// meshRef.current.position.y += cloudSettings.height;
 
 });
     return (

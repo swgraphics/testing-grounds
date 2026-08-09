@@ -10,11 +10,9 @@ export const cloudSettings = {
 
   softness: 0.60,
 
-  fluffiness: 1.0,
+  puffiness: 0.50,
 
   wispy: 0.50,
-
-  puffiness: 0.50,
 
   scale: 1.0,
 

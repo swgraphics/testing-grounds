@@ -43,7 +43,7 @@ uniform float shadowStrength;
 
 uniform float cloudScale;
 uniform float cloudStretch;
-uniform float fluffiness;
+uniform float puffiness;
 uniform float wispy;
 uniform float detail;
 
@@ -192,18 +192,21 @@ vec3 warp =
 // CLOUD SHAPE
 //----------------------------------
 
+float puffinessScale =
+    mix(
+        1.35,
+        0.70,
+        puffiness
+    );
+
 float cloudMass =
-
     fbm(
-
         samplePosition *
-
-        (0.28 / fluffiness)
+        (0.28 * puffinessScale)
 
         +
 
         warp * wispy
-
     );
 
 float vapor =
@@ -335,7 +338,7 @@ export function createCloudMaterial(){
         cloudStretch:{ value:1.0 },
         cloudRotation:{ value:0.0 },
 
-        fluffiness:{ value:2.75 },
+        puffiness:{ value:0.50 },
         wispy:{ value:1.50 },
         detail:{ value:1.45 },
 

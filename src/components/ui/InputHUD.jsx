@@ -82,6 +82,9 @@ const TERRAIN_SLIDERS = [
 
   ["boulderAmount", "Boulder Amount", 0, 100, 1],
   ["boulderHeight", "Boulder Height", 0, 100, 1],
+
+  ["windStrength", "Wind Strength", 0, 100, 1],
+  ["windSpeed", "Wind Speed", 0, 100, 1],
 ];
 
 const CLOUD_SLIDERS = [
@@ -100,9 +103,6 @@ const CLOUD_SLIDERS = [
 
     ["brightness",     "Brightness",        0.0, 2.0, 0.01],
     ["shadowStrength", "Shadow Strength",   0.0, 1.0, 0.01],
-    
-    ["windStrength", "Wind Strength", 0, 100, 1],
-    ["windSpeed", "Wind Speed", 0, 100, 1],
 ];
 
 const SKY_SLIDERS = [
