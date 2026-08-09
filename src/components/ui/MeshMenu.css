@@ -1,0 +1,285 @@
+.tg-mesh-mode-label {
+  position: fixed;
+  left: 3.5vw;
+  top: 16vh;
+  z-index: 80;
+  color: #f4f6f8;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+.tg-mesh-mode-label > div {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.tg-mesh-mode-label strong {
+  display: block;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -.03em;
+}
+
+.tg-mesh-menu {
+  position: fixed;
+  left: 6vw;
+  right: 17vw;
+  bottom: 2.5vh;
+  min-height: 154px;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
+  z-index: 90;
+  background: rgba(12, 13, 16, .94);
+  border: 2px solid #e01919;
+  box-sizing: border-box;
+}
+
+.tg-mesh-menu-actions {
+  width: 170px;
+  flex: 0 0 170px;
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.tg-mesh-menu button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.tg-mesh-menu-actions button,
+.tg-mesh-edit-action {
+  color: #fff;
+  background: #e21b1b;
+  border: 1px solid #ff4a4a;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.tg-mesh-menu-actions button:hover,
+.tg-mesh-menu-actions button.active,
+.tg-mesh-edit-action:hover {
+  background: #ff2b2b;
+}
+
+.tg-mesh-library {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.tg-mesh-card {
+  min-width: 0;
+  padding: 6px;
+  background: #17181d;
+  color: #777b84;
+  border: 2px solid #a91b1b;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 5px;
+}
+
+.tg-mesh-card.selected {
+  color: #f4f4f4;
+  border-color: #f3f3f3;
+}
+
+.tg-mesh-card-art {
+  min-height: 82px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.tg-mesh-card span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tg-mesh-next {
+  width: 40px;
+  align-self: center;
+  background: transparent;
+  color: #e21b1b;
+  border: 0;
+  font-size: 52px;
+  line-height: 1;
+}
+
+.tg-mesh-icon {
+  width: 70px;
+  height: 82px;
+  position: relative;
+}
+
+.tg-mesh-icon-tree .tg-mesh-tree-trunk {
+  position: absolute;
+  left: 31px;
+  bottom: 0;
+  width: 10px;
+  height: 37px;
+  background: #060606;
+  border: 2px solid #e31c1c;
+}
+
+.tg-mesh-icon-tree .tg-mesh-tree-crown {
+  position: absolute;
+  left: 8px;
+  top: 5px;
+  width: 54px;
+  height: 55px;
+  background: #e31c1c;
+  clip-path: polygon(50% 0, 62% 23%, 100% 35%, 69% 42%, 91% 65%, 60% 58%, 76% 100%, 50% 69%, 26% 100%, 39% 59%, 7% 67%, 31% 42%, 0 34%, 38% 23%);
+  filter: drop-shadow(0 0 0 #080808);
+}
+
+.tg-mesh-icon-fern span {
+  position: absolute;
+  left: 33px;
+  top: 34px;
+  width: 6px;
+  height: 48px;
+  background: #e31c1c;
+  transform-origin: 50% 0;
+  clip-path: polygon(50% 0, 100% 100%, 50% 82%, 0 100%);
+}
+
+.tg-mesh-icon-structure {
+  border: 3px solid #e31c1c;
+  clip-path: polygon(18% 100%, 28% 45%, 42% 25%, 62% 25%, 78% 45%, 88% 100%);
+}
+
+.tg-mesh-edit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(5, 6, 8, .25);
+  display: grid;
+  place-items: center;
+}
+
+.tg-mesh-edit-window {
+  width: min(745px, 70vw);
+  min-height: 520px;
+  display: grid;
+  grid-template-columns: 1fr 210px;
+  gap: 18px;
+  padding: 18px;
+  background: #171717;
+  border: 1px solid #f2f2f2;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+
+.tg-mesh-edit-preview {
+  position: relative;
+  min-height: 470px;
+  background: linear-gradient(#171717, #111);
+  overflow: hidden;
+}
+
+.tg-mesh-edit-preview-title {
+  position: absolute;
+  left: 16px;
+  top: 12px;
+  color: #f3f3f3;
+  font-size: 13px;
+  font-weight: 800;
+  z-index: 2;
+}
+
+.tg-mesh-edit-placeholder {
+  position: absolute;
+  inset: 70px 40px 40px;
+  display: grid;
+  place-items: center;
+  transform: scale(2.1);
+}
+
+.tg-mesh-gizmo {
+  position: absolute;
+  right: 35px;
+  top: 28px;
+  width: 90px;
+  height: 90px;
+}
+
+.tg-mesh-gizmo i {
+  position: absolute;
+  left: 39px;
+  top: 39px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+}
+
+.tg-mesh-gizmo span {
+  position: absolute;
+  left: 45px;
+  top: 45px;
+  transform-origin: 0 0;
+}
+
+.tg-mesh-gizmo .x { width: 42px; height: 2px; background: #ef2424; }
+.tg-mesh-gizmo .y { width: 2px; height: 42px; background: #24df7a; }
+.tg-mesh-gizmo .z { width: 34px; height: 2px; background: #4ca0ff; transform: rotate(45deg); }
+
+.tg-mesh-edit-controls {
+  border: 1px solid #ddd;
+  padding: 18px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.tg-mesh-edit-slider {
+  display: grid;
+  gap: 7px;
+  color: #f5f5f5;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.tg-mesh-edit-slider input {
+  width: 100%;
+  accent-color: #f3f3f3;
+}
+
+.tg-mesh-edit-action {
+  min-height: 34px;
+}
+
+.tg-mesh-edit-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tg-mesh-save,
+.tg-mesh-cancel {
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.tg-mesh-cancel { color: #e21b1b; }
+
+@media (max-width: 1000px) {
+  .tg-mesh-menu { left: 2vw; right: 2vw; }
+  .tg-mesh-library { grid-template-columns: repeat(3, 1fr); }
+  .tg-mesh-menu { min-height: 220px; }
+}

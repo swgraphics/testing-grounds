@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import MeshMenu from "./MeshMenu";
 
 import { inputState } from "../../systems/input/inputState";
 import {
@@ -80,27 +81,30 @@ const TERRAIN_SLIDERS = [
   ["foliageDensity", "Foliage Scatter", 0, 100, 1],
   ["rockDensity", "Rock Scatter", 0, 100, 1],
 
-  ["boulderAmount", "Boulder Amount", 0, 100, 1],
-  ["boulderHeight", "Boulder Height", 0, 100, 1],
-
   ["windStrength", "Wind Strength", 0, 100, 1],
   ["windSpeed", "Wind Speed", 0, 100, 1],
+
+  ["boulderAmount", "Boulder Amount", 0, 100, 1],
+  ["boulderHeight", "Boulder Height", 0, 100, 1],
 ];
 
 const CLOUD_SLIDERS = [
 
     ["coverage",       "Cloud Amount",      0.0, 1.0, 0.01],
     ["height",         "Cloud Height",      40, 300, 1],
-    ["speed",          "Cloud Speed",       0.0, 25.0, 0.05],
+    ["speed",          "Cloud Speed",       0.0, 10.0, 0.05],
 
     ["scale",          "Cloud Size",        0.5, 8.0, 0.05],
     ["stretch",        "Cloud Stretch",     0.5, 6.0, 0.05],
+    ["rotation",       "Cloud Rotation",    0.0, 6.283, 0.01],
 
+    ["fluffiness",     "Wispy → Thick",     0.2, 4.0, 0.05],
     ["density",        "Light → Dense",     0.1, 2.0, 0.01],
     ["detail",         "Detail",            0.2, 3.0, 0.05],
 
     ["brightness",     "Brightness",        0.0, 2.0, 0.01],
     ["shadowStrength", "Shadow Strength",   0.0, 1.0, 0.01],
+
 ];
 
 const SKY_SLIDERS = [
@@ -1838,6 +1842,8 @@ function handleSectionLockChange(event) {
   </button>
 </div>
       </div>
+
+      <MeshMenu />
     </>
   );
 }
