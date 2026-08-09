@@ -32,15 +32,9 @@ console.log(
     material.uniforms.time.value =
         state.clock.elapsedTime;
     
-    material.uniforms.puffiness.value =
-        cloudSettings.puffiness;
-    
     material.uniforms.speed.value =
         cloudSettings.speed;
     
-    material.uniforms.wispy.value =
-        cloudSettings.wispy;
-
     material.uniforms.detail.value =
         cloudSettings.detail;
 

@@ -95,9 +95,7 @@ const CLOUD_SLIDERS = [
 
     ["scale",          "Cloud Size",        0.5, 8.0, 0.05],
     ["stretch",        "Cloud Stretch",     0.5, 6.0, 0.05],
-    ["puffiness",      "Puffiness",         0.0, 100, 1],
 
-    ["fluffiness",     "Wispy → Thick",     0.2, 4.0, 0.05],
     ["density",        "Light → Dense",     0.1, 2.0, 0.01],
     ["detail",         "Detail",            0.2, 3.0, 0.05],
 
