@@ -2,7 +2,7 @@
 
 ### A real-time world-building sandbox for game creators.
 
-![Testing Grounds](C:\Users\Tavis\testing-grounds\public\images\screenshots\testing-grounds.png)
+![Testing Grounds](public/images/TG-Screenshot 2026-08-04 193114.png)
 
 Testing Grounds is an experimental browser-based 3D platform designed to give game creators a place to **build, test, visualize, and iterate on ideas before committing them to a finished game.**
 
