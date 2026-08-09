@@ -62,6 +62,24 @@
   letter-spacing: .02em;
 }
 
+.tg-mesh-menu-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tg-mesh-menu-close:hover {
+  color: #ffffff;
+}
+
 .tg-mesh-menu-actions button:hover,
 .tg-mesh-menu-actions button.active,
 .tg-mesh-edit-action:hover {

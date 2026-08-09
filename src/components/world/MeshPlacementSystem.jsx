@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+// MeshPlacementSystem.jsx
+
+import { useEffect, useMemo, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 import { getTerrainHeightAt } from "./../../systems/terrain/terrainHeight";
-
-const TREE_ASSET_PATH = "/models/CommonTree01.glb";
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -30,7 +30,6 @@ function cloneScene(scene) {
 function findTerrainHit(ray) {
   const direction = ray.direction.clone();
 
-  // We only need a reasonable forward range.
   let low = 0;
   let high = 1000;
 
@@ -50,7 +49,7 @@ function findTerrainHit(ray) {
     return null;
   }
 
-  // Binary-search the intersection.
+  // Binary-search the terrain intersection.
   for (let i = 0; i < 18; i += 1) {
     const middle = (low + high) / 2;
     const middleValue = evaluate(middle);
@@ -77,17 +76,6 @@ function findTerrainHit(ray) {
     .add(direction.multiplyScalar(distance));
 }
 
-function prepareObject(object) {
-  object.traverse((child) => {
-    if (!child.isMesh) return;
-
-    child.castShadow = true;
-    child.receiveShadow = true;
-  });
-
-  return object;
-}
-
 export default function MeshPlacementSystem() {
   const { camera, gl } = useThree();
 
@@ -97,72 +85,14 @@ export default function MeshPlacementSystem() {
   const [loadedScene, setLoadedScene] = useState(null);
   const [placedMeshes, setPlacedMeshes] = useState([]);
 
-  const pointerActiveRef = useRef(false);
   const loader = useMemo(() => new GLTFLoader(), []);
 
+  // --------------------------------------------------
+  // MESH MENU EVENTS
+  // --------------------------------------------------
+
   useEffect(() => {
-    function handleSelection(event) {
-      const mesh = event.detail?.mesh;
-
-      if (!mesh) return;
-
-      setSelectedMesh(mesh);
-
-      if (mesh.file) {
-        const objectUrl = URL.createObjectURL(mesh.file);
-
-        loader.load(
-          objectUrl,
-          (gltf) => {
-            setLoadedScene(() => cloneScene(gltf.scene));
-            URL.revokeObjectURL(objectUrl);
-          },
-          undefined,
-          (error) => {
-            console.error(
-              "Testing Grounds: failed to load uploaded mesh.",
-              error
-            );
-
-            URL.revokeObjectURL(objectUrl);
-          }
-        );
-      }
-    }
-
-    function handlePlaceRequest(event) {
-      const mesh = event.detail?.mesh;
-
-      if (!mesh) return;
-
-      setSelectedMesh(mesh);
-      setPlacementMode(true);
-
-      if (mesh.file) {
-        const objectUrl = URL.createObjectURL(mesh.file);
-
-        loader.load(
-          objectUrl,
-          (gltf) => {
-            setLoadedScene(() => cloneScene(gltf.scene));
-            URL.revokeObjectURL(objectUrl);
-          },
-          undefined,
-          (error) => {
-            console.error(
-              "Testing Grounds: failed to load mesh for placement.",
-              error
-            );
-
-            URL.revokeObjectURL(objectUrl);
-          }
-        );
-      }
-    }
-
-    function handleUploadRequest(event) {
-      const file = event.detail?.file;
-
+    function loadMeshFile(file) {
       if (!file) return;
 
       const objectUrl = URL.createObjectURL(file);
@@ -176,13 +106,52 @@ export default function MeshPlacementSystem() {
         undefined,
         (error) => {
           console.error(
-            "Testing Grounds: uploaded GLB could not be loaded.",
+            "Testing Grounds: failed to load mesh.",
             error
           );
 
           URL.revokeObjectURL(objectUrl);
         }
       );
+    }
+
+    function handleSelection(event) {
+      const mesh = event.detail?.mesh;
+
+      if (!mesh) return;
+
+      setSelectedMesh(mesh);
+
+      if (mesh.file) {
+        loadMeshFile(mesh.file);
+      }
+    }
+
+    function handlePlaceRequest(event) {
+      const mesh = event.detail?.mesh;
+
+      if (!mesh) return;
+
+      setSelectedMesh(mesh);
+      setPlacementMode(true);
+      setPreviewPosition(null);
+
+      if (mesh.file) {
+        loadMeshFile(mesh.file);
+      }
+    }
+
+    function handleUploadRequest(event) {
+      const file = event.detail?.file;
+
+      if (!file) return;
+
+      loadMeshFile(file);
+    }
+
+    function handleCancelPlacement() {
+      setPlacementMode(false);
+      setPreviewPosition(null);
     }
 
     window.addEventListener(
@@ -200,6 +169,11 @@ export default function MeshPlacementSystem() {
       handleUploadRequest
     );
 
+    window.addEventListener(
+      "tg-mesh-cancel-placement",
+      handleCancelPlacement
+    );
+
     return () => {
       window.removeEventListener(
         "tg-mesh-selection-changed",
@@ -215,8 +189,17 @@ export default function MeshPlacementSystem() {
         "tg-mesh-upload-request",
         handleUploadRequest
       );
+
+      window.removeEventListener(
+        "tg-mesh-cancel-placement",
+        handleCancelPlacement
+      );
     };
   }, [loader]);
+
+  // --------------------------------------------------
+  // POINTER / ESC / RIGHT-CLICK CONTROLS
+  // --------------------------------------------------
 
   useEffect(() => {
     function handlePointerMove(event) {
@@ -260,6 +243,27 @@ export default function MeshPlacementSystem() {
       ]);
     }
 
+    function handleKeyDown(event) {
+      if (event.key !== "Escape") return;
+      if (!placementMode) return;
+
+      event.preventDefault();
+
+      window.dispatchEvent(
+        new CustomEvent("tg-mesh-cancel-placement")
+      );
+    }
+
+    function handleContextMenu(event) {
+      if (!placementMode) return;
+
+      event.preventDefault();
+
+      window.dispatchEvent(
+        new CustomEvent("tg-mesh-cancel-placement")
+      );
+    }
+
     gl.domElement.addEventListener(
       "pointermove",
       handlePointerMove
@@ -268,6 +272,16 @@ export default function MeshPlacementSystem() {
     gl.domElement.addEventListener(
       "pointerdown",
       handlePointerDown
+    );
+
+    gl.domElement.addEventListener(
+      "contextmenu",
+      handleContextMenu
+    );
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
     );
 
     return () => {
@@ -280,6 +294,16 @@ export default function MeshPlacementSystem() {
         "pointerdown",
         handlePointerDown
       );
+
+      gl.domElement.removeEventListener(
+        "contextmenu",
+        handleContextMenu
+      );
+
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
     };
   }, [
     camera,
@@ -289,23 +313,31 @@ export default function MeshPlacementSystem() {
     loadedScene,
   ]);
 
+  // --------------------------------------------------
+  // SMOOTH PLACEMENT PREVIEW
+  // --------------------------------------------------
+
   useFrame(() => {
     if (!placementMode) return;
     if (!previewPosition) return;
     if (!loadedScene) return;
 
-    loadedScene.position.lerp(previewPosition, 0.35);
+    loadedScene.position.lerp(
+      previewPosition,
+      0.35
+    );
   });
+
+  // --------------------------------------------------
+  // RENDER
+  // --------------------------------------------------
 
   return (
     <group>
       {placementMode &&
         loadedScene &&
         previewPosition && (
-          <primitive
-            object={loadedScene}
-            opacity={0.55}
-          />
+          <primitive object={loadedScene} />
         )}
 
       {placedMeshes.map((entry) => (

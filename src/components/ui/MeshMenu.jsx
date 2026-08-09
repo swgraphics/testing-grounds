@@ -105,6 +105,7 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
 }
 
 export default function MeshMenu() {
+  const [menuOpen, setMenuOpen] = useState(true);
   const [mode, setMode] = useState("place");
   const [selectedId, setSelectedId] = useState(BUILTIN_MESHES[0].id);
   const [editOpen, setEditOpen] = useState(false);
@@ -167,23 +168,41 @@ export default function MeshMenu() {
     );
   }
 
-  function editSelected() {
-    if (!selectedMesh) return;
-    setMode("edit");
-    setEditOpen(true);
-    window.dispatchEvent(
-      new CustomEvent("tg-mesh-edit-request", {
-        detail: { mesh: selectedMesh },
-      })
-    );
-  }
+ function editSelected() {
+  if (!selectedMesh) return;
+
+  window.dispatchEvent(
+    new CustomEvent("tg-mesh-cancel-placement")
+  );
+
+  setMode("edit");
+  setEditOpen(true);
+
+  window.dispatchEvent(
+    new CustomEvent("tg-mesh-edit-request", {
+      detail: { mesh: selectedMesh },
+    })
+  );
+}
 
   function addToScatter() {
-    if (!selectedMesh) return;
+  if (!selectedMesh) return;
+
+  window.dispatchEvent(
+    new CustomEvent("tg-mesh-cancel-placement")
+  );
+
+  window.dispatchEvent(
+    new CustomEvent("tg-mesh-scatter-request", {
+      detail: { mesh: selectedMesh },
+    })
+  );
+}
+  function closeMenu() {
+    setMenuOpen(false);
+
     window.dispatchEvent(
-      new CustomEvent("tg-mesh-scatter-request", {
-        detail: { mesh: selectedMesh },
-      })
+      new CustomEvent("tg-mesh-cancel-placement")
     );
   }
 
@@ -195,6 +214,14 @@ export default function MeshMenu() {
       </div>
 
       <div className="tg-mesh-menu">
+  <button
+    type="button"
+    className="tg-mesh-menu-close"
+    aria-label="Close mesh menu"
+    onClick={closeMenu}
+  >
+    ×
+  </button>
         <div className="tg-mesh-menu-actions">
           <button type="button" onClick={() => fileInputRef.current?.click()}>
             UPLOAD MESH
