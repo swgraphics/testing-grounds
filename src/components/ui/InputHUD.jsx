@@ -1506,6 +1506,7 @@ function handleSectionLockChange(event) {
   </div>
 )}
 </div>
+
             {/* MATERIALS */}
             <div className="tg-dev-section">
               <DevSectionHeader
@@ -1520,9 +1521,22 @@ function handleSectionLockChange(event) {
                   <div className="tg-dev-placeholder">
                     TG / Original / Wireframe
                   </div>
+
+                  <button
+                    type="button"
+                    className="tg-side-panel-button"
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent("tg-mesh-menu-open")
+                      );
+                    }}
+                  >
+                    ADD NEW MESH
+                  </button>
                 </div>
               )}
             </div>
+
           </>
         )}
       </div>
@@ -1846,4 +1860,4 @@ function handleSectionLockChange(event) {
       <MeshMenu />
     </>
   );
-}
+  }
