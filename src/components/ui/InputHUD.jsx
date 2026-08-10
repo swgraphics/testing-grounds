@@ -430,8 +430,8 @@ export default function InputHUD() {
   const [devToolsOpen, setDevToolsOpen] = useState(false);
 
   const [openDevSections, setOpenDevSections] = useState({
-    character: true,
-    terrain: true,
+    character: false,
+    terrain: false,
     camera: false,
     physics: false,
     atmosphere: false,

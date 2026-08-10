@@ -181,7 +181,7 @@
 .tg-mesh-edit-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  z-index: 1120;
   background: rgba(5, 6, 8, .25);
   display: grid;
   place-items: center;
@@ -297,7 +297,7 @@
 .tg-mesh-cancel { color: #e21b1b; }
 
 @media (max-width: 1000px) {
-  .tg-mesh-menu { left: 2vw; right: 2vw; }
+  .tg-mesh-menu { left: 2vw; right: 2vw; z-index: 1000;}
   .tg-mesh-library { grid-template-columns: repeat(3, 1fr); }
   .tg-mesh-menu { min-height: 220px; }
 }
