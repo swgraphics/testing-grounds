@@ -9,6 +9,7 @@ import {
 
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
+import CrimsonTreeModel from "./CrimsonTreeModel";
 
 const MAX_TREES = 900;
 const MAX_FOLIAGE = 1400;
@@ -290,105 +291,13 @@ function CrimsonTree({
     (variant - 0.5) * 0.045;
 
   const treeVisual = (
-    <group scale={scale}>
-      {/*
-       * This group now contains both the trunk and
-       * foliage.
-       *
-       * Its pivot remains at ground level, so wind
-       * bends the complete tree from its base instead
-       * of swinging only the crown.
-       */}
-      <group
-        ref={crownRef}
-        rotation={[
-          0,
-          rotation,
-          0,
-        ]}
-        userData={{
-          windPhase,
-          baseRotationY: rotation,
-        }}
-      >
-        <mesh
-          position={[0, 3.15, 0]}
-          rotation={[
-            trunkLean,
-            0,
-            trunkLean * 0.65,
-          ]}
-          castShadow
-          receiveShadow
-        >
-          <cylinderGeometry
-            args={[
-              0.11,
-              0.27,
-              6.3,
-              6,
-            ]}
-          />
-
-          <meshStandardMaterial
-            color="#10080a"
-            roughness={0.96}
-            metalness={0}
-          />
-        </mesh>
-
-        <group
-          position={[0, 7.2, 0]}
-          scale={[
-            crownWidth,
-            crownHeight,
-            1.02 - variant * 0.12,
-          ]}
-          rotation={[
-            0,
-            variant * Math.PI * 0.7,
-            0,
-          ]}
-        >
-          <mesh
-            geometry={
-              MATURE_TREE_CROWN_GEOMETRY
-            }
-            castShadow
-            receiveShadow
-          >
-            <meshStandardMaterial
-              color="#080808"
-              emissive="#353434"
-              emissiveIntensity={0.3}
-              roughness={0.92}
-              metalness={0}
-              flatShading
-              transparent={false}
-              opacity={1}
-            />
-          </mesh>
-
-          {/*
-           * White structural outline matching the
-           * Testing Grounds terrain grid.
-           */}
-          <lineSegments
-            geometry={
-              MATURE_TREE_CROWN_EDGES
-            }
-            scale={1.006}
-          >
-            <lineBasicMaterial
-              color="#fc0303"
-              transparent
-              opacity={0.82}
-              depthWrite={false}
-            />
-          </lineSegments>
-        </group>
-      </group>
-    </group>
+    <CrimsonTreeModel
+      scale={scale}
+      rotation={rotation}
+      variant={variant}
+      windPhase={windPhase}
+      crownRef={crownRef}
+    />
   );
 
   if (!collisionEnabled) {

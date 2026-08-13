@@ -1,12 +1,45 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import * as THREE from "three";
 import "./MeshMenu.css";
+import CrimsonTreeModel from "../world/CrimsonTreeModel";
 const BUILTIN_MESHES = [
-  { id: "taiga-tree", name: "TAIGA TREE", kind: "tree" },
-  { id: "palm-tree", name: "PALM TREE", kind: "tree" },
-  { id: "leafy-fern", name: "LEAFY FERN", kind: "foliage" },
-  { id: "stone-pillar", name: "STONE PILLAR", kind: "structure" },
-  { id: "cave-dome", name: "CAVE DOME", kind: "structure" },
-  { id: "castle-tower", name: "CASTLE TOWER", kind: "structure" },
+  {
+    id: "crimson-tree",
+    name: "CRIMSON TREE",
+    kind: "tree",
+    editable: true,
+  },
+  {
+    id: "taiga-tree",
+    name: "TAIGA TREE",
+    kind: "tree",
+  },
+  {
+    id: "palm-tree",
+    name: "PALM TREE",
+    kind: "tree",
+  },
+  {
+    id: "leafy-fern",
+    name: "LEAFY FERN",
+    kind: "foliage",
+  },
+  {
+    id: "stone-pillar",
+    name: "STONE PILLAR",
+    kind: "structure",
+  },
+  {
+    id: "cave-dome",
+    name: "CAVE DOME",
+    kind: "structure",
+  },
+  {
+    id: "castle-tower",
+    name: "CASTLE TOWER",
+    kind: "structure",
+  },
 ];
 
 function PreviewIcon({ kind = "structure" }) {
@@ -37,20 +70,110 @@ function PreviewIcon({ kind = "structure" }) {
 }
 
 function MeshEditModal({ mesh, onSave, onCancel }) {
-  const [trunkShape, setTrunkShape] = useState(50);
-  const [trunkSize, setTrunkSize] = useState(50);
-  const [leafShape, setLeafShape] = useState(50);
-  const [leafSize, setLeafSize] = useState(50);
+  const [trunkHeight, setTrunkHeight] = useState(50);
+  const [trunkWidth, setTrunkWidth] = useState(50);
+  const [crownWidth, setCrownWidth] = useState(50);
+  const [crownHeight, setCrownHeight] = useState(50);
+
+  const trunkHeightValue =
+    4.8 + (trunkHeight / 100) * 3.0;
+
+  const trunkBottomRadius =
+    0.18 + (trunkWidth / 100) * 0.18;
+
+  const trunkTopRadius =
+    0.07 + (trunkWidth / 100) * 0.08;
+
+  const crownWidthValue =
+    0.72 + (crownWidth / 100) * 0.42;
+
+  const crownHeightValue =
+    0.78 + (crownHeight / 100) * 0.42;
+
+  const handleSave = () => {
+    onSave({
+      trunkHeight: trunkHeightValue,
+      trunkTopRadius,
+      trunkBottomRadius,
+      crownWidth: crownWidthValue,
+      crownHeight: crownHeightValue,
+    });
+  };
+
+  const isCrimsonTree =
+    mesh?.id === "crimson-tree" ||
+    mesh?.name === "CRIMSON TREE";
 
   return (
-    <div className="tg-mesh-edit-backdrop" role="dialog" aria-modal="true" aria-label="Mesh editor">
+    <div
+      className="tg-mesh-edit-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mesh editor"
+    >
       <div className="tg-mesh-edit-window">
+
         <div className="tg-mesh-edit-preview">
-          <div className="tg-mesh-edit-preview-title">{mesh?.name || "MESH"}</div>
-          <div className="tg-mesh-edit-placeholder">
-            <PreviewIcon kind={mesh?.kind} />
+          <div className="tg-mesh-edit-preview-title">
+            {mesh?.name || "MESH"}
           </div>
-          <div className="tg-mesh-gizmo" aria-hidden="true">
+
+          {isCrimsonTree ? (
+            <Canvas
+              camera={{
+                position: [9, 7, 12],
+                fov: 35,
+              }}
+              dpr={[1, 1.5]}
+              gl={{
+                antialias: true,
+                alpha: true,
+              }}
+            >
+              <color
+                attach="background"
+                args={["#111111"]}
+              />
+
+              <ambientLight intensity={1.8} />
+
+              <directionalLight
+                position={[5, 10, 6]}
+                intensity={3}
+              />
+
+              <directionalLight
+                position={[-4, 5, -2]}
+                intensity={1}
+              />
+
+              <group
+                position={[0, -4.8, 0]}
+              >
+                <CrimsonTreeModel
+                  trunkHeight={trunkHeightValue}
+                  trunkTopRadius={trunkTopRadius}
+                  trunkBottomRadius={trunkBottomRadius}
+                  crownWidth={crownWidthValue}
+                  crownHeight={crownHeightValue}
+                />
+              </group>
+
+              <gridHelper
+                args={[14, 14, "#303030", "#202020"]}
+                position={[0, -4.8, 0]}
+              />
+            </Canvas>
+          ) : (
+            <div className="tg-mesh-edit-placeholder">
+              <PreviewIcon kind={mesh?.kind} />
+            </div>
+          )}
+
+          <div
+            className="tg-mesh-gizmo"
+            aria-hidden="true"
+          >
             <span className="x" />
             <span className="y" />
             <span className="z" />
@@ -59,45 +182,123 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
         </div>
 
         <div className="tg-mesh-edit-controls">
-          {[
-            ["TRUNK SHAPE", trunkShape, setTrunkShape],
-            ["TRUNK SIZE", trunkSize, setTrunkSize],
-            ["LEAF SHAPE", leafShape, setLeafShape],
-            ["LEAF SIZE", leafSize, setLeafSize],
-          ].map(([label, value, setter]) => (
-            <label className="tg-mesh-edit-slider" key={label}>
-              <span>{label}</span>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={value}
-                onChange={(event) => setter(Number(event.target.value))}
-              />
-            </label>
-          ))}
 
-          <button type="button" className="tg-mesh-edit-action" onClick={() => window.dispatchEvent(new CustomEvent("tg-mesh-vertex-edit"))}>
+          <div className="tg-mesh-edit-section-label">
+            GEOMETRY
+          </div>
+
+          <label className="tg-mesh-edit-slider">
+            <span>
+              TRUNK HEIGHT
+              <strong>{trunkHeightValue.toFixed(2)}</strong>
+            </span>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={trunkHeight}
+              onChange={(event) =>
+                setTrunkHeight(
+                  Number(event.target.value)
+                )
+              }
+            />
+          </label>
+
+          <label className="tg-mesh-edit-slider">
+            <span>
+              TRUNK WIDTH
+              <strong>{trunkWidth}%</strong>
+            </span>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={trunkWidth}
+              onChange={(event) =>
+                setTrunkWidth(
+                  Number(event.target.value)
+                )
+              }
+            />
+          </label>
+
+          <label className="tg-mesh-edit-slider">
+            <span>
+              CROWN WIDTH
+              <strong>{crownWidth}%</strong>
+            </span>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={crownWidth}
+              onChange={(event) =>
+                setCrownWidth(
+                  Number(event.target.value)
+                )
+              }
+            />
+          </label>
+
+          <label className="tg-mesh-edit-slider">
+            <span>
+              CROWN HEIGHT
+              <strong>{crownHeight}%</strong>
+            </span>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={crownHeight}
+              onChange={(event) =>
+                setCrownHeight(
+                  Number(event.target.value)
+                )
+              }
+            />
+          </label>
+
+          <div className="tg-mesh-edit-divider" />
+
+          <button
+            type="button"
+            className="tg-mesh-edit-action"
+            disabled
+          >
             VERTEX EDIT
           </button>
-          <button type="button" className="tg-mesh-edit-action" onClick={() => window.dispatchEvent(new CustomEvent("tg-mesh-randomize"))}>
+
+          <button
+            type="button"
+            className="tg-mesh-edit-action"
+            disabled
+          >
             RANDOMIZE
-          </button>
-          <button type="button" className="tg-mesh-edit-action" onClick={() => window.dispatchEvent(new CustomEvent("tg-mesh-color-edit", { detail: { channel: "trunk" } }))}>
-            TRUNK COLOR
-          </button>
-          <button type="button" className="tg-mesh-edit-action" onClick={() => window.dispatchEvent(new CustomEvent("tg-mesh-color-edit", { detail: { channel: "leaf" } }))}>
-            LEAF COLOR
           </button>
 
           <div className="tg-mesh-edit-footer">
-            <button type="button" className="tg-mesh-save" onClick={() => onSave({ trunkShape, trunkSize, leafShape, leafSize })}>
+            <button
+              type="button"
+              className="tg-mesh-save"
+              onClick={handleSave}
+            >
               SAVE
             </button>
-            <button type="button" className="tg-mesh-cancel" onClick={onCancel}>
+
+            <button
+              type="button"
+              className="tg-mesh-cancel"
+              onClick={onCancel}
+            >
               CANCEL
             </button>
           </div>
+
         </div>
       </div>
     </div>
