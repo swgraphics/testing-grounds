@@ -4,6 +4,10 @@
 
 ### A real-time world-building sandbox for game creators.
 
+## 🚀 Try Testing Grounds
+
+[**Launch the live demo →**](https://testing-grounds-ten.vercel.app/)
+
 Testing Grounds is an experimental browser-based 3D platform designed to give game creators a place to **build, test, visualize, and iterate on ideas before committing them to a finished game.**
 
 Rather than functioning as a traditional game, Testing Grounds is being developed as a reusable creative framework — part editor, part sandbox, and part development laboratory.
