@@ -1,10 +1,10 @@
 // MeshPlacementSystem.jsx
 
 import { useEffect, useMemo, useState } from "react";
+import CrimsonTreeModel from "./CrimsonTreeModel";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-
 import { getTerrainHeightAt } from "./../../systems/terrain/terrainHeight";
 
 const raycaster = new THREE.Raycaster();
@@ -25,6 +25,44 @@ function cloneScene(scene) {
   });
 
   return clone;
+}
+function getCrimsonTreeSettings(settings = {}) {
+  const trunkShape = Number(settings.trunkShape ?? 50) / 100;
+  const trunkSize = Number(settings.trunkSize ?? 50) / 100;
+  const leafShape = Number(settings.leafShape ?? 50) / 100;
+  const leafSize = Number(settings.leafSize ?? 50) / 100;
+
+  return {
+    trunkHeight: THREE.MathUtils.lerp(
+      5.2,
+      7.4,
+      trunkSize
+    ),
+
+    trunkTopRadius: THREE.MathUtils.lerp(
+      0.06,
+      0.18,
+      trunkShape
+    ),
+
+    trunkBottomRadius: THREE.MathUtils.lerp(
+      0.20,
+      0.38,
+      trunkShape
+    ),
+
+    crownWidth: THREE.MathUtils.lerp(
+      0.72,
+      1.25,
+      leafSize
+    ),
+
+    crownHeight: THREE.MathUtils.lerp(
+      0.78,
+      1.28,
+      leafShape
+    ),
+  };
 }
 
 function findTerrainHit(ray) {
@@ -83,6 +121,7 @@ export default function MeshPlacementSystem() {
   const [placementMode, setPlacementMode] = useState(false);
   const [previewPosition, setPreviewPosition] = useState(null);
   const [loadedScene, setLoadedScene] = useState(null);
+  const [proceduralMesh, setProceduralMesh] = useState(null);
   const [placedMeshes, setPlacedMeshes] = useState([]);
 
   const loader = useMemo(() => new GLTFLoader(), []);
@@ -136,10 +175,18 @@ export default function MeshPlacementSystem() {
       setPlacementMode(true);
       setPreviewPosition(null);
 
-      if (mesh.file) {
-        loadMeshFile(mesh.file);
+      setLoadedScene(null);
+      setProceduralMesh(null);
+
+      if (mesh.source === "procedural") {
+        setProceduralMesh(mesh);
+        return;
       }
+
+      if (mesh.file) {
+       loadMeshFile(mesh.file);
     }
+  }
 
     function handleUploadRequest(event) {
       const file = event.detail?.file;
@@ -223,25 +270,46 @@ export default function MeshPlacementSystem() {
     }
 
     function handlePointerDown(event) {
-      if (!placementMode) return;
-      if (event.button !== 0) return;
-      if (!previewPosition) return;
-      if (!loadedScene) return;
+  if (!placementMode) return;
+  if (event.button !== 0) return;
+  if (!previewPosition) return;
 
-      event.preventDefault();
+  const hasLoadedScene = Boolean(loadedScene);
+  const hasProceduralMesh = Boolean(proceduralMesh);
 
-      const object = cloneScene(loadedScene);
+  if (!hasLoadedScene && !hasProceduralMesh) {
+    return;
+  }
 
-      object.position.copy(previewPosition);
+  event.preventDefault();
 
-      setPlacedMeshes((current) => [
-        ...current,
-        {
-          id: `placed-mesh-${Date.now()}-${current.length}`,
-          object,
-        },
-      ]);
-    }
+  if (hasLoadedScene) {
+    const object = cloneScene(loadedScene);
+
+    object.position.copy(previewPosition);
+
+    setPlacedMeshes((current) => [
+      ...current,
+      {
+        id: `placed-mesh-${Date.now()}-${current.length}`,
+        type: "scene",
+        object,
+      },
+    ]);
+
+    return;
+  }
+
+  setPlacedMeshes((current) => [
+    ...current,
+    {
+      id: `placed-mesh-${Date.now()}-${current.length}`,
+      type: "procedural",
+      mesh: proceduralMesh,
+      position: previewPosition.clone(),
+    },
+  ]);
+}
 
     function handleKeyDown(event) {
       if (event.key !== "Escape") return;
@@ -306,12 +374,13 @@ export default function MeshPlacementSystem() {
       );
     };
   }, [
-    camera,
-    gl,
-    placementMode,
-    previewPosition,
-    loadedScene,
-  ]);
+  camera,
+  gl,
+  placementMode,
+  previewPosition,
+  loadedScene,
+  proceduralMesh,
+]);
 
   // --------------------------------------------------
   // SMOOTH PLACEMENT PREVIEW
@@ -334,18 +403,56 @@ export default function MeshPlacementSystem() {
 
   return (
     <group>
-      {placementMode &&
-        loadedScene &&
-        previewPosition && (
-          <primitive object={loadedScene} />
+{placementMode &&
+  proceduralMesh &&
+  previewPosition && (
+    <group
+      position={[
+        previewPosition.x,
+        previewPosition.y,
+        previewPosition.z,
+      ]}
+    >
+      <CrimsonTreeModel
+        {...getCrimsonTreeSettings(
+          proceduralMesh.editSettings
         )}
+      />
+    </group>
+  )}
 
-      {placedMeshes.map((entry) => (
-        <primitive
-          key={entry.id}
-          object={entry.object}
-        />
-      ))}
+{placementMode &&
+  loadedScene &&
+  previewPosition && (
+    <primitive object={loadedScene} />
+  )}
+      {placedMeshes.map((entry) => {
+if (entry.type === "procedural") {
+  return (
+    <group
+      key={entry.id}
+      position={[
+        entry.position.x,
+        entry.position.y,
+        entry.position.z,
+      ]}
+    >
+      <CrimsonTreeModel
+        {...getCrimsonTreeSettings(
+          entry.mesh.editSettings
+        )}
+      />
+    </group>
+  );
+}
+
+  return (
+    <primitive
+      key={entry.id}
+      object={entry.object}
+    />
+  );
+})}
     </group>
   );
 }

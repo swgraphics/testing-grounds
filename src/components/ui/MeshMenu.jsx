@@ -1,45 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import CrimsonTreeModel from "../world/CrimsonTreeModel";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 import "./MeshMenu.css";
-import CrimsonTreeModel from "../world/CrimsonTreeModel";
+
 const BUILTIN_MESHES = [
   {
     id: "crimson-tree",
     name: "CRIMSON TREE",
     kind: "tree",
-    editable: true,
+    source: "procedural",
+    modelType: "crimson-tree",
   },
-  {
-    id: "taiga-tree",
-    name: "TAIGA TREE",
-    kind: "tree",
-  },
-  {
-    id: "palm-tree",
-    name: "PALM TREE",
-    kind: "tree",
-  },
-  {
-    id: "leafy-fern",
-    name: "LEAFY FERN",
-    kind: "foliage",
-  },
-  {
-    id: "stone-pillar",
-    name: "STONE PILLAR",
-    kind: "structure",
-  },
-  {
-    id: "cave-dome",
-    name: "CAVE DOME",
-    kind: "structure",
-  },
-  {
-    id: "castle-tower",
-    name: "CASTLE TOWER",
-    kind: "structure",
-  },
+  { id: "taiga-tree", name: "TAIGA TREE", kind: "tree" },
+  { id: "palm-tree", name: "PALM TREE", kind: "tree" },
+  { id: "leafy-fern", name: "LEAFY FERN", kind: "foliage" },
+  { id: "stone-pillar", name: "STONE PILLAR", kind: "structure" },
+  { id: "cave-dome", name: "CAVE DOME", kind: "structure" },
+  { id: "castle-tower", name: "CASTLE TOWER", kind: "structure" },
 ];
 
 function PreviewIcon({ kind = "structure" }) {
@@ -68,7 +46,44 @@ function PreviewIcon({ kind = "structure" }) {
 
   return <div className="tg-mesh-icon" aria-hidden="true" />;
 }
+function getCrimsonTreeSettings(settings = {}) {
+  const trunkShape = Number(settings.trunkShape ?? 50) / 100;
+  const trunkSize = Number(settings.trunkSize ?? 50) / 100;
+  const leafShape = Number(settings.leafShape ?? 50) / 100;
+  const leafSize = Number(settings.leafSize ?? 50) / 100;
 
+  return {
+    trunkHeight: THREE.MathUtils.lerp(
+      5.2,
+      7.4,
+      trunkSize
+    ),
+
+    trunkTopRadius: THREE.MathUtils.lerp(
+      0.06,
+      0.18,
+      trunkShape
+    ),
+
+    trunkBottomRadius: THREE.MathUtils.lerp(
+      0.20,
+      0.38,
+      trunkShape
+    ),
+
+    crownWidth: THREE.MathUtils.lerp(
+      0.72,
+      1.25,
+      leafSize
+    ),
+
+    crownHeight: THREE.MathUtils.lerp(
+      0.78,
+      1.28,
+      leafShape
+    ),
+  };
+}
 function MeshEditModal({ mesh, onSave, onCancel }) {
   const [trunkHeight, setTrunkHeight] = useState(50);
   const [trunkWidth, setTrunkWidth] = useState(50);
@@ -312,9 +327,22 @@ export default function MeshMenu() {
   const [editOpen, setEditOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [uploadedMeshes, setUploadedMeshes] = useState([]);
+  const [editedMeshes, setEditedMeshes] = useState({});
   const fileInputRef = useRef(null);
 
-  const meshes = useMemo(() => [...uploadedMeshes, ...BUILTIN_MESHES], [uploadedMeshes]);
+  const meshes = useMemo(
+  () =>
+    [
+      ...uploadedMeshes,
+      ...BUILTIN_MESHES,
+    ].map((mesh) => ({
+      ...mesh,
+      editSettings:
+        editedMeshes[mesh.id] ??
+        mesh.editSettings,
+    })),
+  [uploadedMeshes, editedMeshes]
+);;
   const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(meshes.length / pageSize));
   const visibleMeshes = meshes.slice(page * pageSize, page * pageSize + pageSize);
@@ -510,13 +538,27 @@ function addToScatter() {
     <MeshEditModal
       mesh={selectedMesh}
       onSave={(settings) => {
-        window.dispatchEvent(
-          new CustomEvent("tg-mesh-edit-save", {
-            detail: { mesh: selectedMesh, settings },
-          })
-        );
-        setEditOpen(false);
-      }}
+  const updatedMesh = {
+    ...selectedMesh,
+    editSettings: settings,
+  };
+
+  setEditedMeshes((current) => ({
+    ...current,
+    [selectedMesh.id]: settings,
+  }));
+
+  window.dispatchEvent(
+    new CustomEvent("tg-mesh-edit-save", {
+      detail: {
+        mesh: updatedMesh,
+        settings,
+      },
+    })
+  );
+
+  setEditOpen(false);
+}}
       onCancel={() => setEditOpen(false)}
     />
   )}
