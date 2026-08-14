@@ -26,45 +26,16 @@ function cloneScene(scene) {
 
   return clone;
 }
+
 function getCrimsonTreeSettings(settings = {}) {
-  const trunkShape = Number(settings.trunkShape ?? 50) / 100;
-  const trunkSize = Number(settings.trunkSize ?? 50) / 100;
-  const leafShape = Number(settings.leafShape ?? 50) / 100;
-  const leafSize = Number(settings.leafSize ?? 50) / 100;
-
   return {
-    trunkHeight: THREE.MathUtils.lerp(
-      5.2,
-      7.4,
-      trunkSize
-    ),
-
-    trunkTopRadius: THREE.MathUtils.lerp(
-      0.06,
-      0.18,
-      trunkShape
-    ),
-
-    trunkBottomRadius: THREE.MathUtils.lerp(
-      0.20,
-      0.38,
-      trunkShape
-    ),
-
-    crownWidth: THREE.MathUtils.lerp(
-      0.72,
-      1.25,
-      leafSize
-    ),
-
-    crownHeight: THREE.MathUtils.lerp(
-      0.78,
-      1.28,
-      leafShape
-    ),
+    trunkHeight: Number(settings.trunkHeight ?? 6.3),
+    trunkTopRadius: Number(settings.trunkTopRadius ?? 0.11),
+    trunkBottomRadius: Number(settings.trunkBottomRadius ?? 0.27),
+    crownWidth: Number(settings.crownWidth ?? 0.88),
+    crownHeight: Number(settings.crownHeight ?? 0.92),
   };
 }
-
 function findTerrainHit(ray) {
   const direction = ray.direction.clone();
 
@@ -200,6 +171,34 @@ export default function MeshPlacementSystem() {
       setPlacementMode(false);
       setPreviewPosition(null);
     }
+    function handleEditSave(event) {
+      const mesh = event.detail?.mesh;
+
+      if (!mesh) return;
+
+      setSelectedMesh(mesh);
+
+      if (mesh.source === "procedural") {
+        setProceduralMesh(mesh);
+        setLoadedScene(null);
+      }
+    }
+    function handleEditSave(event) {
+      const mesh = event.detail?.mesh;
+
+      if (!mesh) return;
+
+      setSelectedMesh(mesh);
+
+      if (mesh.source === "procedural") {
+        setProceduralMesh(mesh);
+      }
+    }
+
+    window.addEventListener(
+      "tg-mesh-edit-save",
+      handleEditSave
+    );
 
     window.addEventListener(
       "tg-mesh-selection-changed",
@@ -240,6 +239,11 @@ export default function MeshPlacementSystem() {
       window.removeEventListener(
         "tg-mesh-cancel-placement",
         handleCancelPlacement
+      );
+
+      window.removeEventListener(
+        "tg-mesh-edit-save",
+        handleEditSave
       );
     };
   }, [loader]);
@@ -420,31 +424,25 @@ export default function MeshPlacementSystem() {
       />
     </group>
   )}
-
-{placementMode &&
-  loadedScene &&
-  previewPosition && (
-    <primitive object={loadedScene} />
-  )}
-      {placedMeshes.map((entry) => {
-if (entry.type === "procedural") {
-  return (
-    <group
-      key={entry.id}
-      position={[
-        entry.position.x,
-        entry.position.y,
-        entry.position.z,
-      ]}
-    >
-      <CrimsonTreeModel
-        {...getCrimsonTreeSettings(
-          entry.mesh.editSettings
-        )}
-      />
-    </group>
-  );
-}
+{placedMeshes.map((entry) => {
+  if (entry.type === "procedural") {
+    return (
+      <group
+  key={entry.id}
+  position={[
+    entry.position.x,
+    entry.position.y,
+    entry.position.z,
+  ]}
+>
+  <CrimsonTreeModel
+    {...getCrimsonTreeSettings(
+      entry.mesh.editSettings
+    )}
+  />
+</group>
+    );
+  }
 
   return (
     <primitive
