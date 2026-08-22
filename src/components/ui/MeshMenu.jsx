@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import CrimsonTreeModel from "../world/CrimsonTreeModel";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
+import {
+  createCrimsonTreeDefinition,
+} from "../world/treeGenerator";
 import "./MeshMenu.css";
 
 const BUILTIN_MESHES = [
@@ -85,33 +88,55 @@ function getCrimsonTreeSettings(settings = {}) {
   };
 }
 function MeshEditModal({ mesh, onSave, onCancel }) {
-  const [trunkHeight, setTrunkHeight] = useState(50);
-  const [trunkWidth, setTrunkWidth] = useState(50);
-  const [crownWidth, setCrownWidth] = useState(50);
-  const [crownHeight, setCrownHeight] = useState(50);
+  const [trunkHeight, setTrunkHeight] = useState(
+    Number(mesh?.treeDefinition?.trunk?.height ?? 50)
+  );
 
-  const trunkHeightValue =
-    4.8 + (trunkHeight / 100) * 3.0;
+  const [trunkWidth, setTrunkWidth] = useState(
+    Number(mesh?.treeDefinition?.trunk?.radius ?? 50)
+  );
 
-  const trunkBottomRadius =
-    0.18 + (trunkWidth / 100) * 0.18;
+  const [crownWidth, setCrownWidth] = useState(
+    Number(mesh?.treeDefinition?.leaves?.size ?? 50)
+  );
 
-  const trunkTopRadius =
-    0.07 + (trunkWidth / 100) * 0.08;
+  const [crownHeight, setCrownHeight] = useState(
+    Number(mesh?.treeDefinition?.leaves?.clustering ?? 50)
+  );
 
-  const crownWidthValue =
-    0.72 + (crownWidth / 100) * 0.42;
+  const treeDefinition = useMemo(() => {
+    const baseDefinition =
+      mesh?.treeDefinition ??
+      createCrimsonTreeDefinition();
 
-  const crownHeightValue =
-    0.78 + (crownHeight / 100) * 0.42;
+    return {
+      ...baseDefinition,
+
+      trunk: {
+        ...baseDefinition.trunk,
+
+        height: trunkHeight,
+        radius: trunkWidth,
+      },
+
+      leaves: {
+        ...baseDefinition.leaves,
+
+        size: crownWidth,
+        clustering: crownHeight,
+      },
+    };
+  }, [
+    mesh?.treeDefinition,
+    trunkHeight,
+    trunkWidth,
+    crownWidth,
+    crownHeight,
+  ]);
 
   const handleSave = () => {
     onSave({
-      trunkHeight: trunkHeightValue,
-      trunkTopRadius,
-      trunkBottomRadius,
-      crownWidth: crownWidthValue,
-      crownHeight: crownHeightValue,
+      treeDefinition,
     });
   };
 
@@ -166,11 +191,7 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
                 position={[0, -4.8, 0]}
               >
                 <CrimsonTreeModel
-                  trunkHeight={trunkHeightValue}
-                  trunkTopRadius={trunkTopRadius}
-                  trunkBottomRadius={trunkBottomRadius}
-                  crownWidth={crownWidthValue}
-                  crownHeight={crownHeightValue}
+                  treeDefinition={treeDefinition}
                 />
               </group>
 
@@ -205,7 +226,7 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
           <label className="tg-mesh-edit-slider">
             <span>
               TRUNK HEIGHT
-              <strong>{trunkHeightValue.toFixed(2)}</strong>
+              <strong>{trunkHeight.toFixed(0)}%</strong>
             </span>
 
             <input
@@ -335,14 +356,22 @@ export default function MeshMenu() {
     [
       ...uploadedMeshes,
       ...BUILTIN_MESHES,
-    ].map((mesh) => ({
-      ...mesh,
-      editSettings:
-        editedMeshes[mesh.id] ??
-        mesh.editSettings,
-    })),
+    ].map((mesh) => {
+      const edited = editedMeshes[mesh.id];
+
+      return {
+        ...mesh,
+        editSettings:
+          edited ??
+          mesh.editSettings,
+
+        treeDefinition:
+          edited?.treeDefinition ??
+          mesh.treeDefinition,
+      };
+    }),
   [uploadedMeshes, editedMeshes]
-);;
+);
   const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(meshes.length / pageSize));
   const visibleMeshes = meshes.slice(page * pageSize, page * pageSize + pageSize);
@@ -537,10 +566,11 @@ function addToScatter() {
         {editOpen && selectedMesh && (
     <MeshEditModal
       mesh={selectedMesh}
-      onSave={(settings) => {
+    onSave={(settings) => {
   const updatedMesh = {
     ...selectedMesh,
     editSettings: settings,
+    treeDefinition: settings.treeDefinition,
   };
 
   setEditedMeshes((current) => ({
@@ -553,6 +583,7 @@ function addToScatter() {
       detail: {
         mesh: updatedMesh,
         settings,
+        treeDefinition: settings.treeDefinition,
       },
     })
   );

@@ -36,6 +36,17 @@ function getCrimsonTreeSettings(settings = {}) {
     crownHeight: Number(settings.crownHeight ?? 0.92),
   };
 }
+function getCrimsonTreeGeneratorSettings(mesh) {
+  if (!mesh?.treeDefinition) {
+    return getCrimsonTreeSettings(
+      mesh?.editSettings
+    );
+  }
+
+  return {
+    treeDefinition: mesh.treeDefinition,
+  };
+}
 function findTerrainHit(ray) {
   const direction = ray.direction.clone();
 
@@ -401,56 +412,57 @@ export default function MeshPlacementSystem() {
     );
   });
 
-  // --------------------------------------------------
-  // RENDER
-  // --------------------------------------------------
+// --------------------------------------------------
+// RENDER
+// --------------------------------------------------
 
-  return (
-    <group>
-{placementMode &&
-  proceduralMesh &&
-  previewPosition && (
-    <group
-      position={[
-        previewPosition.x,
-        previewPosition.y,
-        previewPosition.z,
-      ]}
-    >
-      <CrimsonTreeModel
-        {...getCrimsonTreeSettings(
-          proceduralMesh.editSettings
-        )}
-      />
-    </group>
-  )}
-{placedMeshes.map((entry) => {
-  if (entry.type === "procedural") {
-    return (
-      <group
-  key={entry.id}
-  position={[
-    entry.position.x,
-    entry.position.y,
-    entry.position.z,
-  ]}
->
-  <CrimsonTreeModel
-    {...getCrimsonTreeSettings(
-      entry.mesh.editSettings
-    )}
-  />
-</group>
-    );
-  }
+return (
+  <group>
+    {placementMode &&
+      proceduralMesh &&
+      previewPosition && (
+        <group
+          position={[
+            previewPosition.x,
+            previewPosition.y,
+            previewPosition.z,
+          ]}
+        >
+          <CrimsonTreeModel
+            {...getCrimsonTreeGeneratorSettings(
+              proceduralMesh
+            )}
+          />
+        </group>
+      )}
 
-  return (
-    <primitive
-      key={entry.id}
-      object={entry.object}
-    />
-  );
-})}
-    </group>
-  );
+    {placedMeshes.map((entry) => {
+      if (entry.type === "procedural") {
+        return (
+          <group
+            key={entry.id}
+            position={[
+              entry.position.x,
+              entry.position.y,
+              entry.position.z,
+            ]}
+          >
+            <CrimsonTreeModel
+              {...getCrimsonTreeGeneratorSettings(
+                entry.mesh
+              )}
+            />
+          </group>
+        );
+      }
+
+      return (
+        <primitive
+          key={entry.id}
+          object={entry.object}
+        />
+      );
+    })}
+  </group>
+);
 }

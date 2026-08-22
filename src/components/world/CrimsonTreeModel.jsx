@@ -1,6 +1,12 @@
 import { useMemo } from "react";
 import * as THREE from "three";
+import {
+  createProceduralTrunkGeometry,
+} from "./treeGeometry";
 
+import {
+  createProceduralBranchGeometry,
+} from "./treeBranches";
 /*
  * Testing Grounds
  * Crimson Tree — reusable visual model
@@ -124,6 +130,8 @@ export default function CrimsonTreeModel({
   windPhase = 0,
   crownRef,
 
+  treeDefinition,
+
   trunkHeight = 6.3,
   trunkTopRadius = 0.11,
   trunkBottomRadius = 0.27,
@@ -150,13 +158,43 @@ export default function CrimsonTreeModel({
     [crownGeometry]
   );
 
-  const resolvedCrownWidth =
-    crownWidth ??
-    0.88 + variant * 0.26;
+  const proceduralTrunkGeometry = useMemo(
+  () =>
+    createProceduralTrunkGeometry(
+      treeDefinition?.trunk
+    ),
+  [treeDefinition]
+);
+const proceduralTrunkTop =
+  proceduralTrunkGeometry?.boundingBox?.max.y ??
+  trunkHeight;
+const proceduralBranchGeometry = useMemo(
+  () =>
+    createProceduralBranchGeometry(
+      treeDefinition?.trunk,
+      treeDefinition?.branches,
+      treeDefinition?.seed ?? 1
+    ),
+  [
+    treeDefinition?.trunk,
+    treeDefinition?.branches,
+    treeDefinition?.seed,
+  ]
+);
+  const generatorLeaves =
+  treeDefinition?.leaves;
 
-  const resolvedCrownHeight =
-    crownHeight ??
-    0.92 + (1 - variant) * 0.18;
+const resolvedCrownWidth =
+  generatorLeaves?.size != null
+    ? 0.72 + (generatorLeaves.size / 100) * 0.42
+    : crownWidth ??
+      0.88 + variant * 0.26;
+
+const resolvedCrownHeight =
+  generatorLeaves?.clustering != null
+    ? 0.78 + (generatorLeaves.clustering / 100) * 0.42
+    : crownHeight ??
+      0.92 + (1 - variant) * 0.18;
 
   const trunkLean =
     (variant - 0.5) * 0.045;
@@ -176,39 +214,33 @@ export default function CrimsonTreeModel({
         }}
       >
         <mesh
-          position={[
-            0,
-            trunkHeight / 2,
-            0,
-          ]}
-          rotation={[
-            trunkLean,
-            0,
-            trunkLean * 0.65,
-          ]}
-          castShadow
-          receiveShadow
-        >
-          <cylinderGeometry
-            args={[
-              trunkTopRadius,
-              trunkBottomRadius,
-              trunkHeight,
-              6,
-            ]}
-          />
-
-          <meshStandardMaterial
-            color={trunkColor}
-            roughness={0.96}
-            metalness={0}
-          />
-        </mesh>
-
+  geometry={proceduralTrunkGeometry}
+  castShadow
+  receiveShadow
+>
+  <meshStandardMaterial
+    color={trunkColor}
+    roughness={0.96}
+    metalness={0}
+  />
+</mesh>
+{proceduralBranchGeometry?.attributes?.position && (
+  <mesh
+    geometry={proceduralBranchGeometry}
+    castShadow
+    receiveShadow
+  >
+    <meshStandardMaterial
+      color={trunkColor}
+      roughness={0.96}
+      metalness={0}
+    />
+  </mesh>
+)}
         <group
           position={[
             0,
-            trunkHeight + 0.9,
+            proceduralTrunkTop + 0.9,
             0,
           ]}
           scale={[
