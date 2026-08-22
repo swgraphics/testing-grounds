@@ -88,48 +88,95 @@ function getCrimsonTreeSettings(settings = {}) {
   };
 }
 function MeshEditModal({ mesh, onSave, onCancel }) {
+  const baseDefinition = useMemo(
+    () =>
+      mesh?.treeDefinition ??
+      createCrimsonTreeDefinition(),
+    [mesh?.treeDefinition]
+  );
+
   const [trunkHeight, setTrunkHeight] = useState(
-    Number(mesh?.treeDefinition?.trunk?.height ?? 50)
+    Number(baseDefinition.trunk?.height ?? 50)
   );
 
   const [trunkWidth, setTrunkWidth] = useState(
-    Number(mesh?.treeDefinition?.trunk?.radius ?? 50)
+    Number(baseDefinition.trunk?.radius ?? 50)
   );
 
   const [crownWidth, setCrownWidth] = useState(
-    Number(mesh?.treeDefinition?.leaves?.size ?? 50)
+    Number(baseDefinition.leaves?.size ?? 50)
   );
 
   const [crownHeight, setCrownHeight] = useState(
-    Number(mesh?.treeDefinition?.leaves?.clustering ?? 50)
+    Number(baseDefinition.leaves?.clustering ?? 50)
+  );
+
+  const [branchCount, setBranchCount] = useState(
+    Number(baseDefinition.branches?.count ?? 50)
+  );
+
+  const [branchAngle, setBranchAngle] = useState(
+    Number(baseDefinition.branches?.angle ?? 50)
+  );
+
+  const [branchLength, setBranchLength] = useState(
+    Number(baseDefinition.branches?.length ?? 50)
+  );
+
+  const [branchThickness, setBranchThickness] = useState(
+    Number(baseDefinition.branches?.thickness ?? 50)
+  );
+
+  const [branchFrequency, setBranchFrequency] = useState(
+    Number(baseDefinition.branches?.frequency ?? 50)
+  );
+
+  const [branchVerticality, setBranchVerticality] = useState(
+    Number(baseDefinition.branches?.verticality ?? 50)
+  );
+
+  const [branchRandomness, setBranchRandomness] = useState(
+    Number(baseDefinition.branches?.randomness ?? 50)
   );
 
   const treeDefinition = useMemo(() => {
-    const baseDefinition =
-      mesh?.treeDefinition ??
-      createCrimsonTreeDefinition();
-
     return {
       ...baseDefinition,
 
       trunk: {
         ...baseDefinition.trunk,
-
         height: trunkHeight,
         radius: trunkWidth,
       },
 
+      branches: {
+        ...baseDefinition.branches,
+        count: branchCount,
+        angle: branchAngle,
+        length: branchLength,
+        thickness: branchThickness,
+        frequency: branchFrequency,
+        verticality: branchVerticality,
+        randomness: branchRandomness,
+      },
+
       leaves: {
         ...baseDefinition.leaves,
-
         size: crownWidth,
         clustering: crownHeight,
       },
     };
   }, [
-    mesh?.treeDefinition,
+    baseDefinition,
     trunkHeight,
     trunkWidth,
+    branchCount,
+    branchAngle,
+    branchLength,
+    branchThickness,
+    branchFrequency,
+    branchVerticality,
+    branchRandomness,
     crownWidth,
     crownHeight,
   ]);
@@ -143,6 +190,34 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
   const isCrimsonTree =
     mesh?.id === "crimson-tree" ||
     mesh?.name === "CRIMSON TREE";
+
+  const renderSlider = (
+    label,
+    value,
+    setter
+  ) => (
+    <label
+      className="tg-mesh-edit-slider"
+      key={label}
+    >
+      <span>
+        {label}
+        <strong>{value}%</strong>
+      </span>
+
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={value}
+        onChange={(event) =>
+          setter(
+            Number(event.target.value)
+          )
+        }
+      />
+    </label>
+  );
 
   return (
     <div
@@ -196,13 +271,20 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
               </group>
 
               <gridHelper
-                args={[14, 14, "#303030", "#202020"]}
+                args={[
+                  14,
+                  14,
+                  "#303030",
+                  "#202020",
+                ]}
                 position={[0, -4.8, 0]}
               />
             </Canvas>
           ) : (
             <div className="tg-mesh-edit-placeholder">
-              <PreviewIcon kind={mesh?.kind} />
+              <PreviewIcon
+                kind={mesh?.kind}
+              />
             </div>
           )}
 
@@ -220,84 +302,82 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
         <div className="tg-mesh-edit-controls">
 
           <div className="tg-mesh-edit-section-label">
-            GEOMETRY
+            TRUNK
           </div>
 
-          <label className="tg-mesh-edit-slider">
-            <span>
-              TRUNK HEIGHT
-              <strong>{trunkHeight.toFixed(0)}%</strong>
-            </span>
+          {renderSlider(
+            "TRUNK HEIGHT",
+            trunkHeight,
+            setTrunkHeight
+          )}
 
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={trunkHeight}
-              onChange={(event) =>
-                setTrunkHeight(
-                  Number(event.target.value)
-                )
-              }
-            />
-          </label>
+          {renderSlider(
+            "TRUNK WIDTH",
+            trunkWidth,
+            setTrunkWidth
+          )}
 
-          <label className="tg-mesh-edit-slider">
-            <span>
-              TRUNK WIDTH
-              <strong>{trunkWidth}%</strong>
-            </span>
+          <div className="tg-mesh-edit-section-label">
+            BRANCHES
+          </div>
 
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={trunkWidth}
-              onChange={(event) =>
-                setTrunkWidth(
-                  Number(event.target.value)
-                )
-              }
-            />
-          </label>
+          {renderSlider(
+            "BRANCH COUNT",
+            branchCount,
+            setBranchCount
+          )}
 
-          <label className="tg-mesh-edit-slider">
-            <span>
-              CROWN WIDTH
-              <strong>{crownWidth}%</strong>
-            </span>
+          {renderSlider(
+            "BRANCH ANGLE",
+            branchAngle,
+            setBranchAngle
+          )}
 
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={crownWidth}
-              onChange={(event) =>
-                setCrownWidth(
-                  Number(event.target.value)
-                )
-              }
-            />
-          </label>
+          {renderSlider(
+            "BRANCH LENGTH",
+            branchLength,
+            setBranchLength
+          )}
 
-          <label className="tg-mesh-edit-slider">
-            <span>
-              CROWN HEIGHT
-              <strong>{crownHeight}%</strong>
-            </span>
+          {renderSlider(
+            "BRANCH THICKNESS",
+            branchThickness,
+            setBranchThickness
+          )}
 
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={crownHeight}
-              onChange={(event) =>
-                setCrownHeight(
-                  Number(event.target.value)
-                )
-              }
-            />
-          </label>
+          {renderSlider(
+            "BRANCH FREQUENCY",
+            branchFrequency,
+            setBranchFrequency
+          )}
+
+          {renderSlider(
+            "BRANCH VERTICALITY",
+            branchVerticality,
+            setBranchVerticality
+          )}
+
+          {renderSlider(
+            "BRANCH RANDOMNESS",
+            branchRandomness,
+            setBranchRandomness
+          )}
+
+          <div className="tg-mesh-edit-section-label">
+            CANOPY
+          </div>
+
+          {renderSlider(
+            "CROWN WIDTH",
+            crownWidth,
+            setCrownWidth
+          )}
+
+          {renderSlider(
+            "CROWN HEIGHT",
+            crownHeight,
+            setCrownHeight
+          )}
 
           <div className="tg-mesh-edit-divider" />
 
