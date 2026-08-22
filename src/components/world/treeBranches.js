@@ -4,18 +4,19 @@ import * as THREE from "three";
 
 /*
  * Testing Grounds
- * Tree Generator — primary branch geometry
+ * Tree Generator — primary branch system
  *
  * This file defines HOW primary branches are generated.
  *
- * It consumes the Tree Generator definition but does not
- * own the definition itself.
+ * Branch data is generated separately from geometry so the
+ * same branch structure can eventually drive:
  *
- * Future systems:
- * - secondary branches
- * - branch manipulation
+ * - branch geometry
+ * - canopy placement
  * - leaf attachment
  * - natural cursor editing
+ * - controller editing
+ * - future secondary branches
  */
 
 function clamp01(value) {
@@ -34,16 +35,28 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-export function createProceduralBranchGeometry(
+/*
+ * Generate the structural data for the primary branches.
+ *
+ * This does NOT create Three.js geometry.
+ *
+ * Each branch contains:
+ *
+ * - index
+ * - normalized trunk position
+ * - origin
+ * - end
+ * - direction
+ * - thickness
+ * - length
+ */
+export function createProceduralBranchData(
   trunkDefinition,
   branchDefinition,
   seed = 1
 ) {
-  const geometry =
-    new THREE.BufferGeometry();
-
   if (!branchDefinition) {
-    return geometry;
+    return [];
   }
 
   const count = Math.max(
@@ -54,7 +67,7 @@ export function createProceduralBranchGeometry(
   );
 
   if (count === 0) {
-    return geometry;
+    return [];
   }
 
   const segmentation = Math.max(
@@ -63,11 +76,6 @@ export function createProceduralBranchGeometry(
       trunkDefinition?.segmentation ?? 50
     )
   );
-
-  const positions = [];
-  const indices = [];
-
-  const sides = 6;
 
   const height =
     lerp(
@@ -141,15 +149,13 @@ export function createProceduralBranchGeometry(
         100
     );
 
-  /*
-   * Keep branches away from the extreme
-   * bottom and top of the trunk.
-   */
   const usableSegments =
     Math.max(
       1,
       segmentation - 2
     );
+
+  const branches = [];
 
   for (
     let branchIndex = 0;
@@ -162,12 +168,6 @@ export function createProceduralBranchGeometry(
         : branchIndex /
           (count - 1);
 
-    /*
-     * Frequency biases branches toward
-     * different portions of the trunk.
-     *
-     * 50 = relatively even distribution.
-     */
     const frequencyBias =
       Math.pow(
         normalizedIndex,
@@ -201,9 +201,6 @@ export function createProceduralBranchGeometry(
     const y =
       trunkT * height;
 
-    /*
-     * Spread branches around the trunk.
-     */
     const baseAngle =
       (branchIndex /
         count) *
@@ -224,15 +221,6 @@ export function createProceduralBranchGeometry(
       baseAngle +
       randomAngle;
 
-    /*
-     * Branch direction.
-     *
-     * branchAngle controls the outward
-     * component.
-     *
-     * verticality controls whether the
-     * branch rises or falls.
-     */
     const horizontal =
       Math.sin(
         branchAngle
@@ -284,152 +272,206 @@ export function createProceduralBranchGeometry(
             )
         );
 
-    /*
-     * Build a simple tapered cylinder
-     * between origin and end.
-     */
-    const axis =
-      end
-        .clone()
-        .sub(origin)
-        .normalize();
+    branches.push({
+      index: branchIndex,
 
-    const reference =
-      Math.abs(
-        axis.y
-      ) > 0.9
-        ? new THREE.Vector3(
-            1,
-            0,
-            0
-          )
-        : new THREE.Vector3(
-            0,
-            1,
-            0
-          );
+      trunkT,
 
-    const sideA =
-      new THREE.Vector3()
-        .crossVectors(
-          axis,
-          reference
-        )
-        .normalize();
+      origin,
+      end,
 
-    const sideB =
-      new THREE.Vector3()
-        .crossVectors(
-          axis,
-          sideA
-        )
-        .normalize();
+      direction,
 
-    const baseIndex =
-      positions.length /
-      3;
+      length: branchLength,
 
-    for (
-      let sideIndex = 0;
-      sideIndex < sides;
-      sideIndex += 1
-    ) {
-      const angleAround =
-        (sideIndex /
-          sides) *
-        Math.PI *
-        2;
+      thickness:
+        branchThickness,
 
-      const radial =
-        sideA
-          .clone()
-          .multiplyScalar(
-            Math.cos(
-              angleAround
-            )
-          )
-          .add(
-            sideB
-              .clone()
-              .multiplyScalar(
-                Math.sin(
-                  angleAround
-                )
-              )
-          );
+      localRadius,
+    });
+  }
 
-      const basePoint =
-        origin
-          .clone()
-          .add(
-            radial
-              .clone()
-              .multiplyScalar(
-                branchThickness +
-                  localRadius *
-                    0.08
-              )
-          );
+  return branches;
+}
 
-      const tipPoint =
+/*
+ * Convert the reusable branch data into render geometry.
+ */
+export function createProceduralBranchGeometry(
+  trunkDefinition,
+  branchDefinition,
+  seed = 1
+) {
+  const geometry =
+    new THREE.BufferGeometry();
+
+  const branches =
+    createProceduralBranchData(
+      trunkDefinition,
+      branchDefinition,
+      seed
+    );
+
+  if (
+    branches.length === 0
+  ) {
+    return geometry;
+  }
+
+  const positions = [];
+  const indices = [];
+
+  const sides = 6;
+
+  branches.forEach(
+    (branch) => {
+      const {
+        origin,
+        end,
+        thickness,
+        localRadius,
+      } = branch;
+
+      const axis =
         end
           .clone()
-          .add(
-            radial
-              .clone()
-              .multiplyScalar(
-                branchThickness *
-                  0.45
+          .sub(origin)
+          .normalize();
+
+      const reference =
+        Math.abs(axis.y) > 0.9
+          ? new THREE.Vector3(
+              1,
+              0,
+              0
+            )
+          : new THREE.Vector3(
+              0,
+              1,
+              0
+            );
+
+      const sideA =
+        new THREE.Vector3()
+          .crossVectors(
+            axis,
+            reference
+          )
+          .normalize();
+
+      const sideB =
+        new THREE.Vector3()
+          .crossVectors(
+            axis,
+            sideA
+          )
+          .normalize();
+
+      const baseIndex =
+        positions.length / 3;
+
+      for (
+        let sideIndex = 0;
+        sideIndex < sides;
+        sideIndex += 1
+      ) {
+        const angleAround =
+          (sideIndex /
+            sides) *
+          Math.PI *
+          2;
+
+        const radial =
+          sideA
+            .clone()
+            .multiplyScalar(
+              Math.cos(
+                angleAround
               )
-          );
+            )
+            .add(
+              sideB
+                .clone()
+                .multiplyScalar(
+                  Math.sin(
+                    angleAround
+                  )
+                )
+            );
 
-      positions.push(
-        basePoint.x,
-        basePoint.y,
-        basePoint.z,
+        const basePoint =
+          origin
+            .clone()
+            .add(
+              radial
+                .clone()
+                .multiplyScalar(
+                  thickness +
+                    localRadius *
+                      0.08
+                )
+            );
 
-        tipPoint.x,
-        tipPoint.y,
-        tipPoint.z
-      );
+        const tipPoint =
+          end
+            .clone()
+            .add(
+              radial
+                .clone()
+                .multiplyScalar(
+                  thickness *
+                    0.45
+                )
+            );
+
+        positions.push(
+          basePoint.x,
+          basePoint.y,
+          basePoint.z,
+
+          tipPoint.x,
+          tipPoint.y,
+          tipPoint.z
+        );
+      }
+
+      for (
+        let sideIndex = 0;
+        sideIndex < sides;
+        sideIndex += 1
+      ) {
+        const next =
+          (sideIndex + 1) %
+          sides;
+
+        const current =
+          baseIndex +
+          sideIndex * 2;
+
+        const currentTip =
+          current + 1;
+
+        const nextBase =
+          baseIndex +
+          next * 2;
+
+        const nextTip =
+          nextBase + 1;
+
+        indices.push(
+          current,
+          nextBase,
+          currentTip
+        );
+
+        indices.push(
+          currentTip,
+          nextBase,
+          nextTip
+        );
+      }
     }
-
-    for (
-      let sideIndex = 0;
-      sideIndex < sides;
-      sideIndex += 1
-    ) {
-      const next =
-        (sideIndex + 1) %
-        sides;
-
-      const current =
-        baseIndex +
-        sideIndex * 2;
-
-      const currentTip =
-        current + 1;
-
-      const nextBase =
-        baseIndex +
-        next * 2;
-
-      const nextTip =
-        nextBase + 1;
-
-      indices.push(
-        current,
-        nextBase,
-        currentTip
-      );
-
-      indices.push(
-        currentTip,
-        nextBase,
-        nextTip
-      );
-    }
-  }
+  );
 
   geometry.setAttribute(
     "position",

@@ -111,6 +111,13 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     Number(baseDefinition.leaves?.clustering ?? 50)
   );
 
+  const [rotation, setRotation] = useState(
+    Number(mesh?.transform?.rotation ?? 0)
+  );
+
+  const [scale, setScale] = useState(
+    Number(mesh?.transform?.scale ?? 50)
+  );
   const [branchCount, setBranchCount] = useState(
     Number(baseDefinition.branches?.count ?? 50)
   );
@@ -180,10 +187,18 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     crownWidth,
     crownHeight,
   ]);
-
+  
+  const resolvedScale =
+    0.65 +
+    (scale / 100) * 0.70;
+  
   const handleSave = () => {
     onSave({
       treeDefinition,
+      transform: {
+        rotation,
+        scale: resolvedScale,
+      },
     });
   };
 
@@ -264,11 +279,17 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
 
               <group
                 position={[0, -4.8, 0]}
-              >
-                <CrimsonTreeModel
-                  treeDefinition={treeDefinition}
-                />
-              </group>
+                rotation={[
+                  0,
+                  THREE.MathUtils.degToRad(rotation),
+                  0,
+              ]}
+              scale={resolvedScale}
+>
+  <CrimsonTreeModel
+    treeDefinition={treeDefinition}
+  />
+</group>
 
               <gridHelper
                 args={[
@@ -378,7 +399,47 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
             crownHeight,
             setCrownHeight
           )}
+<div className="tg-mesh-edit-section-label">
+  TRANSFORM
+</div>
 
+<label className="tg-mesh-edit-slider">
+  <span>
+    ROTATION
+    <strong>{rotation}°</strong>
+  </span>
+
+  <input
+    type="range"
+    min="0"
+    max="360"
+    value={rotation}
+    onChange={(event) =>
+      setRotation(
+        Number(event.target.value)
+      )
+    }
+  />
+</label>
+
+<label className="tg-mesh-edit-slider">
+  <span>
+    SCALE
+    <strong>{scale}%</strong>
+  </span>
+
+  <input
+    type="range"
+    min="0"
+    max="100"
+    value={scale}
+    onChange={(event) =>
+      setScale(
+        Number(event.target.value)
+      )
+    }
+  />
+</label>
           <div className="tg-mesh-edit-divider" />
 
           <button

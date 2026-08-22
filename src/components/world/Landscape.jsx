@@ -291,14 +291,15 @@ function CrimsonTree({
     (variant - 0.5) * 0.045;
 
   const treeVisual = (
-    <CrimsonTreeModel
-      scale={scale}
-      rotation={rotation}
-      variant={variant}
-      windPhase={windPhase}
-      crownRef={crownRef}
-    />
-  );
+  <CrimsonTreeModel
+    scale={scale}
+    rotation={rotation}
+    variant={variant}
+    windPhase={windPhase}
+    crownRef={crownRef}
+    legacyCrown
+  />
+);
 
   if (!collisionEnabled) {
     return (

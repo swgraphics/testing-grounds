@@ -144,9 +144,9 @@ export function createCrimsonTreeDefinition() {
 
     leaves: {
       shape: "cluster",
-      size: 50,
-      density: 50,
-      clustering: 50,
+      size: 100,
+      density: 85,
+      clustering: 85,
       color: "#080808",
       distribution: 50,
     },

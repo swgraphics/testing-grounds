@@ -6,7 +6,12 @@ import {
 
 import {
   createProceduralBranchGeometry,
+  createProceduralBranchData,
 } from "./treeBranches";
+import {
+  createProceduralCanopyData,
+  createProceduralCanopyGeometry,
+} from "./treeCanopy";
 /*
  * Testing Grounds
  * Crimson Tree — reusable visual model
@@ -129,6 +134,7 @@ export default function CrimsonTreeModel({
   variant = 0.5,
   windPhase = 0,
   crownRef,
+  legacyCrown = false,
 
   treeDefinition,
 
@@ -180,6 +186,44 @@ const proceduralBranchGeometry = useMemo(
     treeDefinition?.branches,
     treeDefinition?.seed,
   ]
+);
+const proceduralBranchData = useMemo(
+  () =>
+    createProceduralBranchData(
+      treeDefinition?.trunk,
+      treeDefinition?.branches,
+      treeDefinition?.seed ?? 1
+    ),
+  [
+    treeDefinition?.trunk,
+    treeDefinition?.branches,
+    treeDefinition?.seed,
+  ]
+);
+const proceduralCanopyData = useMemo(
+  () =>
+    createProceduralCanopyData(
+      proceduralBranchData,
+      treeDefinition?.trunk,
+      treeDefinition?.branches,
+      treeDefinition?.leaves,
+      treeDefinition?.seed ?? 1
+    ),
+  [
+    proceduralBranchData,
+    treeDefinition?.trunk,
+    treeDefinition?.branches,
+    treeDefinition?.leaves,
+    treeDefinition?.seed,
+  ]
+);
+
+const proceduralCanopyGeometry = useMemo(
+  () =>
+    createProceduralCanopyGeometry(
+      proceduralCanopyData
+    ),
+  [proceduralCanopyData]
 );
   const generatorLeaves =
   treeDefinition?.leaves;
@@ -237,53 +281,68 @@ const resolvedCrownHeight =
     />
   </mesh>
 )}
-        <group
-          position={[
-            0,
-            proceduralTrunkTop + 0.9,
-            0,
-          ]}
-          scale={[
-            resolvedCrownWidth,
-            resolvedCrownHeight,
-            1.02 -
-              variant * 0.12,
-          ]}
-          rotation={[
-            0,
-            variant *
-              Math.PI *
-              0.7,
-            0,
-          ]}
-        >
-          <mesh
-            geometry={crownGeometry}
-            castShadow
-            receiveShadow
-          >
-            <meshStandardMaterial
-              color={crownColor}
-              emissive={crownEmissive}
-              emissiveIntensity={0.3}
-              roughness={0.92}
-              metalness={0}
-              flatShading
-            />
-          </mesh>
+        {proceduralCanopyGeometry?.attributes?.position && (
+  <mesh
+    geometry={proceduralCanopyGeometry}
+    castShadow
+    receiveShadow
+  >
+    <meshStandardMaterial
+      color={crownColor}
+      emissive={crownEmissive}
+      emissiveIntensity={0.3}
+      roughness={0.92}
+      metalness={0}
+      flatShading
+    />
+  </mesh>
+)}
+{legacyCrown && (
+  <group
+    position={[
+      0,
+      proceduralTrunkTop + 0.9,
+      0,
+    ]}
+    scale={[
+      resolvedCrownWidth,
+      resolvedCrownHeight,
+      1.02 - variant * 0.12,
+    ]}
+    rotation={[
+      0,
+      variant * Math.PI * 0.7,
+      0,
+    ]}
+  >
+    <mesh
+      geometry={crownGeometry}
+      castShadow
+      receiveShadow
+    >
+      <meshStandardMaterial
+        color={crownColor}
+        emissive={crownEmissive}
+        emissiveIntensity={0.3}
+        roughness={0.92}
+        metalness={0}
+        flatShading
+      />
+    </mesh>
 
-          <lineSegments
-            geometry={crownEdges}
-            scale={1.006}
-          >
-            <lineBasicMaterial
-              color={outlineColor}
-              transparent
-              opacity={0.82}
-              depthWrite={false}
-            />
-          </lineSegments>
-        </group>
+    <lineSegments
+      geometry={crownEdges}
+      scale={1.006}
+    >
+      <lineBasicMaterial
+        color={outlineColor}
+        transparent
+        opacity={0.82}
+        depthWrite={false}
+      />
+    </lineSegments>
+  </group>
+)}
       </group>
     </group>
   );
