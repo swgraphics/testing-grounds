@@ -294,6 +294,7 @@ const resolvedCrownHeight =
       roughness={0.92}
       metalness={0}
       flatShading
+      side={THREE.DoubleSide}
     />
   </mesh>
 )}
@@ -327,6 +328,7 @@ const resolvedCrownHeight =
         roughness={0.92}
         metalness={0}
         flatShading
+        side={THREE.DoubleSide}
       />
     </mesh>
 

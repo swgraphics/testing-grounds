@@ -97,15 +97,15 @@ export function createProceduralBranchData(
       )
     );
 
-  const branchLength =
-    lerp(
-      0.7,
-      3.8,
-      clamp01(
-        (branchDefinition.length ?? 50) /
-          100
-      )
-    );
+  const baseBranchLength =
+  lerp(
+    0.7,
+    3.8,
+    clamp01(
+      (branchDefinition.length ?? 50) /
+        100
+    )
+  );
 
   const branchThickness =
     lerp(
@@ -169,57 +169,105 @@ export function createProceduralBranchData(
           (count - 1);
 
     const frequencyBias =
-      Math.pow(
-        normalizedIndex,
-        lerp(
-          0.6,
-          1.8,
-          branchFrequency
-        )
-      );
+  Math.pow(
+    normalizedIndex,
+    lerp(
+      0.6,
+      1.35,
+      branchFrequency
+    )
+  );
 
-    const segmentFloat =
-      1 +
-      frequencyBias *
-        usableSegments;
+    const minimumBranchT = 0.25;
+const upperBranchThreshold = 0.75;
 
-    const segmentIndex =
-      Math.min(
-        segmentation - 2,
-        Math.max(
-          1,
-          Math.floor(
-            segmentFloat
-          )
-        )
-      );
+const distributionT =
+  minimumBranchT +
+  frequencyBias *
+    (1 - minimumBranchT);
 
-    const trunkT =
-      segmentIndex /
-      (segmentation - 1);
+const trunkT =
+  Math.min(
+    0.95,
+    Math.max(
+      minimumBranchT,
+      distributionT
+    )
+  );
 
-    const y =
-      trunkT * height;
+const segmentFloat =
+  trunkT *
+  (segmentation - 1);
 
+const segmentIndex =
+  Math.min(
+    segmentation - 2,
+    Math.max(
+      1,
+      Math.floor(
+        segmentFloat
+      )
+    )
+  );
+
+const resolvedTrunkT =
+  Math.max(
+    minimumBranchT,
+    segmentIndex /
+      (segmentation - 1)
+  );
+
+const y =
+  resolvedTrunkT *
+  height;
+const upperZone =
+  resolvedTrunkT >=
+  upperBranchThreshold;
+
+const upperZoneProgress =
+  upperZone
+    ? clamp01(
+        (resolvedTrunkT -
+          upperBranchThreshold) /
+          (1 -
+            upperBranchThreshold)
+      )
+    : 0;
+
+const branchLength =
+  upperZone
+    ? baseBranchLength *
+      lerp(
+        0.55,
+        0.28,
+        upperZoneProgress
+      )
+    : baseBranchLength;
     const baseAngle =
-      (branchIndex /
-        count) *
-        Math.PI *
-        2;
+  seededRandom(
+    seed +
+      branchIndex *
+        17.31
+  ) *
+  Math.PI *
+  2;
 
-    const randomAngle =
-      (seededRandom(
-        seed +
-          branchIndex *
-            17.31
-      ) -
-        0.5) *
-      randomness *
-      0.9;
+const angleVariation =
+  (
+    seededRandom(
+      seed +
+        branchIndex *
+          31.73 +
+        7.19
+    ) -
+    0.5
+  ) *
+  randomness *
+  0.9;
 
-    const angle =
-      baseAngle +
-      randomAngle;
+const angle =
+  baseAngle +
+  angleVariation;
 
     const horizontal =
       Math.sin(

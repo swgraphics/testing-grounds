@@ -43,123 +43,45 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-/*
- * Creates one low-poly foliage cluster.
- *
- * The cluster is intentionally simple at this stage.
- * The important part is its position and relationship
- * to the generated branches.
- */
-function createClusterGeometry(
-  sides = 7,
-  rings = 4
-) {
-  const positions = [];
+function createLeafPolygonGeometry() {
+  /*
+   * Canonical foliage shape.
+   *
+   * This remains a single flat polygon.
+   * Every foliage instance is generated from
+   * this same underlying shape.
+   *
+   * The vertices are intentionally explicit so
+   * the eventual natural-editing system can
+   * manipulate the shape directly.
+   */
+
+  const positions = [
+     0.00,  0.00,  0.00,
+     0.42,  0.12,  0.00,
+     0.78,  0.38,  0.00,
+     0.48,  0.82,  0.00,
+     0.05,  1.00,  0.00,
+    -0.38,  0.72,  0.00,
+    -0.58,  0.28,  0.00,
+    -0.32, -0.08,  0.00,
+  ];
+
   const indices = [];
 
+  /*
+   * Fan triangulation around the first vertex.
+   */
   for (
-    let ringIndex = 0;
-    ringIndex < rings;
-    ringIndex += 1
+    let i = 1;
+    i < positions.length / 3 - 1;
+    i += 1
   ) {
-    const t =
-      ringIndex /
-      (rings - 1);
-
-    const y =
-      lerp(
-        -1,
-        1,
-        t
-      );
-
-    /*
-     * Bulge toward the middle of the cluster.
-     */
-    const radius =
-      Math.sin(
-        t * Math.PI
-      );
-
-    for (
-      let sideIndex = 0;
-      sideIndex < sides;
-      sideIndex += 1
-    ) {
-      const angle =
-        (sideIndex /
-          sides) *
-        Math.PI *
-        2;
-
-      const irregularity =
-        1 +
-        Math.sin(
-          sideIndex * 2.31 +
-            ringIndex * 1.71
-        ) *
-          0.12;
-
-      const finalRadius =
-        radius *
-        irregularity;
-
-      positions.push(
-        Math.cos(angle) *
-          finalRadius,
-
-        y,
-
-        Math.sin(angle) *
-          finalRadius
-      );
-    }
-  }
-
-  for (
-    let ringIndex = 0;
-    ringIndex < rings - 1;
-    ringIndex += 1
-  ) {
-    for (
-      let sideIndex = 0;
-      sideIndex < sides;
-      sideIndex += 1
-    ) {
-      const nextSide =
-        (sideIndex + 1) %
-        sides;
-
-      const current =
-        ringIndex * sides +
-        sideIndex;
-
-      const currentNext =
-        ringIndex * sides +
-        nextSide;
-
-      const below =
-        (ringIndex + 1) *
-          sides +
-        sideIndex;
-
-      const belowNext =
-        (ringIndex + 1) *
-          sides +
-        nextSide;
-
-      indices.push(
-        current,
-        below,
-        currentNext
-      );
-
-      indices.push(
-        currentNext,
-        below,
-        belowNext
-      );
-    }
+    indices.push(
+      0,
+      i,
+      i + 1
+    );
   }
 
   const geometry =
@@ -181,7 +103,58 @@ function createClusterGeometry(
 
   return geometry;
 }
+function orientLeafVertex(
+  vertex,
+  direction,
+  rotation
+) {
+  const oriented =
+    vertex.clone();
 
+  /*
+   * Align the leaf's local Y axis with
+   * the branch direction.
+   */
+  const up =
+    new THREE.Vector3(0, 1, 0);
+
+  const target =
+    direction.clone().normalize();
+
+  const quaternion =
+    new THREE.Quaternion();
+
+  quaternion.setFromUnitVectors(
+    up,
+    target
+  );
+
+  oriented.applyQuaternion(
+    quaternion
+  );
+
+  /*
+   * Additional rotation around the
+   * branch direction prevents every
+   * leaf from presenting the exact
+   * same face to the camera.
+   */
+  if (rotation !== 0) {
+    const rotationQuaternion =
+      new THREE.Quaternion();
+
+    rotationQuaternion.setFromAxisAngle(
+      target,
+      rotation
+    );
+
+    oriented.applyQuaternion(
+      rotationQuaternion
+    );
+  }
+
+  return oriented;
+}
 /*
  * Generate foliage cluster placement data.
  *
@@ -472,62 +445,93 @@ export function createProceduralCanopyGeometry(
     return geometry;
   }
 
-  const clusterGeometry =
-    createClusterGeometry();
-
+  const leafGeometry =
+    createLeafPolygonGeometry();
   const basePositions =
-    clusterGeometry
+    leafGeometry
       .getAttribute(
         "position"
       )
       .array;
 
   const baseIndices =
-    clusterGeometry.index
+    leafGeometry.index
       ?.array ?? [];
 
   const positions = [];
   const indices = [];
 
   canopyData.forEach(
-    (cluster) => {
-      const baseIndex =
-        positions.length / 3;
+  (cluster) => {
+    const baseIndex =
+      positions.length / 3;
 
-      for (
-        let i = 0;
-        i <
-        basePositions.length;
-        i += 3
-      ) {
-        positions.push(
-          basePositions[i] *
-            cluster.scale +
-            cluster.position.x,
+    const direction =
+      cluster.direction?.clone().normalize() ??
+      new THREE.Vector3(0, 1, 0);
 
-          basePositions[i + 1] *
-            cluster.scale +
-            cluster.position.y,
+    /*
+     * Deterministic rotation around the
+     * branch direction.
+     *
+     * This keeps the foliage reproducible
+     * for the same tree seed while preventing
+     * every polygon from facing identically.
+     */
+    const leafRotation =
+      seededRandom(
+        cluster.index * 137.17 +
+          cluster.branchIndex * 41.73
+      ) *
+      Math.PI *
+      2;
 
-          basePositions[i + 2] *
-            cluster.scale +
-            cluster.position.z
+    for (
+      let i = 0;
+      i < basePositions.length;
+      i += 3
+    ) {
+      const vertex =
+        new THREE.Vector3(
+          basePositions[i],
+          basePositions[i + 1],
+          basePositions[i + 2]
         );
-      }
 
-      for (
-        let i = 0;
-        i <
-        baseIndices.length;
-        i += 1
-      ) {
-        indices.push(
-          baseIndex +
-            baseIndices[i]
+      const orientedVertex =
+        orientLeafVertex(
+          vertex,
+          direction,
+          leafRotation
         );
-      }
+
+      positions.push(
+        orientedVertex.x *
+          cluster.scale +
+          cluster.position.x,
+
+        orientedVertex.y *
+          cluster.scale +
+          cluster.position.y,
+
+        orientedVertex.z *
+          cluster.scale +
+          cluster.position.z
+      );
     }
-  );
+
+    for (
+      let i = 0;
+      i < baseIndices.length;
+      i += 1
+    ) {
+      indices.push(
+        baseIndex +
+          baseIndices[i]
+      );
+    }
+  }
+);
 
   geometry.setAttribute(
     "position",
