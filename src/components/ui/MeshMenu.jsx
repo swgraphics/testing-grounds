@@ -118,9 +118,16 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     Number(baseDefinition.leaves?.clustering ?? 50)
   );
 
-  const [rotation, setRotation] = useState(
-    Number(mesh?.transform?.rotation ?? 0)
+  const [leafFillColor, setLeafFillColor] = useState(
+    baseDefinition.leaves?.color ?? "#080808"
   );
+
+  const [leafOutlineColor, setLeafOutlineColor] = useState(
+  baseDefinition.leaves?.outlineColor ?? "#fc0303"
+  );
+    const [rotation, setRotation] = useState(
+    Number(mesh?.transform?.rotation ?? 0)
+    );
 
   const [scale, setScale] = useState(
     Number(mesh?.transform?.scale ?? 50)
@@ -180,6 +187,8 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
         ...baseDefinition.leaves,
         size: crownWidth,
         clustering: crownHeight,
+        color: leafFillColor,
+        outlineColor: leafOutlineColor,
       },
     };
   }, [
@@ -197,6 +206,8 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     branchRandomness,
     crownWidth,
     crownHeight,
+    leafFillColor,
+    leafOutlineColor,
   ]);
   
   const resolvedScale =
@@ -422,10 +433,20 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
             crownHeight,
             setCrownHeight
           )}
-<div className="tg-mesh-edit-section-label">
-  TRANSFORM
-</div>
+<label className="tg-mesh-edit-slider">
+  <span>
+    LEAF FILL COLOR
+    <strong>{leafFillColor}</strong>
+  </span>
 
+  <input
+    type="color"
+    value={leafFillColor}
+    onChange={(event) =>
+      setLeafFillColor(event.target.value)
+    }
+  />
+</label>
 <label className="tg-mesh-edit-slider">
   <span>
     ROTATION

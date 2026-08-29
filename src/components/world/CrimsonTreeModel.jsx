@@ -225,8 +225,25 @@ const proceduralCanopyGeometry = useMemo(
     ),
   [proceduralCanopyData]
 );
-  const generatorLeaves =
+const proceduralCanopyEdges = useMemo(
+  () =>
+    proceduralCanopyGeometry?.attributes?.position
+      ? new THREE.EdgesGeometry(
+          proceduralCanopyGeometry,
+          18
+        )
+      : null,
+  [proceduralCanopyGeometry]
+);
+const generatorLeaves =
   treeDefinition?.leaves;
+const resolvedLeafFillColor =
+  generatorLeaves?.color ??
+  crownColor;
+
+const resolvedLeafOutlineColor =
+  generatorLeaves?.outlineColor ??
+  outlineColor;
 
 const resolvedCrownWidth =
   generatorLeaves?.size != null
@@ -288,7 +305,7 @@ const resolvedCrownHeight =
     receiveShadow
   >
     <meshStandardMaterial
-      color={crownColor}
+      color={resolvedLeafFillColor}
       emissive={crownEmissive}
       emissiveIntensity={0.3}
       roughness={0.92}
@@ -297,6 +314,19 @@ const resolvedCrownHeight =
       side={THREE.DoubleSide}
     />
   </mesh>
+  )}
+  {proceduralCanopyEdges && (
+  <lineSegments
+    geometry={proceduralCanopyEdges}
+    scale={1.006}
+  >
+    <lineBasicMaterial
+      color={resolvedLeafOutlineColor}
+      transparent
+      opacity={0.82}
+      depthWrite={false}
+    />
+  </lineSegments>
 )}
 {legacyCrown && (
   <group
