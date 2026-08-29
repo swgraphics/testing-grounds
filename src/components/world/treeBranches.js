@@ -70,32 +70,55 @@ export function createProceduralBranchData(
     return [];
   }
 
-  const segmentation = Math.max(
-    2,
-    Math.round(
-      trunkDefinition?.segmentation ?? 50
+  const segmentationValue =
+  trunkDefinition?.segmentation ?? 50;
+
+const segmentation =
+  Math.round(
+    lerp(
+      4,
+      18,
+      clamp01(
+        segmentationValue / 100
+      )
     )
   );
 
-  const height =
-    lerp(
-      2.5,
-      9,
-      clamp01(
-        (trunkDefinition?.height ?? 50) /
-          100
-      )
-    );
+const height =
+  lerp(
+    4.5,
+    8.5,
+    clamp01(
+      (trunkDefinition?.height ?? 50) /
+        100
+    )
+  );
 
-  const radius =
-    lerp(
-      0.12,
-      0.42,
-      clamp01(
-        (trunkDefinition?.radius ?? 50) /
-          100
-      )
-    );
+const radius =
+  lerp(
+    0.16,
+    0.42,
+    clamp01(
+      (trunkDefinition?.radius ?? 50) /
+        100
+    )
+  );
+
+const maxBend =
+  lerp(
+    0,
+    0.85,
+    clamp01(
+      (trunkDefinition?.bend ?? 50) /
+        100
+    )
+  );
+
+const taper =
+  clamp01(
+    (trunkDefinition?.taper ?? 50) /
+      100
+  );
 
   const baseBranchLength =
   lerp(
@@ -289,25 +312,51 @@ const angle =
           horizontal
       ).normalize();
 
-    const localRadius =
-      radius *
-      (
-        1 -
-        trunkT *
-          (
-            (trunkDefinition?.taper ??
-              50) /
-            100
-          ) *
-          0.45
-      );
+    const topRadius =
+  THREE.MathUtils.lerp(
+    radius * 0.95,
+    radius * 0.22,
+    taper
+  );
 
-    const origin =
-      new THREE.Vector3(
-        0,
-        y,
-        0
-      );
+const localRadius =
+  THREE.MathUtils.lerp(
+    radius,
+    topRadius,
+    trunkT
+  );
+
+/*
+ * Match the actual procedural trunk's
+ * centerline at this height.
+ *
+ * treeGeometry.js uses the same bend curve.
+ * Branches therefore originate from the
+ * trunk itself instead of the original
+ * world-space centerline.
+ */
+const bendAmount =
+  Math.sin(
+    trunkT * Math.PI * 0.5
+  ) *
+  maxBend;
+
+const centerX =
+  bendAmount;
+
+const centerZ =
+  Math.sin(
+    trunkT * Math.PI
+  ) *
+  maxBend *
+  0.22;
+
+const origin =
+  new THREE.Vector3(
+    centerX,
+    y,
+    centerZ
+  );
 
     const end =
       origin

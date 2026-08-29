@@ -779,3 +779,31 @@
   opacity: .35;
   cursor: not-allowed;
 }
+/*
+ * Testing Grounds
+ * Mesh Editor — locked preview / scrolling controls
+ *
+ * The preview remains fixed while only the
+ * parameter area scrolls.
+ */
+
+.tg-mesh-edit-window {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tg-mesh-edit-preview {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.tg-mesh-edit-controls {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}

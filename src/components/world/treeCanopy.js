@@ -97,12 +97,13 @@ function createLeafPolygonGeometry() {
 
   geometry.setIndex(indices);
 
-  geometry.computeVertexNormals();
+    geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
 
   return geometry;
 }
+
 function orientLeafVertex(
   vertex,
   direction,
@@ -155,17 +156,9 @@ function orientLeafVertex(
 
   return oriented;
 }
+
 /*
  * Generate foliage cluster placement data.
- *
- * This is deliberately separate from geometry so the same
- * foliage structure can eventually drive:
- *
- * - visual foliage
- * - leaf attachment
- * - cursor editing
- * - controller editing
- * - saved object data
  */
 export function createProceduralCanopyData(
   branches = [],

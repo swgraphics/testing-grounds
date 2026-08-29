@@ -103,6 +103,13 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     Number(baseDefinition.trunk?.radius ?? 50)
   );
 
+  const [trunkTaper, setTrunkTaper] = useState(
+    Number(baseDefinition.trunk?.taper ?? 50)
+  );
+
+  const [trunkBend, setTrunkBend] = useState(
+    Number(baseDefinition.trunk?.bend ?? 50)
+  );
   const [crownWidth, setCrownWidth] = useState(
     Number(baseDefinition.leaves?.size ?? 50)
   );
@@ -151,10 +158,12 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
       ...baseDefinition,
 
       trunk: {
-        ...baseDefinition.trunk,
-        height: trunkHeight,
-        radius: trunkWidth,
-      },
+  ...baseDefinition.trunk,
+  height: trunkHeight,
+  radius: trunkWidth,
+  taper: trunkTaper,
+  bend: trunkBend,
+},
 
       branches: {
         ...baseDefinition.branches,
@@ -177,6 +186,8 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     baseDefinition,
     trunkHeight,
     trunkWidth,
+    trunkTaper,
+    trunkBend,
     branchCount,
     branchAngle,
     branchLength,
@@ -331,7 +342,19 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
             trunkHeight,
             setTrunkHeight
           )}
+          
+          {renderSlider(
+            "TRUNK TAPER",
+            trunkTaper,
+            setTrunkTaper
+          )}
 
+          {renderSlider(
+            "TRUNK BEND",
+            trunkBend,
+            setTrunkBend
+          )}
+          
           {renderSlider(
             "TRUNK WIDTH",
             trunkWidth,
