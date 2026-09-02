@@ -125,7 +125,16 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
   const [leafOutlineColor, setLeafOutlineColor] = useState(
   baseDefinition.leaves?.outlineColor ?? "#fc0303"
   );
-    const [rotation, setRotation] = useState(
+
+  const [leafGradientEnabled, setLeafGradientEnabled] = useState(
+  baseDefinition.leaves?.gradientEnabled ?? false
+  );
+
+  const [leafGradientColor, setLeafGradientColor] = useState(
+  baseDefinition.leaves?.gradientColor ?? "#181818"
+  );
+  
+  const [rotation, setRotation] = useState(
     Number(mesh?.transform?.rotation ?? 0)
     );
 
@@ -184,12 +193,14 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
       },
 
       leaves: {
-        ...baseDefinition.leaves,
-        size: crownWidth,
-        clustering: crownHeight,
-        color: leafFillColor,
-        outlineColor: leafOutlineColor,
-      },
+  ...baseDefinition.leaves,
+  size: crownWidth,
+  clustering: crownHeight,
+  color: leafFillColor,
+  outlineColor: leafOutlineColor,
+  gradientEnabled: leafGradientEnabled,
+  gradientColor: leafGradientColor,
+},
     };
   }, [
     baseDefinition,
@@ -208,6 +219,8 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     crownHeight,
     leafFillColor,
     leafOutlineColor,
+    leafGradientEnabled,
+    leafGradientColor,
   ]);
   
   const resolvedScale =
@@ -447,6 +460,57 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     }
   />
 </label>
+<label className="tg-mesh-edit-slider">
+  <span>
+    LEAF OUTLINE COLOR
+    <strong>{leafOutlineColor}</strong>
+  </span>
+
+  <input
+    type="color"
+    value={leafOutlineColor}
+    onChange={(event) =>
+      setLeafOutlineColor(event.target.value)
+    }
+  />
+</label>
+<label className="tg-mesh-edit-slider">
+  <span>
+    FOLIAGE GRADIENT
+    <strong>
+      {leafGradientEnabled ? "ON" : "OFF"}
+    </strong>
+  </span>
+
+  <input
+    type="checkbox"
+    checked={leafGradientEnabled}
+    onChange={(event) =>
+      setLeafGradientEnabled(
+        event.target.checked
+      )
+    }
+  />
+</label>
+
+{leafGradientEnabled && (
+  <label className="tg-mesh-edit-slider">
+    <span>
+      GRADIENT COLOR
+      <strong>{leafGradientColor}</strong>
+    </span>
+
+    <input
+      type="color"
+      value={leafGradientColor}
+      onChange={(event) =>
+        setLeafGradientColor(
+          event.target.value
+        )
+      }
+    />
+  </label>
+)}
 <label className="tg-mesh-edit-slider">
   <span>
     ROTATION

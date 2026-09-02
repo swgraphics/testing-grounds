@@ -45,15 +45,14 @@ function lerp(a, b, t) {
 
 function createLeafPolygonGeometry() {
   /*
-   * Canonical foliage shape.
+   * Canonical editable leaf.
    *
-   * This remains a single flat polygon.
-   * Every foliage instance is generated from
-   * this same underlying shape.
+   * IMPORTANT:
+   * This is the master shape.
    *
-   * The vertices are intentionally explicit so
-   * the eventual natural-editing system can
-   * manipulate the shape directly.
+   * Every leaf instance uses this same geometry.
+   * Future vertex editing should modify ONLY this
+   * canonical geometry/data and regenerate the tree.
    */
 
   const positions = [
@@ -69,9 +68,6 @@ function createLeafPolygonGeometry() {
 
   const indices = [];
 
-  /*
-   * Fan triangulation around the first vertex.
-   */
   for (
     let i = 1;
     i < positions.length / 3 - 1;
@@ -97,7 +93,7 @@ function createLeafPolygonGeometry() {
 
   geometry.setIndex(indices);
 
-    geometry.computeVertexNormals();
+  geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
 
@@ -207,22 +203,29 @@ export function createProceduralCanopyData(
    * the tree doesn't become visually empty at low
    * density.
    */
-  const targetCount =
-    Math.max(
-      1,
-      Math.round(
-        lerp(
-          1,
-          branches.length,
-          density
-        )
+  const leavesPerBranch =
+  Math.max(
+    2,
+    Math.round(
+      lerp(
+        2,
+        14,
+        density
       )
-    );
+    )
+  );
+
+const targetCount =
+  Math.max(
+    1,
+    branches.length *
+      leavesPerBranch
+  );
 
   const canopySize =
     lerp(
-      0.35,
-      1.35,
+      0.12,
+      0.42,
       size
     );
 
@@ -315,23 +318,56 @@ export function createProceduralCanopyData(
       ) -
       0.5;
 
-    const spread =
-      lerp(
-        1.15,
-        0.25,
-        clustering
-      );
+const alongBranch =
+  lerp(
+    0.45,
+    1.0,
+    seededRandom(
+      seed +
+        clusterIndex *
+          83.61
+    )
+  );
 
-    const position =
-      branch.end
+const branchLength =
+  branch.length ??
+  branch.origin.distanceTo(
+    branch.end
+  );
+
+const anchor =
+  branch.origin
+    .clone()
+    .add(
+      branch.direction
         .clone()
-        .add(
-          new THREE.Vector3(
-            randomX * spread,
-            randomY * spread * 0.7,
-            randomZ * spread
-          )
-        );
+        .multiplyScalar(
+          branchLength *
+            alongBranch
+        )
+    );
+
+/*
+ * Higher clustering keeps leaves closer
+ * to the branch centerline.
+ */
+const spread =
+  lerp(
+    0.42,
+    0.10,
+    clustering
+  );
+
+const position =
+  anchor
+    .clone()
+    .add(
+      new THREE.Vector3(
+        randomX * spread,
+        randomY * spread * 0.7,
+        randomZ * spread
+      )
+    );
 
     /*
      * Slight deterministic size variation.
@@ -366,62 +402,6 @@ export function createProceduralCanopyData(
         branch.direction.clone(),
     });
   }
-
-  /*
-   * Always provide a central top cluster when
-   * there are branches.
-   *
-   * This prevents the tree from looking like a
-   * collection of detached branch tips.
-   */
-  if (clusters.length > 0) {
-    const highestBranch =
-      branches.reduce(
-        (highest, branch) =>
-          branch.trunkT >
-          highest.trunkT
-            ? branch
-            : highest,
-        branches[0]
-      );
-
-    const topPosition =
-      highestBranch.end
-        .clone()
-        .add(
-          new THREE.Vector3(
-            0,
-            canopySize * 0.55,
-            0
-          )
-        );
-
-    clusters.push({
-      index:
-        clusters.length,
-
-      branchIndex:
-        highestBranch.index,
-
-      position:
-        topPosition,
-
-      scale:
-        canopySize *
-        1.12,
-
-      branchT:
-        highestBranch.trunkT,
-
-      direction:
-        new THREE.Vector3(
-          0,
-          1,
-          0
-        ),
-    });
-  }
-
   return clusters;
 }
 
@@ -429,7 +409,12 @@ export function createProceduralCanopyData(
  * Convert canopy cluster data into render geometry.
  */
 export function createProceduralCanopyGeometry(
-  canopyData = []
+  canopyData = [],
+  {
+    gradientEnabled = false,
+    gradientColor = "#181818",
+    baseColor = "#080808",
+  } = {}
 ) {
   const geometry =
     new THREE.BufferGeometry();
@@ -453,7 +438,20 @@ export function createProceduralCanopyGeometry(
 
   const positions = [];
   const indices = [];
+  const useGradient =
+  gradientEnabled &&
+  baseColor &&
+  gradientColor;
 
+  const baseColorValue =
+  new THREE.Color(
+    baseColor
+  );
+
+  const gradientColorValue =
+  new THREE.Color(
+    gradientColor
+  );
   canopyData.forEach(
   (cluster) => {
     const baseIndex =
@@ -525,7 +523,82 @@ export function createProceduralCanopyGeometry(
     }
   }
 );
+if (useGradient) {
+  const colors = [];
 
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  for (
+    let i = 1;
+    i < positions.length;
+    i += 3
+  ) {
+    minY = Math.min(
+      minY,
+      positions[i]
+    );
+
+    maxY = Math.max(
+      maxY,
+      positions[i]
+    );
+  }
+
+  const heightRange =
+    Math.max(
+      0.0001,
+      maxY - minY
+    );
+
+  for (
+    let i = 0;
+    i < positions.length;
+    i += 3
+  ) {
+    const y =
+      positions[i + 1];
+
+    const normalizedY =
+      THREE.MathUtils.clamp(
+        (y - minY) /
+          heightRange,
+        0,
+        1
+      );
+
+    /*
+     * Keep the gradient restrained.
+     * The secondary color contributes
+     * only partially rather than replacing
+     * the primary color completely.
+     */
+    const gradientAmount =
+      normalizedY * 0.5;
+
+    const color =
+      baseColorValue
+        .clone()
+        .lerp(
+          gradientColorValue,
+          gradientAmount
+        );
+
+    colors.push(
+      color.r,
+      color.g,
+      color.b
+    );
+  }
+
+  geometry.setAttribute(
+    "color",
+    new THREE.Float32BufferAttribute(
+      colors,
+      3
+    )
+  );
+}
   geometry.setAttribute(
     "position",
     new THREE.Float32BufferAttribute(

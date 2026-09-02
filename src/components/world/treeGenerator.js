@@ -73,6 +73,8 @@ export const DEFAULT_TREE = {
   clustering: 50,
   color: "#080808",
   outlineColor: "#fc0303",
+  gradientEnabled: false,
+  gradientColor: "#181818",
   distribution: 50,
 },
 };
@@ -150,6 +152,8 @@ export function createCrimsonTreeDefinition() {
   clustering: 85,
   color: "#080808",
   outlineColor: "#fc0303",
+  gradientEnabled: false,
+  gradientColor: "#181818",
   distribution: 50,
 },
   });
