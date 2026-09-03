@@ -1,11 +1,17 @@
 // MeshPlacementSystem.jsx
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import CrimsonTreeModel from "./CrimsonTreeModel";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getTerrainHeightAt } from "./../../systems/terrain/terrainHeight";
+import { terrainSettings } from "../../systems/terrain/terrainSettings";
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -105,7 +111,9 @@ export default function MeshPlacementSystem() {
   const [loadedScene, setLoadedScene] = useState(null);
   const [proceduralMesh, setProceduralMesh] = useState(null);
   const [placedMeshes, setPlacedMeshes] = useState([]);
-
+  const crownRefs = useRef(new Map());
+  const previewCrownRef = useRef(null);
+  const frameCounterRef = useRef(0);
   const loader = useMemo(() => new GLTFLoader(), []);
 
   // --------------------------------------------------
@@ -192,17 +200,6 @@ export default function MeshPlacementSystem() {
       if (mesh.source === "procedural") {
         setProceduralMesh(mesh);
         setLoadedScene(null);
-      }
-    }
-    function handleEditSave(event) {
-      const mesh = event.detail?.mesh;
-
-      if (!mesh) return;
-
-      setSelectedMesh(mesh);
-
-      if (mesh.source === "procedural") {
-        setProceduralMesh(mesh);
       }
     }
 
@@ -315,15 +312,21 @@ export default function MeshPlacementSystem() {
     return;
   }
 
-  setPlacedMeshes((current) => [
+  setPlacedMeshes((current) => {
+  const id =
+    `placed-mesh-${Date.now()}-${current.length}`;
+
+  return [
     ...current,
     {
-      id: `placed-mesh-${Date.now()}-${current.length}`,
+      id,
       type: "procedural",
       mesh: proceduralMesh,
       position: previewPosition.clone(),
+      windPhase: current.length * 1.73,
     },
-  ]);
+  ];
+});
 }
 
     function handleKeyDown(event) {
@@ -397,21 +400,136 @@ export default function MeshPlacementSystem() {
   proceduralMesh,
 ]);
 
-  // --------------------------------------------------
-  // SMOOTH PLACEMENT PREVIEW
-  // --------------------------------------------------
+// --------------------------------------------------
+// PLACEMENT PREVIEW + TREE WIND
+// --------------------------------------------------
 
-  useFrame(() => {
-    if (!placementMode) return;
-    if (!previewPosition) return;
-    if (!loadedScene) return;
-
+useFrame((state) => {
+  /*
+   * Smooth uploaded-mesh placement preview.
+   */
+  if (
+    placementMode &&
+    previewPosition &&
+    loadedScene
+  ) {
     loadedScene.position.lerp(
       previewPosition,
       0.35
     );
-  });
+  }
 
+  /*
+   * Match the existing scatter-tree wind system.
+   *
+   * Vegetation transform work only runs every
+   * second frame, just like Landscape.jsx.
+   */
+  frameCounterRef.current += 1;
+
+  if (
+    frameCounterRef.current % 2 !== 0
+  ) {
+    return;
+  }
+
+  const strength =
+    (Number(
+      terrainSettings.windStrength
+    ) || 0) / 100;
+
+  /*
+   * Wind disabled.
+   */
+  if (strength <= 0) {
+    crownRefs.current.forEach(
+      (crown) => {
+        if (!crown) return;
+
+        crown.rotation.x = 0;
+        crown.rotation.z = 0;
+      }
+    );
+
+    if (previewCrownRef.current) {
+      previewCrownRef.current.rotation.x = 0;
+      previewCrownRef.current.rotation.z = 0;
+    }
+
+    return;
+  }
+
+  const speed =
+    0.25 +
+    ((Number(
+      terrainSettings.windSpeed
+    ) || 0) / 100) * 2.75;
+
+  const time =
+    state.clock.elapsedTime *
+    speed;
+
+  crownRefs.current.forEach(
+    (crown) => {
+      if (!crown) return;
+
+      const phase =
+        crown.userData.windPhase ?? 0;
+
+      const mainSway =
+        Math.sin(
+          time + phase
+        ) *
+        strength *
+        0.055;
+
+      const secondarySway =
+        Math.cos(
+          time * 0.65 + phase
+        ) *
+        strength *
+        0.025;
+
+      crown.rotation.z =
+        mainSway;
+
+      crown.rotation.x =
+        secondarySway;
+    }
+  );
+
+  /*
+   * Apply the same wind behavior to the
+   * currently previewed procedural tree.
+   */
+  if (previewCrownRef.current) {
+    const crown =
+      previewCrownRef.current;
+
+    const phase =
+      crown.userData.windPhase ?? 0;
+
+    const mainSway =
+      Math.sin(
+        time + phase
+      ) *
+      strength *
+      0.055;
+
+    const secondarySway =
+      Math.cos(
+        time * 0.65 + phase
+      ) *
+      strength *
+      0.025;
+
+    crown.rotation.z =
+      mainSway;
+
+    crown.rotation.x =
+      secondarySway;
+  }
+});
 // --------------------------------------------------
 // RENDER
 // --------------------------------------------------
@@ -429,32 +547,57 @@ return (
           ]}
         >
           <CrimsonTreeModel
-            {...getCrimsonTreeGeneratorSettings(
-              proceduralMesh
-            )}
-          />
+  {...getCrimsonTreeGeneratorSettings(
+    proceduralMesh
+  )}
+  crownRef={previewCrownRef}
+  windPhase={0}
+/>
         </group>
       )}
 
     {placedMeshes.map((entry) => {
       if (entry.type === "procedural") {
-        return (
-          <group
-            key={entry.id}
-            position={[
-              entry.position.x,
-              entry.position.y,
-              entry.position.z,
-            ]}
-          >
-            <CrimsonTreeModel
-              {...getCrimsonTreeGeneratorSettings(
-                entry.mesh
-              )}
-            />
-          </group>
-        );
-      }
+  return (
+    <group
+      key={entry.id}
+      position={[
+        entry.position.x,
+        entry.position.y,
+        entry.position.z,
+      ]}
+    >
+      <CrimsonTreeModel
+        {...getCrimsonTreeGeneratorSettings(
+          entry.mesh
+        )}
+        crownRef={{
+          get current() {
+            return crownRefs.current.get(
+              entry.id
+            ) ?? null;
+          },
+
+          set current(value) {
+            if (value) {
+              crownRefs.current.set(
+                entry.id,
+                value
+              );
+            } else {
+              crownRefs.current.delete(
+                entry.id
+              );
+            }
+          },
+        }}
+        windPhase={
+          entry.windPhase ?? 0
+        }
+      />
+    </group>
+  );
+}
 
       return (
         <primitive

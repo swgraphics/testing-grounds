@@ -43,7 +43,7 @@ function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-function createLeafPolygonGeometry() {
+export function createLeafPolygonGeometry() {
   /*
    * Canonical editable leaf.
    *
@@ -404,7 +404,165 @@ const position =
   }
   return clusters;
 }
+/*
+ * Generate detached floating leaf placement data.
+ *
+ * Floating leaves are intentionally sparse and small.
+ * They use the same canonical leaf shape as canopy leaves.
+ */
+export function createProceduralFloatingLeafData(
+  branches = [],
+  leavesDefinition,
+  seed = 1
+) {
+  if (!leavesDefinition?.floating?.enabled) {
+    return [];
+  }
 
+  if (!branches.length) {
+    return [];
+  }
+
+  const density =
+    clamp01(
+      (leavesDefinition.floating.density ?? 15) /
+        100
+    );
+
+  /*
+   * Keep floating leaves sparse.
+   *
+   * 0% = none
+   * 100% = still relatively restrained
+   */
+  const leavesPerBranch =
+    Math.max(
+      0,
+      Math.round(
+        lerp(
+          0,
+          2,
+          density
+        )
+      )
+    );
+
+  if (leavesPerBranch <= 0) {
+    return [];
+  }
+
+  const floatingLeaves = [];
+
+  branches.forEach((branch, branchIndex) => {
+    for (
+      let leafIndex = 0;
+      leafIndex < leavesPerBranch;
+      leafIndex += 1
+    ) {
+      const index =
+        branchIndex * 17 +
+        leafIndex;
+
+      const randomA =
+        seededRandom(
+          seed +
+            index *
+              17.31
+        );
+
+      const randomB =
+        seededRandom(
+          seed +
+            index *
+              29.73
+        );
+
+      const randomC =
+        seededRandom(
+          seed +
+            index *
+              43.19
+        );
+
+      /*
+       * Start close to the branch rather than
+       * spawning leaves randomly throughout space.
+       */
+      const branchLength =
+        branch.length ??
+        branch.origin.distanceTo(
+          branch.end
+        );
+
+      const branchT =
+        lerp(
+          0.55,
+          1.0,
+          randomA
+        );
+
+      const position =
+        branch.origin
+          .clone()
+          .add(
+            branch.direction
+              .clone()
+              .multiplyScalar(
+                branchLength *
+                  branchT
+              )
+          );
+
+      /*
+       * Small outward displacement gives the leaf
+       * the appearance of having detached from the canopy.
+       */
+      const outwardDirection =
+        new THREE.Vector3(
+          randomB - 0.5,
+          randomC - 0.25,
+          randomA - 0.5
+        ).normalize();
+
+      position.add(
+        outwardDirection.multiplyScalar(
+          lerp(
+            0.35,
+            1.0,
+            density
+          )
+        )
+      );
+
+      floatingLeaves.push({
+        index,
+        position,
+
+        direction:
+          branch.direction
+            .clone()
+            .normalize(),
+
+        rotation:
+          randomB *
+          Math.PI *
+          2,
+
+        scale:
+          lerp(
+            0.045,
+            0.095,
+            randomC
+          ),
+
+        driftSeed:
+          randomA * Math.PI * 2,
+      });
+    }
+  });
+
+  return floatingLeaves;
+}
 /*
  * Convert canopy cluster data into render geometry.
  */

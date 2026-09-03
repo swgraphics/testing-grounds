@@ -76,6 +76,12 @@ export const DEFAULT_TREE = {
   gradientEnabled: false,
   gradientColor: "#181818",
   distribution: 50,
+
+  floating: {
+    enabled: true,
+    density: 15,
+    speed: 15,
+  },
 },
 };
 

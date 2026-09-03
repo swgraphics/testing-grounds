@@ -134,6 +134,13 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
   baseDefinition.leaves?.gradientColor ?? "#181818"
   );
   
+  const [floatingLeafDensity, setFloatingLeafDensity] = useState(
+  Number(baseDefinition.leaves?.floating?.density ?? 15)
+  );
+
+  const [floatingLeafSpeed, setFloatingLeafSpeed] = useState(
+  Number(baseDefinition.leaves?.floating?.speed ?? 15)
+  );
   const [rotation, setRotation] = useState(
     Number(mesh?.transform?.rotation ?? 0)
     );
@@ -200,6 +207,13 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
   outlineColor: leafOutlineColor,
   gradientEnabled: leafGradientEnabled,
   gradientColor: leafGradientColor,
+
+  floating: {
+    ...baseDefinition.leaves?.floating,
+    enabled: true,
+    density: floatingLeafDensity,
+    speed: floatingLeafSpeed,
+  },
 },
     };
   }, [
@@ -221,6 +235,8 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     leafOutlineColor,
     leafGradientEnabled,
     leafGradientColor,
+    floatingLeafDensity,
+    floatingLeafSpeed,
   ]);
   
   const resolvedScale =
@@ -445,6 +461,18 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
             "CROWN HEIGHT",
             crownHeight,
             setCrownHeight
+          )}
+          
+          {renderSlider(
+            "FLOATING LEAF DENSITY",
+            floatingLeafDensity,
+            setFloatingLeafDensity
+          )}
+
+          {renderSlider(
+            "FLOATING LEAF SPEED",
+            floatingLeafSpeed,
+          setFloatingLeafSpeed
           )}
 <label className="tg-mesh-edit-slider">
   <span>

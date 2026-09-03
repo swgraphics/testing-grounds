@@ -1,4 +1,7 @@
-import { useMemo } from "react";
+import {
+  useMemo,
+  useRef,
+} from "react";
 import * as THREE from "three";
 import {
   createProceduralTrunkGeometry,
@@ -11,6 +14,8 @@ import {
 import {
   createProceduralCanopyData,
   createProceduralCanopyGeometry,
+  createProceduralFloatingLeafData,
+  createLeafPolygonGeometry,
 } from "./treeCanopy";
 /*
  * Testing Grounds
@@ -217,6 +222,23 @@ const proceduralCanopyData = useMemo(
     treeDefinition?.seed,
   ]
 );
+const floatingLeafData = useMemo(
+  () =>
+    createProceduralFloatingLeafData(
+      proceduralBranchData,
+      treeDefinition?.leaves,
+      treeDefinition?.seed ?? 1
+    ),
+  [
+    proceduralBranchData,
+    treeDefinition,
+  ]
+);
+const floatingLeafGeometry = useMemo(
+  () =>
+    createLeafPolygonGeometry(),
+  []
+);
 const generatorLeaves =
   treeDefinition?.leaves;
 const proceduralCanopyGeometry = useMemo(
@@ -347,6 +369,35 @@ const resolvedCrownHeight =
     />
   </lineSegments>
 )}
+<group>
+  {floatingLeafData.map((leaf) => (
+    <mesh
+      key={`floating-leaf-${leaf.index}`}
+      geometry={floatingLeafGeometry}
+      position={leaf.position}
+      scale={leaf.scale}
+      rotation={[
+        0,
+        0,
+        leaf.rotation,
+      ]}
+      userData={{
+        floatingLeaf: true,
+        driftSeed: leaf.driftSeed,
+      }}
+    >
+      <meshStandardMaterial
+        color={
+          treeDefinition?.leaves?.color ??
+          "#080808"
+        }
+        side={THREE.DoubleSide}
+        roughness={0.9}
+        metalness={0}
+      />
+    </mesh>
+  ))}
+</group>
 {legacyCrown && (
   <group
     position={[
