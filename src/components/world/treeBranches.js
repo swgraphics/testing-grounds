@@ -201,7 +201,11 @@ const taper =
     )
   );
 
-    const minimumBranchT = 0.25;
+  const minimumBranchT =
+    clamp01(
+      (branchDefinition.baseTrunk ?? 25) / 100
+    );
+
 const upperBranchThreshold = 0.75;
 
 const distributionT =
@@ -209,12 +213,26 @@ const distributionT =
   frequencyBias *
     (1 - minimumBranchT);
 
+const heightVariation =
+  (
+    seededRandom(
+      seed +
+        branchIndex *
+          43.71 +
+        19.27
+    ) -
+    0.5
+  ) *
+  randomness *
+  0.12;
+
 const trunkT =
   Math.min(
     0.95,
     Math.max(
       minimumBranchT,
-      distributionT
+      distributionT +
+        heightVariation
     )
   );
 
