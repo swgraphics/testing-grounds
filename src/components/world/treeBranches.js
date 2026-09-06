@@ -186,33 +186,64 @@ const taper =
     branchIndex += 1
   ) {
     const normalizedIndex =
-      count === 1
-        ? 0.5
-        : branchIndex /
-          (count - 1);
+  count === 1
+    ? 0.5
+    : branchIndex /
+      (count - 1);
 
-    const frequencyBias =
-  Math.pow(
-    normalizedIndex,
-    lerp(
-      0.6,
-      1.35,
-      branchFrequency
-    )
+/*
+ * Branches are distributed from the lower trunk
+ * toward the crown, but with controlled variation.
+ *
+ * This prevents the forest from looking like every
+ * tree was built from the same evenly-spaced ladder.
+ */
+const frequencyPower =
+  lerp(
+    0.7,
+    1.2,
+    branchFrequency
   );
 
-  const minimumBranchT =
-    clamp01(
-      (branchDefinition.baseTrunk ?? 25) / 100
-    );
+const frequencyBias =
+  Math.pow(
+    normalizedIndex,
+    frequencyPower
+  );
 
+/*
+ * No branches are allowed below this point.
+ *
+ * 25% means the first quarter of the trunk
+ * remains clean.
+ */
+const minimumBranchT =
+  clamp01(
+    (branchDefinition.baseTrunk ?? 25) /
+      100
+  );
+
+/*
+ * Keep the upper portion of the trunk available
+ * for shorter branches leading toward the tip.
+ */
 const upperBranchThreshold = 0.75;
 
+/*
+ * Start with the intentional vertical distribution.
+ */
 const distributionT =
   minimumBranchT +
   frequencyBias *
     (1 - minimumBranchT);
 
+/*
+ * Add seed-based vertical variation.
+ *
+ * The amount is controlled by branch randomness,
+ * so the editor can still determine how orderly
+ * or organic the tree becomes.
+ */
 const heightVariation =
   (
     seededRandom(
@@ -224,8 +255,15 @@ const heightVariation =
     0.5
   ) *
   randomness *
-  0.12;
+  0.22;
 
+/*
+ * Resolve the final branch attachment height.
+ *
+ * Unlike the previous version, this is NOT snapped
+ * to a trunk segment. That removes the visible
+ * horizontal "branch tiers" shared by every tree.
+ */
 const trunkT =
   Math.min(
     0.95,
@@ -236,54 +274,61 @@ const trunkT =
     )
   );
 
-const segmentFloat =
-  trunkT *
-  (segmentation - 1);
-
-const segmentIndex =
-  Math.min(
-    segmentation - 2,
-    Math.max(
-      1,
-      Math.floor(
-        segmentFloat
-      )
-    )
-  );
-
-const resolvedTrunkT =
-  Math.max(
-    minimumBranchT,
-    segmentIndex /
-      (segmentation - 1)
-  );
-
 const y =
-  resolvedTrunkT *
+  trunkT *
   height;
+
+/*
+ * Determine whether the branch is entering
+ * the upper crown region.
+ */
 const upperZone =
-  resolvedTrunkT >=
+  trunkT >=
   upperBranchThreshold;
 
 const upperZoneProgress =
   upperZone
     ? clamp01(
-        (resolvedTrunkT -
+        (trunkT -
           upperBranchThreshold) /
           (1 -
             upperBranchThreshold)
       )
     : 0;
-
-const branchLength =
+/*
+ * Upper branches become progressively shorter,
+ * preserving the pointed Crimson Tree silhouette.
+ */
+const upperLengthMultiplier =
   upperZone
-    ? baseBranchLength *
-      lerp(
+    ? lerp(
         0.55,
         0.28,
         upperZoneProgress
       )
-    : baseBranchLength;
+    : 1;
+
+/*
+ * Give each branch a small, deterministic length
+ * variation so neighboring trees do not develop
+ * identical silhouettes.
+ */
+const branchLengthVariation =
+  lerp(
+    0.86,
+    1.14,
+    seededRandom(
+      seed +
+        branchIndex *
+          57.19 +
+        11.42
+    )
+  );
+
+const branchLength =
+  baseBranchLength *
+  upperLengthMultiplier *
+  branchLengthVariation;
     const baseAngle =
   seededRandom(
     seed +
