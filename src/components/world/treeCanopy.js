@@ -407,8 +407,10 @@ const position =
 /*
  * Generate detached floating leaf placement data.
  *
- * Floating leaves are intentionally sparse and small.
- * They use the same canonical leaf shape as canopy leaves.
+ * Floating leaves use the same canonical leaf shape and
+ * scale family as canopy leaves. Their initial positions
+ * are biased toward the outer branch/canopy area so they
+ * do not appear to originate from the crown center.
  */
 export function createProceduralFloatingLeafData(
   branches = [],
@@ -425,23 +427,17 @@ export function createProceduralFloatingLeafData(
 
   const density =
     clamp01(
-      (leavesDefinition.floating.density ?? 15) /
+      (leavesDefinition.floating.density ?? 8) /
         100
     );
 
-  /*
-   * Keep floating leaves sparse.
-   *
-   * 0% = none
-   * 100% = still relatively restrained
-   */
   const leavesPerBranch =
     Math.max(
       0,
       Math.round(
         lerp(
           0,
-          2,
+          1.5,
           density
         )
       )
@@ -450,6 +446,19 @@ export function createProceduralFloatingLeafData(
   if (leavesPerBranch <= 0) {
     return [];
   }
+
+  const leafSize =
+    clamp01(
+      (leavesDefinition.size ?? 50) /
+        100
+    );
+
+  const canopySize =
+    lerp(
+      0.12,
+      0.42,
+      leafSize
+    );
 
   const floatingLeaves = [];
 
@@ -484,19 +493,19 @@ export function createProceduralFloatingLeafData(
               43.19
         );
 
-      /*
-       * Start close to the branch rather than
-       * spawning leaves randomly throughout space.
-       */
       const branchLength =
         branch.length ??
         branch.origin.distanceTo(
           branch.end
         );
 
+      /*
+       * Keep the starting point close to the outer
+       * portion of the branch rather than the trunk.
+       */
       const branchT =
         lerp(
-          0.55,
+          0.78,
           1.0,
           randomA
         );
@@ -514,25 +523,55 @@ export function createProceduralFloatingLeafData(
           );
 
       /*
-       * Small outward displacement gives the leaf
-       * the appearance of having detached from the canopy.
+       * Bias the detached leaf outward from the
+       * tree's center. This gives each leaf its own
+       * escape direction instead of a shared orbit.
        */
-      const outwardDirection =
+      const radialDirection =
         new THREE.Vector3(
-          randomB - 0.5,
-          randomC - 0.25,
-          randomA - 0.5
-        ).normalize();
+          position.x,
+          0,
+          position.z
+        );
+
+      if (radialDirection.lengthSq() < 0.0001) {
+        radialDirection.set(
+          branch.direction.x,
+          0,
+          branch.direction.z
+        );
+      }
+
+      radialDirection.normalize();
+
+      const tangentDirection =
+        new THREE.Vector3(
+          -radialDirection.z,
+          0,
+          radialDirection.x
+        );
+
+      const outwardDistance =
+        lerp(
+          0.18,
+          0.7,
+          randomB
+        );
 
       position.add(
-        outwardDirection.multiplyScalar(
-          lerp(
-            0.35,
-            1.0,
-            density
+        radialDirection
+          .clone()
+          .multiplyScalar(
+            outwardDistance
           )
-        )
       );
+
+      const scaleVariation =
+        lerp(
+          0.82,
+          1.18,
+          randomC
+        );
 
       floatingLeaves.push({
         index,
@@ -548,21 +587,46 @@ export function createProceduralFloatingLeafData(
           Math.PI *
           2,
 
+        /* Match the canopy leaf scale family. */
         scale:
+          canopySize *
+          scaleVariation,
+
+        driftSeed:
+          randomA *
+          Math.PI *
+          2,
+
+        driftDirection:
+          radialDirection,
+
+        tangentDirection,
+
+        driftDistance:
           lerp(
-            0.045,
-            0.095,
+            0.45,
+            1.5,
+            randomB
+          ),
+
+        driftSpeed:
+          lerp(
+            0.18,
+            0.42,
             randomC
           ),
 
-        driftSeed:
-          randomA * Math.PI * 2,
+        driftPhaseOffset:
+          randomC *
+          Math.PI *
+          2,
       });
     }
   });
 
   return floatingLeaves;
 }
+
 /*
  * Convert canopy cluster data into render geometry.
  */

@@ -2,6 +2,7 @@ import {
   useMemo,
   useRef,
 } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import {
   createProceduralTrunkGeometry,
@@ -17,6 +18,7 @@ import {
   createProceduralFloatingLeafData,
   createLeafPolygonGeometry,
 } from "./treeCanopy";
+import { terrainSettings } from "../../systems/terrain/terrainSettings";
 /*
  * Testing Grounds
  * Crimson Tree — reusable visual model
@@ -222,16 +224,27 @@ const proceduralCanopyData = useMemo(
     treeDefinition?.seed,
   ]
 );
+const floatingLeavesDefinition =
+  treeDefinition?.leaves ?? {
+    size: 100,
+    color: crownColor,
+    floating: {
+      enabled: true,
+      density: 8,
+    },
+  };
+
 const floatingLeafData = useMemo(
   () =>
     createProceduralFloatingLeafData(
       proceduralBranchData,
-      treeDefinition?.leaves,
+      floatingLeavesDefinition,
       treeDefinition?.seed ?? 1
     ),
   [
     proceduralBranchData,
-    treeDefinition,
+    floatingLeavesDefinition,
+    treeDefinition?.seed,
   ]
 );
 const floatingLeafGeometry = useMemo(
@@ -239,6 +252,7 @@ const floatingLeafGeometry = useMemo(
     createLeafPolygonGeometry(),
   []
 );
+const floatingLeavesRef = useRef(null);
 const generatorLeaves =
   treeDefinition?.leaves;
 const proceduralCanopyGeometry = useMemo(
@@ -297,7 +311,258 @@ const resolvedCrownHeight =
 
   const trunkLean =
     (variant - 0.5) * 0.045;
+useFrame((state, delta) => {
+  const group = floatingLeavesRef.current;
+  if (!group) return;
 
+  const windStrength =
+    (Number(terrainSettings.windStrength) || 0) / 100;
+
+  const windSpeed =
+    0.25 +
+    ((Number(terrainSettings.windSpeed) || 0) / 100) * 2.75;
+
+  group.children.forEach((leaf) => {
+    if (!leaf.userData.basePosition) {
+      leaf.userData.basePosition = leaf.position.clone();
+    }
+
+    if (!leaf.userData.baseRotationVector) {
+      leaf.userData.baseRotationVector = new THREE.Vector3(
+        leaf.rotation.x,
+        leaf.rotation.y,
+        leaf.rotation.z
+      );
+    }
+
+    if (leaf.userData.simulationInitialized !== true) {
+      const phase = leaf.userData.driftSeed ?? 0;
+
+      const outward =
+        leaf.userData.driftDirection?.clone().normalize() ??
+        new THREE.Vector3(1, 0, 0);
+
+      const tangent =
+        leaf.userData.tangentDirection?.clone().normalize() ??
+        new THREE.Vector3(0, 0, 1);
+
+      /*
+       * Stagger release so all leaves do not detach together.
+       */
+      leaf.userData.life =
+        -(
+          0.15 +
+          (Math.sin(phase * 2.17) * 0.5 + 0.5) * 1.8
+        );
+
+      leaf.userData.velocity =
+        outward
+          .clone()
+          .multiplyScalar(
+            0.18 +
+              (Math.sin(phase * 3.71) * 0.5 + 0.5) * 0.32
+          )
+          .add(
+            tangent
+              .clone()
+              .multiplyScalar(
+                Math.cos(phase * 2.91) * 0.24
+              )
+          );
+
+      leaf.userData.velocity.y =
+        0.08 +
+        (Math.sin(phase * 4.13) * 0.5 + 0.5) * 0.16;
+
+      leaf.userData.angularVelocity = new THREE.Vector3(
+        Math.sin(phase * 1.91) * 0.95,
+        Math.cos(phase * 2.63) * 0.8,
+        Math.sin(phase * 3.47) * 1.2
+      );
+
+      leaf.userData.tumblePhase = phase * 2.37;
+      leaf.userData.hidden = false;
+      leaf.userData.respawnTimer = 0;
+      leaf.userData.simulationInitialized = true;
+    }
+
+    const basePosition = leaf.userData.basePosition;
+    const baseRotation = leaf.userData.baseRotationVector;
+
+    /*
+     * Recycle fallen leaves after a short invisible pause.
+     * This prevents an ever-growing pile of leaves.
+     */
+    if (leaf.userData.hidden) {
+      leaf.userData.respawnTimer -= delta;
+      leaf.visible = false;
+
+      if (leaf.userData.respawnTimer <= 0) {
+        leaf.visible = true;
+        leaf.userData.hidden = false;
+
+        const phase = leaf.userData.driftSeed ?? 0;
+
+        leaf.userData.life =
+          -(
+            0.35 +
+            (((phase % 1) + 1) % 1) * 1.6
+          );
+
+        leaf.position.copy(basePosition);
+        leaf.rotation.set(
+          baseRotation.x,
+          baseRotation.y,
+          baseRotation.z
+        );
+
+        leaf.userData.velocity =
+          leaf.userData.driftDirection
+            ?.clone()
+            .normalize()
+            .multiplyScalar(
+              0.18 +
+                (Math.sin(phase * 3.71) * 0.5 + 0.5) * 0.32
+            ) ??
+          new THREE.Vector3(0.2, 0.1, 0);
+
+        if (leaf.userData.tangentDirection) {
+          leaf.userData.velocity.add(
+            leaf.userData.tangentDirection
+              .clone()
+              .normalize()
+              .multiplyScalar(
+                Math.cos(phase * 2.91) * 0.24
+              )
+          );
+        }
+
+        leaf.userData.velocity.y =
+          0.08 +
+          (Math.sin(phase * 4.13) * 0.5 + 0.5) * 0.16;
+      }
+
+      return;
+    }
+
+    leaf.userData.life += delta;
+
+    /*
+     * Negative life is the pre-release period.
+     */
+    if (leaf.userData.life < 0) {
+      leaf.position.copy(basePosition);
+      leaf.rotation.set(
+        baseRotation.x,
+        baseRotation.y,
+        baseRotation.z
+      );
+      return;
+    }
+
+    const velocity = leaf.userData.velocity;
+    const phase = leaf.userData.driftSeed ?? 0;
+
+    const driftDirection =
+      leaf.userData.driftDirection?.clone().normalize() ??
+      new THREE.Vector3(1, 0, 0);
+
+    const tangentDirection =
+      leaf.userData.tangentDirection?.clone().normalize() ??
+      new THREE.Vector3(0, 0, 1);
+
+    const windTime = state.clock.elapsedTime * windSpeed;
+
+    /*
+     * Irregular gusts keep leaves from synchronizing into an orbit.
+     */
+    const gustX =
+      Math.sin(windTime * 0.43 + phase * 1.73) * 0.32;
+
+    const gustZ =
+      Math.cos(windTime * 0.37 + phase * 2.19) * 0.28;
+
+    const gustTangent =
+      Math.sin(windTime * 0.71 + phase * 3.11) * 0.24;
+
+    /*
+     * Wind encourages the leaf away from the tree.
+     */
+    velocity.add(
+      driftDirection
+        .clone()
+        .multiplyScalar(0.22 * windStrength * delta)
+    );
+
+    velocity.add(
+      new THREE.Vector3(gustX, 0, gustZ)
+        .multiplyScalar(windStrength * delta)
+    );
+
+    velocity.add(
+      tangentDirection
+        .clone()
+        .multiplyScalar(gustTangent * windStrength * delta)
+    );
+
+    /*
+     * Gravity always acts, even when wind is calm.
+     */
+    velocity.y -= 0.62 * delta;
+
+    /*
+     * Mild air resistance prevents runaway acceleration.
+     */
+    velocity.multiplyScalar(
+      Math.pow(0.985, delta * 60)
+    );
+
+    leaf.position.add(
+      velocity.clone().multiplyScalar(delta)
+    );
+
+    /*
+     * Independent three-axis tumble.
+     */
+    const tumble = leaf.userData.angularVelocity;
+
+    const flutter =
+      Math.sin(
+        windTime * 1.37 +
+          leaf.userData.tumblePhase
+      ) * 0.35;
+
+    leaf.rotation.x +=
+      (tumble.x + flutter) * delta;
+
+    leaf.rotation.y +=
+      (
+        tumble.y +
+        Math.cos(
+          windTime * 1.11 +
+            leaf.userData.tumblePhase * 1.31
+        ) * 0.22
+      ) * delta;
+
+    leaf.rotation.z +=
+      (
+        tumble.z +
+        Math.sin(
+          windTime * 1.53 +
+            leaf.userData.tumblePhase * 0.77
+        ) * 0.28
+      ) * delta;
+
+    /*
+     * Remove the leaf below the low world threshold.
+     */
+    if (leaf.position.y < -1.35) {
+      leaf.visible = false;
+      leaf.userData.hidden = true;
+      leaf.userData.respawnTimer = 1.5;
+    }
+  });
+});
   return (
     <group scale={scale}>
       <group
@@ -369,7 +634,7 @@ const resolvedCrownHeight =
     />
   </lineSegments>
 )}
-<group>
+<group ref={floatingLeavesRef}>
   {floatingLeafData.map((leaf) => (
     <mesh
       key={`floating-leaf-${leaf.index}`}

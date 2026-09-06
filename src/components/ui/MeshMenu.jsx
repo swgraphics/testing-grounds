@@ -138,9 +138,6 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
   Number(baseDefinition.leaves?.floating?.density ?? 15)
   );
 
-  const [floatingLeafSpeed, setFloatingLeafSpeed] = useState(
-  Number(baseDefinition.leaves?.floating?.speed ?? 15)
-  );
   const [rotation, setRotation] = useState(
     Number(mesh?.transform?.rotation ?? 0)
     );
@@ -212,7 +209,6 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     ...baseDefinition.leaves?.floating,
     enabled: true,
     density: floatingLeafDensity,
-    speed: floatingLeafSpeed,
   },
 },
     };
@@ -236,7 +232,6 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
     leafGradientEnabled,
     leafGradientColor,
     floatingLeafDensity,
-    floatingLeafSpeed,
   ]);
   
   const resolvedScale =
@@ -469,11 +464,6 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
             setFloatingLeafDensity
           )}
 
-          {renderSlider(
-            "FLOATING LEAF SPEED",
-            floatingLeafSpeed,
-          setFloatingLeafSpeed
-          )}
 <label className="tg-mesh-edit-slider">
   <span>
     LEAF FILL COLOR

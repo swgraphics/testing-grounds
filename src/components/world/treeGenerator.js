@@ -67,22 +67,21 @@ export const DEFAULT_TREE = {
   },
 
   leaves: {
-  shape: "cluster",
-  size: 50,
-  density: 50,
-  clustering: 50,
-  color: "#080808",
-  outlineColor: "#fc0303",
-  gradientEnabled: false,
-  gradientColor: "#181818",
-  distribution: 50,
+    shape: "cluster",
+    size: 50,
+    density: 50,
+    clustering: 50,
+    color: "#080808",
+    outlineColor: "#fc0303",
+    gradientEnabled: false,
+    gradientColor: "#181818",
+    distribution: 50,
 
-  floating: {
-    enabled: true,
-    density: 15,
-    speed: 15,
+    floating: {
+      enabled: true,
+      density: 15,
+    },
   },
-},
 };
 
 export function createTreeDefinition(overrides = {}) {
@@ -152,15 +151,20 @@ export function createCrimsonTreeDefinition() {
     },
 
     leaves: {
-  shape: "cluster",
-  size: 100,
-  density: 85,
-  clustering: 85,
-  color: "#080808",
-  outlineColor: "#fc0303",
-  gradientEnabled: false,
-  gradientColor: "#181818",
-  distribution: 50,
-},
+      shape: "cluster",
+      size: 100,
+      density: 85,
+      clustering: 85,
+      color: "#080808",
+      outlineColor: "#fc0303",
+      gradientEnabled: false,
+      gradientColor: "#181818",
+      distribution: 50,
+
+      floating: {
+        enabled: true,
+        density: 8,
+      },
+    },
   });
 }
