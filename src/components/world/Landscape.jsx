@@ -10,7 +10,9 @@ import {
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import CrimsonTreeModel from "./CrimsonTreeModel";
-
+import {
+  createCrimsonTreeDefinition,
+} from "./treeGenerator";
 const MAX_TREES = 900;
 const MAX_FOLIAGE = 1400;
 const MAX_ROCKS = 650;
@@ -28,15 +30,35 @@ function makeScatterPoints(count, seedOffset, bounds) {
 
   for (let i = 0; i < count; i++) {
     points.push({
-      x: bounds.minX + seededRandom(i + seedOffset) * (bounds.maxX - bounds.minX),
-      z: bounds.minZ + seededRandom(i + seedOffset + 1000) * (bounds.maxZ - bounds.minZ),
-      scale:
-        bounds.minScale +
-        seededRandom(i + seedOffset + 2000) *
-          (bounds.maxScale - bounds.minScale),
-      rotation: seededRandom(i + seedOffset + 3000) * Math.PI * 2,
-      variant: seededRandom(i + seedOffset + 4000),
-    });
+  x:
+    bounds.minX +
+    seededRandom(i + seedOffset) *
+      (bounds.maxX - bounds.minX),
+
+  z:
+    bounds.minZ +
+    seededRandom(i + seedOffset + 1000) *
+      (bounds.maxZ - bounds.minZ),
+
+  scale:
+    bounds.minScale +
+    seededRandom(i + seedOffset + 2000) *
+      (bounds.maxScale - bounds.minScale),
+
+  rotation:
+    seededRandom(i + seedOffset + 3000) *
+    Math.PI *
+    2,
+
+  variant:
+    seededRandom(i + seedOffset + 4000),
+
+  seed:
+    Math.floor(
+      seededRandom(i + seedOffset + 5000) *
+        1000000
+    ) + 1,
+});
   }
 
   return points;
@@ -271,6 +293,8 @@ function CrimsonTree({
   scale = 1,
   rotation = 0,
   variant = 0,
+  treeDefinition,
+  treeSeed,
   crownRef,
   windPhase = 0,
   collisionEnabled = false,
@@ -290,14 +314,14 @@ function CrimsonTree({
   const trunkLean =
     (variant - 0.5) * 0.045;
 
-  const treeVisual = (
+const treeVisual = (
   <CrimsonTreeModel
     scale={scale}
     rotation={rotation}
     variant={variant}
     windPhase={windPhase}
     crownRef={crownRef}
-    legacyCrown
+    treeDefinition={treeDefinition}
   />
 );
 
@@ -579,27 +603,34 @@ function TreeScatter() {
     );
 
     return makeTreePoints()
-      .slice(0, count)
-      .map((point, index) => {
-        const y = getTerrainHeightAt(
-          point.x,
-          point.z
-        );
+  .slice(0, count)
+  .map((point, index) => {
+    const y = getTerrainHeightAt(
+      point.x,
+      point.z
+    );
 
-        return (
-          <CrimsonTree
-  key={`tree-${index}`}
-  position={[
-    point.x,
-    y,
-    point.z,
-  ]}
-  scale={point.scale}
-  rotation={point.rotation}
-  variant={point.variant}
-  windPhase={
-    point.variant * Math.PI * 2
-  }
+    const treeDefinition =
+      createCrimsonTreeDefinition({
+        seed: point.seed,
+      });
+
+    return (
+      <CrimsonTree
+        key={`tree-${index}`}
+        position={[
+          point.x,
+          y,
+          point.z,
+        ]}
+        scale={point.scale}
+        rotation={point.rotation}
+        variant={point.variant}
+        treeDefinition={treeDefinition}
+        treeSeed={point.seed}
+        windPhase={
+          point.variant * Math.PI * 2
+        }
   collisionEnabled={
     index < MAX_TREE_COLLIDERS
   }
