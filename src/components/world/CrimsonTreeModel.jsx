@@ -26,7 +26,37 @@ import { terrainSettings } from "../../systems/terrain/terrainSettings";
  * This component contains ONLY the visual tree.
  * Physics/collision behavior remains in Landscape.jsx.
  */
+function getFloatingLeafReleaseDelay(density, phase) {
+  const normalizedDensity =
+    Math.max(0, Math.min(100, Number(density) || 0)) / 100;
 
+  if (normalizedDensity <= 0) {
+    return Infinity;
+  }
+
+  /*
+   * Low density:
+   * roughly one release every 5–10 seconds across the tree.
+   *
+   * High density:
+   * allows several independent leaves to release
+   * close together, creating overlapping activity.
+   */
+  const minimumDelay =
+    THREE.MathUtils.lerp(8, 1.5, normalizedDensity);
+
+  const maximumDelay =
+    THREE.MathUtils.lerp(14, 4, normalizedDensity);
+
+  const randomOffset =
+    (Math.sin(phase * 3.17) * 0.5 + 0.5);
+
+  return THREE.MathUtils.lerp(
+    minimumDelay,
+    maximumDelay,
+    randomOffset
+  );
+}
 function createMatureTreeCrownGeometry() {
   const sides = 7;
 
@@ -403,11 +433,11 @@ useFrame((state, delta) => {
 
         const phase = leaf.userData.driftSeed ?? 0;
 
+        const density =
+          floatingLeavesDefinition?.floating?.density ?? 0;
+
         leaf.userData.life =
-          -(
-            0.35 +
-            (((phase % 1) + 1) % 1) * 1.6
-          );
+          -getFloatingLeafReleaseDelay(density, phase);
 
         leaf.position.copy(basePosition);
         leaf.rotation.set(

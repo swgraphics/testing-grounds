@@ -431,19 +431,21 @@ export function createProceduralFloatingLeafData(
         100
     );
 
-  const leavesPerBranch =
-    Math.max(
-      0,
-      Math.round(
-        lerp(
-          0,
-          1.5,
-          density
-        )
-      )
-    );
+  const targetCount =
+    density <= 0
+      ? 0
+      : Math.max(
+          2,
+          Math.round(
+            lerp(
+              2,
+              10,
+              density
+            )
+          )
+        );
 
-  if (leavesPerBranch <= 0) {
+  if (targetCount <= 0) {
     return [];
   }
 
@@ -462,167 +464,183 @@ export function createProceduralFloatingLeafData(
 
   const floatingLeaves = [];
 
-  branches.forEach((branch, branchIndex) => {
-    for (
-      let leafIndex = 0;
-      leafIndex < leavesPerBranch;
-      leafIndex += 1
-    ) {
-      const index =
-        branchIndex * 17 +
-        leafIndex;
-
-      const randomA =
+  for (
+    let floatingLeafIndex = 0;
+    floatingLeafIndex < targetCount;
+    floatingLeafIndex += 1
+  ) {
+    const branchIndex =
+      Math.floor(
         seededRandom(
           seed +
-            index *
-              17.31
-        );
-
-      const randomB =
-        seededRandom(
-          seed +
-            index *
-              29.73
-        );
-
-      const randomC =
-        seededRandom(
-          seed +
-            index *
-              43.19
-        );
-
-      const branchLength =
-        branch.length ??
-        branch.origin.distanceTo(
-          branch.end
-        );
-
-      /*
-       * Keep the starting point close to the outer
-       * portion of the branch rather than the trunk.
-       */
-      const branchT =
-        lerp(
-          0.78,
-          1.0,
-          randomA
-        );
-
-      const position =
-        branch.origin
-          .clone()
-          .add(
-            branch.direction
-              .clone()
-              .multiplyScalar(
-                branchLength *
-                  branchT
-              )
-          );
-
-      /*
-       * Bias the detached leaf outward from the
-       * tree's center. This gives each leaf its own
-       * escape direction instead of a shared orbit.
-       */
-      const radialDirection =
-        new THREE.Vector3(
-          position.x,
-          0,
-          position.z
-        );
-
-      if (radialDirection.lengthSq() < 0.0001) {
-        radialDirection.set(
-          branch.direction.x,
-          0,
-          branch.direction.z
-        );
-      }
-
-      radialDirection.normalize();
-
-      const tangentDirection =
-        new THREE.Vector3(
-          -radialDirection.z,
-          0,
-          radialDirection.x
-        );
-
-      const outwardDistance =
-        lerp(
-          0.18,
-          0.7,
-          randomB
-        );
-
-      position.add(
-        radialDirection
-          .clone()
-          .multiplyScalar(
-            outwardDistance
-          )
+            floatingLeafIndex *
+              61.73
+        ) *
+          branches.length
       );
 
-      const scaleVariation =
-        lerp(
-          0.82,
-          1.18,
-          randomC
-        );
+    const branch =
+      branches[branchIndex];
 
-      floatingLeaves.push({
-        index,
-        position,
+    if (!branch) {
+      continue;
+    }
 
-        direction:
+    const index =
+      floatingLeafIndex;
+
+    const randomA =
+      seededRandom(
+        seed +
+          index *
+            17.31
+      );
+
+    const randomB =
+      seededRandom(
+        seed +
+          index *
+            29.73
+      );
+
+    const randomC =
+      seededRandom(
+        seed +
+          index *
+            43.19
+      );
+
+    const branchLength =
+      branch.length ??
+      branch.origin.distanceTo(
+        branch.end
+      );
+
+    /*
+     * Keep the starting point close to the outer
+     * portion of the branch rather than the trunk.
+     */
+    const branchT =
+      lerp(
+        0.78,
+        1.0,
+        randomA
+      );
+
+    const position =
+      branch.origin
+        .clone()
+        .add(
           branch.direction
             .clone()
-            .normalize(),
+            .multiplyScalar(
+              branchLength *
+                branchT
+            )
+        );
 
-        rotation:
-          randomB *
-          Math.PI *
-          2,
+    /*
+     * Bias the detached leaf outward from the
+     * tree's center. This gives each leaf its own
+     * escape direction instead of a shared orbit.
+     */
+    const radialDirection =
+      new THREE.Vector3(
+        position.x,
+        0,
+        position.z
+      );
 
-        /* Match the canopy leaf scale family. */
-        scale:
-          canopySize *
-          scaleVariation,
-
-        driftSeed:
-          randomA *
-          Math.PI *
-          2,
-
-        driftDirection:
-          radialDirection,
-
-        tangentDirection,
-
-        driftDistance:
-          lerp(
-            0.45,
-            1.5,
-            randomB
-          ),
-
-        driftSpeed:
-          lerp(
-            0.18,
-            0.42,
-            randomC
-          ),
-
-        driftPhaseOffset:
-          randomC *
-          Math.PI *
-          2,
-      });
+    if (
+      radialDirection.lengthSq() <
+      0.0001
+    ) {
+      radialDirection.set(
+        branch.direction.x,
+        0,
+        branch.direction.z
+      );
     }
-  });
+
+    radialDirection.normalize();
+
+    const tangentDirection =
+      new THREE.Vector3(
+        -radialDirection.z,
+        0,
+        radialDirection.x
+      );
+
+    const outwardDistance =
+      lerp(
+        0.18,
+        0.7,
+        randomB
+      );
+
+    position.add(
+      radialDirection
+        .clone()
+        .multiplyScalar(
+          outwardDistance
+        )
+    );
+
+    const scaleVariation =
+      lerp(
+        0.82,
+        1.18,
+        randomC
+      );
+
+    floatingLeaves.push({
+      index,
+      position,
+
+      direction:
+        branch.direction
+          .clone()
+          .normalize(),
+
+      rotation:
+        randomB *
+        Math.PI *
+        2,
+
+      scale:
+        canopySize *
+        scaleVariation,
+
+      driftSeed:
+        randomA *
+        Math.PI *
+        2,
+
+      driftDirection:
+        radialDirection,
+
+      tangentDirection,
+
+      driftDistance:
+        lerp(
+          0.45,
+          1.5,
+          randomB
+        ),
+
+      driftSpeed:
+        lerp(
+          0.18,
+          0.42,
+          randomC
+        ),
+
+      driftPhaseOffset:
+        randomC *
+        Math.PI *
+        2,
+    });
+  }
 
   return floatingLeaves;
 }
