@@ -163,247 +163,239 @@ export function createProceduralCanopyData(
   leavesDefinition,
   seed = 1
 ) {
-  if (!leavesDefinition) {
+  if (!leavesDefinition || !branches.length) {
     return [];
   }
 
-  if (!branches.length) {
-    return [];
-  }
+  const size = clamp01(
+    (leavesDefinition.size ?? 50) / 100
+  );
 
-  const size =
-    clamp01(
-      (leavesDefinition.size ?? 50) /
-        100
-    );
+  const density = clamp01(
+    (leavesDefinition.density ?? 50) / 100
+  );
 
-  const density =
-    clamp01(
-      (leavesDefinition.density ?? 50) /
-        100
-    );
+  const clustering = clamp01(
+    (leavesDefinition.clustering ?? 50) / 100
+  );
 
-  const clustering =
-    clamp01(
-      (leavesDefinition.clustering ?? 50) /
-        100
-    );
-
-  const distribution =
-    clamp01(
-      (leavesDefinition.distribution ?? 50) /
-        100
-    );
+  const distribution = clamp01(
+    (leavesDefinition.distribution ?? 50) / 100
+  );
 
   /*
-   * Density controls how many branch endpoints
-   * receive foliage.
-   *
-   * Keep the minimum useful count high enough that
-   * the tree doesn't become visually empty at low
-   * density.
+   * Keep the same general density control, but guarantee foliage
+   * on every branch instead of concentrating too many leaves on
+   * the upper branches.
    */
-  const leavesPerBranch =
-  Math.max(
+  const leavesPerBranch = Math.max(
     2,
     Math.round(
-      lerp(
-        2,
-        14,
-        density
-      )
+      lerp(2, 14, density)
     )
   );
 
-const targetCount =
-  Math.max(
-    1,
-    branches.length *
-      leavesPerBranch
+  /*
+   * Smaller physical leaf scale. The Tree Editor's SIZE slider
+   * still controls the result, but the default Crimson Tree now
+   * uses compact foliage rather than oversized polygons.
+   */
+  const canopySize = lerp(
+    0.08,
+    0.30,
+    size
   );
-
-  const canopySize =
-    lerp(
-      0.12,
-      0.42,
-      size
-    );
 
   const clusters = [];
 
-  /*
-   * Prefer the upper portions of the tree as
-   * distribution increases.
-   */
-  const sortedBranches =
-    [...branches].sort(
-      (a, b) =>
-        b.trunkT -
-        a.trunkT
-    );
+  branches.forEach((branch, branchIndex) => {
+    for (
+      let leafIndex = 0;
+      leafIndex < leavesPerBranch;
+      leafIndex += 1
+    ) {
+      const clusterIndex =
+        branchIndex * leavesPerBranch +
+        leafIndex;
 
-  for (
-    let clusterIndex = 0;
-    clusterIndex < targetCount;
-    clusterIndex += 1
-  ) {
-    /*
-     * Spread selection through the available branches.
-     */
-    const normalized =
-      targetCount === 1
-        ? 0.5
-        : clusterIndex /
-          (targetCount - 1);
+      const branchProgress =
+        leavesPerBranch === 1
+          ? 0.5
+          : leafIndex /
+            (leavesPerBranch - 1);
 
-    /*
-     * Distribution pushes selection toward
-     * branches higher on the trunk.
-     */
-    const distributionBias =
-      Math.pow(
-        normalized,
-        lerp(
-          1.5,
-          0.35,
-          distribution
-        )
-      );
+      /*
+       * Deliberately place foliage through the inner, middle,
+       * and outer portions of every branch.
+       *
+       * The first group builds the dense center.
+       * The middle group fills the crown.
+       * The final group reaches the branch tips.
+       */
+      const zone =
+        branchProgress < 0.30
+          ? 0
+          : branchProgress < 0.72
+            ? 1
+            : 2;
 
-    const branchIndex =
-      Math.min(
-        sortedBranches.length - 1,
-        Math.floor(
-          distributionBias *
-            sortedBranches.length
-        )
-      );
-
-    const branch =
-      sortedBranches[
-        branchIndex
-      ];
-
-    if (!branch) {
-      continue;
-    }
-
-    /*
-     * Deterministic offset around the branch endpoint.
-     *
-     * Higher clustering = tighter around the endpoint.
-     * Lower clustering = more spread.
-     */
-    const randomX =
-      seededRandom(
-        seed +
-          clusterIndex *
-            31.17
-      ) -
-      0.5;
-
-    const randomY =
-      seededRandom(
-        seed +
-          clusterIndex *
-            47.91
-      ) -
-      0.5;
-
-    const randomZ =
-      seededRandom(
-        seed +
-          clusterIndex *
-            73.43
-      ) -
-      0.5;
-
-const alongBranch =
-  lerp(
-    0.45,
-    1.0,
-    seededRandom(
-      seed +
-        clusterIndex *
-          83.61
-    )
-  );
-
-const branchLength =
-  branch.length ??
-  branch.origin.distanceTo(
-    branch.end
-  );
-
-const anchor =
-  branch.origin
-    .clone()
-    .add(
-      branch.direction
-        .clone()
-        .multiplyScalar(
-          branchLength *
-            alongBranch
-        )
-    );
-
-/*
- * Higher clustering keeps leaves closer
- * to the branch centerline.
- */
-const spread =
-  lerp(
-    0.42,
-    0.10,
-    clustering
-  );
-
-const position =
-  anchor
-    .clone()
-    .add(
-      new THREE.Vector3(
-        randomX * spread,
-        randomY * spread * 0.7,
-        randomZ * spread
-      )
-    );
-
-    /*
-     * Slight deterministic size variation.
-     */
-    const variation =
-      lerp(
-        0.78,
-        1.22,
+      const randomAlong =
         seededRandom(
           seed +
-            clusterIndex *
-              91.27
+            clusterIndex * 83.61 +
+            3.17
+        );
+
+      let alongStart;
+      let alongEnd;
+
+      if (zone === 0) {
+        alongStart = 0.16;
+        alongEnd = 0.44;
+      } else if (zone === 1) {
+        alongStart = 0.34;
+        alongEnd = 0.76;
+      } else {
+        alongStart = 0.64;
+        alongEnd = 1.02;
+      }
+
+      /*
+       * Distribution still affects where the canopy favors foliage,
+       * but only gently. It no longer removes the important center fill.
+       */
+      const upperBias =
+        distribution * 0.18;
+
+      const alongBranch = THREE.MathUtils.clamp(
+        lerp(
+          alongStart,
+          alongEnd,
+          randomAlong
+        ) +
+          upperBias *
+            (branch.trunkT - 0.35),
+        0.12,
+        1.0
+      );
+
+      const branchLength =
+        branch.length ??
+        branch.origin.distanceTo(
+          branch.end
+        );
+
+      const anchor =
+        branch.origin
+          .clone()
+          .add(
+            branch.direction
+              .clone()
+              .multiplyScalar(
+                branchLength *
+                  alongBranch
+              )
+          );
+
+      /*
+       * High clustering keeps foliage near the branch.
+       * Lower clustering allows a softer crown silhouette.
+       */
+      const spread = lerp(
+        0.34,
+        0.07,
+        clustering
+      );
+
+      const randomX =
+        seededRandom(
+          seed +
+            clusterIndex * 31.17 +
+            9.11
+        ) - 0.5;
+
+      const randomY =
+        seededRandom(
+          seed +
+            clusterIndex * 47.91 +
+            4.73
+        ) - 0.5;
+
+      const randomZ =
+        seededRandom(
+          seed +
+            clusterIndex * 73.43 +
+            6.29
+        ) - 0.5;
+
+      const position =
+        anchor
+          .clone()
+          .add(
+            new THREE.Vector3(
+              randomX * spread,
+              randomY * spread * 0.75,
+              randomZ * spread
+            )
+          );
+
+      /*
+       * Fan foliage slightly outward from the tree center.
+       * This is especially useful for the inner leaves, which
+       * otherwise all inherit the same branch direction.
+       */
+      const outward =
+        new THREE.Vector3(
+          position.x,
+          0,
+          position.z
+        );
+
+      if (outward.lengthSq() > 0.0001) {
+        outward.normalize();
+      } else {
+        outward.set(0, 0, 1);
+      }
+
+      const foliageDirection =
+        branch.direction
+          .clone()
+          .lerp(
+            outward,
+            0.16
+          )
+          .normalize();
+
+      /*
+       * Individual leaves remain varied without changing the
+       * editable master leaf shape.
+       */
+      const variation = lerp(
+        0.76,
+        1.18,
+        seededRandom(
+          seed +
+            clusterIndex * 91.27 +
+            2.88
         )
       );
 
-    clusters.push({
-      index: clusterIndex,
+      clusters.push({
+        index: clusterIndex,
+        branchIndex: branch.index,
+        position,
+        scale:
+          canopySize *
+          variation,
+        branchT: branch.trunkT,
+        direction: foliageDirection,
+      });
+    }
+  });
 
-      branchIndex:
-        branch.index,
-
-      position,
-
-      scale:
-        canopySize *
-        variation,
-
-      branchT:
-        branch.trunkT,
-
-      direction:
-        branch.direction.clone(),
-    });
-  }
   return clusters;
 }
+
 /*
  * Generate detached floating leaf placement data.
  *

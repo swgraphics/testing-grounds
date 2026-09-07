@@ -7,18 +7,7 @@
  * This file defines WHAT a generated tree is.
  * It does not generate geometry.
  *
- * Geometry generation will be handled separately.
- *
- * Long-term structure:
- *
- * TREE
- * ├── trunk
- * ├── branches
- * │   ├── primary
- * │   └── secondary
- * └── leaves
- *
- * The same data model should eventually drive:
+ * The same definition is intended to drive:
  * - live preview
  * - presets
  * - saved objects
@@ -41,54 +30,53 @@ export const DEFAULT_TREE = {
   seed: 1,
 
   trunk: {
-  taper: 50,
-  height: 50,
-  radius: 50,
-  bend: 50,
-  segmentation: 50,
-},
+    taper: 50,
+    height: 50,
+    radius: 50,
+    bend: 50,
+    segmentation: 50,
+  },
 
-branches: {
-  count: 50,
-  angle: 50,
-  length: 50,
-  thickness: 50,
-  frequency: 50,
-  verticality: 50,
-  randomness: 50,
-  baseTrunk: 25,
-
-  secondary: {
-    enabled: true,
+  branches: {
     count: 50,
+    angle: 50,
     length: 50,
     thickness: 50,
+    frequency: 50,
+    verticality: 50,
     randomness: 50,
+    baseTrunk: 25,
+
+    secondary: {
+      enabled: true,
+      count: 50,
+      length: 50,
+      thickness: 50,
+      randomness: 50,
+    },
   },
-},
 
   leaves: {
-  shape: "cluster",
-  size: 50,
-  density: 50,
-  clustering: 50,
-  color: "#c0e9a9",
-  outlineColor: "#0f3806",
-  gradientEnabled: false,
-  gradientColor: "#181818",
-  distribution: 50,
+    shape: "cluster",
+    size: 50,
+    density: 50,
+    clustering: 50,
+    color: "#c0e9a9",
+    outlineColor: "#0f3806",
+    gradientEnabled: false,
+    gradientColor: "#181818",
+    distribution: 50,
 
-  floating: {
-    enabled: true,
-    density: 15,
+    floating: {
+      enabled: true,
+      density: 15,
+    },
   },
-},
 };
 
 export function createTreeDefinition(overrides = {}) {
   return {
     ...DEFAULT_TREE,
-
     ...overrides,
 
     trunk: {
@@ -109,58 +97,81 @@ export function createTreeDefinition(overrides = {}) {
     leaves: {
       ...DEFAULT_TREE.leaves,
       ...(overrides.leaves || {}),
+
+      floating: {
+        ...DEFAULT_TREE.leaves.floating,
+        ...(overrides.leaves?.floating || {}),
+      },
     },
   };
 }
 
 export function createCrimsonTreeDefinition(overrides = {}) {
+  /*
+   * Crimson values are the species baseline.
+   *
+   * IMPORTANT:
+   * User/editor overrides are merged back into every nested
+   * section so the same Tree Definition can later travel from
+   * Object Editor -> Save -> Place -> Scatter.
+   */
   return createTreeDefinition({
     preset: "crimson",
 
     seed: overrides.seed ?? 1,
 
     trunk: {
-  taper: 100,
-  height: 50,
-  radius: 50,
-  bend: 28,
-  segmentation: 55,
-},
+      taper: 100,
+      height: 50,
+      radius: 50,
+      bend: 28,
+      segmentation: 55,
 
-branches: {
-  count: 26,
-  angle: 72,
-  length: 50,
-  thickness: 38,
-  frequency: 35,
-  verticality: 60,
-  randomness: 42,
-  baseTrunk: 25,
+      ...(overrides.trunk || {}),
+    },
 
-  secondary: {
-    enabled: false,
-    count: 0,
-    length: 50,
-    thickness: 50,
-    randomness: 50,
-  },
-},
+    branches: {
+      count: 26,
+      angle: 68,
+      length: 50,
+      thickness: 38,
+      frequency: 35,
+      verticality: 72,
+      randomness: 48,
+      baseTrunk: 25,
 
-leaves: {
-  shape: "cluster",
-  size: 34,
-  density: 90,
-  clustering: 90,
-  color: "#fc0303",
-  outlineColor: "#680303",
-  gradientEnabled: false,
-  gradientColor: "#868585",
-  distribution: 60,
+      ...(overrides.branches || {}),
 
-  floating: {
-    enabled: true,
-    density: 8,
-  },
-},
+      secondary: {
+        enabled: false,
+        count: 0,
+        length: 50,
+        thickness: 50,
+        randomness: 50,
+
+        ...(overrides.branches?.secondary || {}),
+      },
+    },
+
+    leaves: {
+      shape: "cluster",
+      size: 34,
+      density: 90,
+      clustering: 90,
+      color: "#fc0303",
+      outlineColor: "#680303",
+      gradientEnabled: false,
+      gradientColor: "#868585",
+      distribution: 60,
+
+      ...(overrides.leaves || {}),
+
+      floating: {
+        enabled: true,
+        density: 8,
+
+        ...(overrides.leaves?.floating || {}),
+      },
+    },
   });
 }
