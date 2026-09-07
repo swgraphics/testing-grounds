@@ -131,20 +131,20 @@ export function createCrimsonTreeDefinition(overrides = {}) {
     },
 
     branches: {
-      count: 26,
-      angle: 68,
-      length: 50,
-      thickness: 38,
-      frequency: 35,
-      verticality: 72,
-      randomness: 48,
+      count: 50,
+      angle: 60,
+      length: 44,
+      thickness: 40,
+      frequency: 42,
+      verticality: 82,
+      randomness: 58,
       baseTrunk: 25,
 
       ...(overrides.branches || {}),
 
       secondary: {
-        enabled: false,
-        count: 0,
+        enabled: true,
+        count: 2,
         length: 50,
         thickness: 50,
         randomness: 50,
@@ -155,20 +155,20 @@ export function createCrimsonTreeDefinition(overrides = {}) {
 
     leaves: {
       shape: "cluster",
-      size: 34,
+      size: 32,
       density: 90,
-      clustering: 90,
+      clustering: 75,
       color: "#fc0303",
-      outlineColor: "#680303",
+      outlineColor: "#fc0303",
       gradientEnabled: false,
-      gradientColor: "#868585",
-      distribution: 60,
+      gradientColor: "#fc0303",
+      distribution: 90,
 
       ...(overrides.leaves || {}),
 
       floating: {
         enabled: true,
-        density: 8,
+        density: 4,
 
         ...(overrides.leaves?.floating || {}),
       },

@@ -116,7 +116,7 @@ export function createProceduralBranchData(
   /*
    * The highest quarter of the trunk transitions into the pointed crown.
    */
-  const upperBranchThreshold = 0.75;
+  const upperBranchThreshold = 0.70;
 
   /*
    * Golden-angle spacing prevents the branches from accidentally
@@ -200,19 +200,19 @@ export function createProceduralBranchData(
      * closes naturally instead of ending in a flat final tier.
      */
     const crownLengthMultiplier =
-      trunkT >= 0.60
+      trunkT >= 0.56
         ? lerp(
             1.0,
-            0.24,
+            0.30,
             clamp01(
-              (trunkT - 0.60) / 0.40
+              (trunkT - 0.56) / 0.44
             )
           )
         : 1;
 
     const branchLengthVariation = lerp(
-      0.78,
-      1.22,
+      0.72,
+      1.28,
       seededRandom(
         seed + branchIndex * 57.19 + 11.42
       )
@@ -233,7 +233,7 @@ export function createProceduralBranchData(
         seed + branchIndex * 17.31 + 2.41
       ) - 0.5) *
       randomness *
-      0.75;
+      0.95;
 
     const azimuth =
       seed * 0.173 +
@@ -250,13 +250,13 @@ export function createProceduralBranchData(
         seed + branchIndex * 31.73 + 7.19
       ) - 0.5) *
       randomness *
-      0.50;
+      0.62;
 
     const crownLift =
-      trunkT > 0.58
-        ? -0.18 *
+      trunkT > 0.52
+        ? -0.24 *
           clamp01(
-            (trunkT - 0.58) / 0.42
+            (trunkT - 0.52) / 0.48
           )
         : 0;
 
@@ -264,7 +264,7 @@ export function createProceduralBranchData(
       baseBranchAngle +
         elevationVariation +
         crownLift,
-      0.48,
+      0.40,
       1.30
     );
 

@@ -191,7 +191,7 @@ export function createProceduralCanopyData(
   const leavesPerBranch = Math.max(
     2,
     Math.round(
-      lerp(2, 14, density)
+      lerp(3, 16, density)
     )
   );
 
@@ -201,8 +201,8 @@ export function createProceduralCanopyData(
    * uses compact foliage rather than oversized polygons.
    */
   const canopySize = lerp(
-    0.08,
-    0.30,
+    0.06,
+    0.25,
     size
   );
 
@@ -233,9 +233,9 @@ export function createProceduralCanopyData(
        * The final group reaches the branch tips.
        */
       const zone =
-        branchProgress < 0.30
+        branchProgress < 0.40
           ? 0
-          : branchProgress < 0.72
+          : branchProgress < 0.78
             ? 1
             : 2;
 
@@ -250,14 +250,14 @@ export function createProceduralCanopyData(
       let alongEnd;
 
       if (zone === 0) {
-        alongStart = 0.16;
-        alongEnd = 0.44;
+        alongStart = 0.10;
+        alongEnd = 0.52;
       } else if (zone === 1) {
-        alongStart = 0.34;
-        alongEnd = 0.76;
+        alongStart = 0.30;
+        alongEnd = 0.84;
       } else {
-        alongStart = 0.64;
-        alongEnd = 1.02;
+        alongStart = 0.68;
+        alongEnd = 1.04;
       }
 
       /*
@@ -265,7 +265,7 @@ export function createProceduralCanopyData(
        * but only gently. It no longer removes the important center fill.
        */
       const upperBias =
-        distribution * 0.18;
+        distribution * 0.12;
 
       const alongBranch = THREE.MathUtils.clamp(
         lerp(
@@ -302,8 +302,8 @@ export function createProceduralCanopyData(
        * Lower clustering allows a softer crown silhouette.
        */
       const spread = lerp(
-        0.34,
-        0.07,
+        0.30,
+        0.055,
         clustering
       );
 
@@ -328,9 +328,28 @@ export function createProceduralCanopyData(
             6.29
         ) - 0.5;
 
+      const innerBias =
+        zone === 0
+          ? 0.055
+          : 0.0;
+
+      const centerPull =
+        new THREE.Vector3(
+          branch.origin.x,
+          anchor.y,
+          branch.origin.z
+        ).lerp(
+          anchor,
+          0.72
+        );
+
       const position =
         anchor
           .clone()
+          .lerp(
+            centerPull,
+            innerBias
+          )
           .add(
             new THREE.Vector3(
               randomX * spread,
