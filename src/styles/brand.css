@@ -3634,3 +3634,295 @@ canvas {
   }
   .tg-splash-quote { font-size: 19px; }
 }
+
+/* =======================================================
+   TESTING GROUNDS 1.4 — WORLD INTERACTION
+   World Editor is a sharp frame. Blur belongs only to
+   surfaces that intentionally use glass treatment.
+======================================================= */
+.tg-editor-view {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.tg-interaction-panel {
+  position: fixed;
+  top: 88px;
+  right: 22px;
+  z-index: 210;
+  width: 290px;
+  max-height: calc(100vh - 116px);
+  box-sizing: border-box;
+  padding: 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: rgba(8, 10, 14, 0.96);
+  border: 1px solid rgba(42, 143, 255, 0.7);
+  color: var(--tg-white);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgba(42, 143, 255, 0.12);
+  backdrop-filter: blur(12px);
+  scrollbar-gutter: stable;
+}
+
+.tg-interaction-panel-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tg-interaction-panel-subtitle,
+.tg-interaction-panel-footer {
+  color: rgba(232, 238, 245, 0.48);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.tg-interaction-panel-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.tg-interaction-tool {
+  min-height: 62px;
+  padding: 9px;
+  border: 1px solid rgba(232, 238, 245, 0.14);
+  background: rgba(255, 255, 255, 0.018);
+  color: rgba(232, 238, 245, 0.72);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tg-interaction-tool strong {
+  display: block;
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+
+.tg-interaction-tool span {
+  display: block;
+  margin-top: 4px;
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.tg-interaction-tool:hover,
+.tg-interaction-tool.active {
+  border-color: var(--tg-interaction);
+  box-shadow: inset 0 0 0 1px var(--tg-interaction);
+  color: var(--tg-white);
+}
+
+.tg-interaction-panel-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(232, 238, 245, 0.1);
+}
+
+.tg-adaptive-reticle {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 140;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.tg-reticle-dot {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--tg-white);
+  box-shadow: 0 0 8px rgba(232, 238, 245, 0.45);
+}
+
+.tg-sun-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 38px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+}
+
+.tg-sun-reticle-orbit {
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid rgba(232, 238, 245, 0.95);
+  border-radius: 50%;
+  transform: rotate(-18deg) scaleY(0.72);
+}
+
+.tg-sun-reticle-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid var(--tg-white);
+  border-radius: 50%;
+  background: rgba(5, 6, 8, 0.25);
+}
+
+.tg-sun-reticle-node {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--tg-white);
+  border-radius: 50%;
+}
+
+.tg-sun-reticle-node.node-a { left: 15px; top: 1px; }
+.tg-sun-reticle-node.node-b { left: 1px; top: 15px; }
+.tg-sun-reticle-node.node-c { right: 1px; bottom: 7px; }
+
+.tg-adaptive-reticle.held .tg-sun-reticle-orbit,
+.tg-adaptive-reticle.held .tg-sun-reticle-node,
+.tg-adaptive-reticle.held .tg-sun-reticle-center {
+  border-color: var(--tg-interaction);
+}
+
+.tg-sun-reticle-rotation {
+  position: absolute;
+  left: -7px;
+  bottom: -12px;
+  width: 21px;
+  height: 21px;
+  border: 1.5px solid var(--tg-interaction);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  transform: rotate(34deg);
+}
+
+.tg-sun-reticle-height {
+  position: absolute;
+  right: -17px;
+  top: -8px;
+  width: 1px;
+  height: 36px;
+  background: var(--tg-interaction);
+}
+
+.tg-sun-reticle-height::before,
+.tg-sun-reticle-height::after {
+  content: "";
+  position: absolute;
+  left: -3px;
+  width: 7px;
+  height: 7px;
+  border-left: 1px solid var(--tg-interaction);
+  border-top: 1px solid var(--tg-interaction);
+}
+
+.tg-sun-reticle-height::before { top: 0; transform: rotate(45deg); }
+.tg-sun-reticle-height::after { bottom: 0; transform: rotate(225deg); }
+
+.tg-editor-active .tg-interaction-panel {
+  top: 108px;
+  right: 16px;
+  bottom: 60px;
+  max-height: none;
+}
+
+.tg-editor-active .tg-adaptive-reticle {
+  z-index: 185;
+}
+
+@media (max-width: 900px) {
+  .tg-interaction-panel {
+    top: 84px;
+    right: 12px;
+    width: 250px;
+    max-height: calc(100vh - 104px);
+  }
+
+  .tg-editor-active .tg-interaction-panel {
+    top: 94px;
+    right: 8px;
+    bottom: 54px;
+    width: 250px;
+  }
+}
+
+@media (max-width: 620px) {
+  .tg-interaction-panel {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    top: 66px;
+    max-height: calc(100vh - 78px);
+  }
+
+  .tg-editor-active .tg-interaction-panel {
+    top: 162px;
+    bottom: 52px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+}
+
+.tg-world-map-canvas-wrap {
+  position: absolute;
+  inset: 8%;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 7, 10, 0.82);
+  border: 1px solid rgba(232, 238, 245, 0.16);
+}
+
+.tg-world-map-canvas {
+  width: min(72vh, 72vw);
+  height: min(72vh, 72vw);
+  image-rendering: pixelated;
+  border: 1px solid rgba(232, 238, 245, 0.22);
+  box-shadow: 0 0 0 1px rgba(205, 38, 38, 0.08);
+}
+
+.tg-world-map-overlay-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 5px 7px;
+  border: 1px solid rgba(205, 38, 38, 0.6);
+  background: rgba(5, 6, 8, 0.82);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 12px;
+  letter-spacing: 0.09em;
+}
+
+.tg-interaction-panel-devtools {
+  width: 100%;
+  margin-top: 10px;
+  min-height: 34px;
+  border: 1px solid rgba(205, 38, 38, 0.55);
+  background: rgba(129, 16, 18, 0.18);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.tg-interaction-panel-devtools:hover {
+  border-color: var(--tg-crimson);
+  box-shadow: inset 0 0 0 1px var(--tg-crimson);
+}
+
+.tg-splash-card-clickable {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}

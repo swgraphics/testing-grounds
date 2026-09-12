@@ -8,6 +8,7 @@ import {
 import "./MeshMenu.css";
 import { BUILTIN_OBJECTS, createUploadedObject, createSavedObject } from "../../systems/objects/objectRegistry";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
+import { useWorldStore } from "../../systems/world/worldStore";
 
 
 
@@ -604,11 +605,15 @@ export default function MeshMenu() {
   const [page, setPage] = useState(0);
   const [uploadedMeshes, setUploadedMeshes] = useState([]);
   const [editedMeshes, setEditedMeshes] = useState({});
+  const [savedMeshes, setSavedMeshes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("testingGroundsSavedObjects") || "[]"); } catch { return []; }
+  });
   const fileInputRef = useRef(null);
 
   const meshes = useMemo(
   () =>
     [
+      ...savedMeshes,
       ...uploadedMeshes,
       ...BUILTIN_OBJECTS,
     ].map((mesh) => {
@@ -625,7 +630,7 @@ export default function MeshMenu() {
           mesh.treeDefinition,
       };
     }),
-  [uploadedMeshes, editedMeshes]
+  [uploadedMeshes, editedMeshes, savedMeshes]
 );
   const pageSize = 6;
   const pageCount = Math.max(1, Math.ceil(meshes.length / pageSize));
@@ -639,7 +644,7 @@ useEffect(() => {
   function handleMeshMenuOpen() {
     setMenuOpen(true);
     setEditOpen(false);
-    setMode("edit");
+    setMode("select");
   }
 
   window.addEventListener(
@@ -669,7 +674,7 @@ useEffect(() => {
     function handlePlacementCancelled() {
       setMenuOpen(true);
       setEditOpen(false);
-      setMode("place");
+      setMode("select");
     }
 
     window.addEventListener("tg-mesh-placement-cancelled", handlePlacementCancelled);
@@ -776,6 +781,16 @@ function addToScatter() {
   window.dispatchEvent(
     new CustomEvent("tg-mesh-cancel-placement")
   );
+
+  const worldStore = useWorldStore.getState();
+  worldStore.upsertScatterProfile(selectedMesh.id, {
+    enabled: true,
+    density: 50,
+    coverage: 50,
+    scaleVariation: 25,
+    rotationVariation: 100,
+    clustering: 35,
+  });
 
   window.dispatchEvent(
     new CustomEvent("tg-mesh-scatter-request", {
@@ -910,6 +925,12 @@ function addToScatter() {
 
   const savedObject = createSavedObject(updatedMesh, {
     id: `${selectedMesh.id}-saved-${Date.now()}`,
+  });
+
+  setSavedMeshes((current) => {
+    const next = [savedObject, ...current.filter((entry) => entry.id !== savedObject.id)];
+    localStorage.setItem("testingGroundsSavedObjects", JSON.stringify(next));
+    return next;
   });
 
   window.dispatchEvent(

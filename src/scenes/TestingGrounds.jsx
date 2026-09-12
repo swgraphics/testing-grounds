@@ -8,11 +8,12 @@ import GridTerrain from "../components/world/GridTerrain";
 import GridFloor from "../components/world/GridFloor";
 import Water from "../components/world/Water";
 import Landscape from "../components/world/Landscape";
-import SpawnPad from "../components/world/SpawnPad";
 import WorldGizmos from "../components/world/WorldGizmos";
 import TestCourse from "../components/world/TestCourse";
 import CameraTelemetry from "../components/ui/CameraTelemetry";
 import MeshPlacementSystem from "../components/world/MeshPlacementSystem";
+import WorldInteractionSystem from "../components/world/WorldInteractionSystem";
+import SunReticleSensor from "../components/world/SunReticleSensor";
 function TitleOrbitCamera({ active }) {
   const { camera } = useThree();
 
@@ -42,6 +43,8 @@ export default function TestingGrounds({ titleMode = false }) {
       <XboxController />
       <CameraTelemetry />
       <MeshPlacementSystem />
+      {!titleMode && <SunReticleSensor />}
+      {!titleMode && <WorldInteractionSystem />}
       <Atmosphere titleMode={titleMode} />
       <Lighting />
 
@@ -50,7 +53,6 @@ export default function TestingGrounds({ titleMode = false }) {
       <Water />
 
       <Landscape />
-      <SpawnPad />
       <WorldGizmos />
 
       <TestCourse />

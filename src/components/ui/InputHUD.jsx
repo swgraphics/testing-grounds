@@ -87,9 +87,6 @@ const TERRAIN_SLIDERS = [
   ["foliageDensity", "Foliage Scatter", 0, 100, 1],
   ["rockDensity", "Rock Scatter", 0, 100, 1],
 
-  ["windStrength", "Wind Strength", 0, 100, 1],
-  ["windSpeed", "Wind Speed", 0, 100, 1],
-
   ["boulderAmount", "Boulder Amount", 0, 100, 1],
   ["boulderHeight", "Boulder Height", 0, 100, 1],
 ];
@@ -122,6 +119,9 @@ const SKY_SLIDERS = [
 ];
 
 const ATMOSPHERE_NUMERIC_SLIDERS = [
+  ["windStrength", "Wind Strength", 0, 100, 1],
+  ["windSpeed", "Wind Speed", 0, 100, 1],
+  ["windDirection", "Wind Direction", 0, 360, 1],
   ["rainbowIntensity", "Rainbow Intensity", 0, 100, 1],
   ["rainbowWidth", "Rainbow Width", 8, 60, 1],
   ["auroraIntensity", "Aurora Intensity", 0, 100, 1],
@@ -486,7 +486,7 @@ function DevToolsPanel({ terrainLocked, onRefresh, onClose }) {
                 >{mode.toUpperCase()}</button>
               ))}
             </div>
-            {ATMOSPHERE_NUMERIC_SLIDERS.slice(0, 9).map(([key, label, min, max, step]) => (
+            {ATMOSPHERE_NUMERIC_SLIDERS.map(([key, label, min, max, step]) => (
               <DevSlider key={key} settingKey={key} label={label} min={min} max={max} step={step} locked={false} onRefresh={onRefresh} lockId={`atmosphere.${key}`} />
             ))}
           </>
@@ -522,7 +522,7 @@ export default function InputHUD() {
   const editorOpen = useEditorStore((state) => state.isOpen);
   const devToolsOpen = useEditorStore((state) => state.devToolsOpen);
   const devToolsPanelOpen = useEditorStore((state) => state.devToolsPanelOpen);
-  const openDevToolsPanel = useEditorStore((state) => state.openDevToolsPanel);
+  const interactionPanelOpen = useInteractionStore((state) => state.panelOpen);
   const closeDevTools = useEditorStore((state) => state.closeDevTools);
 
   const [stickPosition, setStickPosition] = useState({
@@ -604,21 +604,15 @@ const cameraPadRef = useRef({
     event.preventDefault();
     event.stopPropagation();
 
-    if (editorOpen) {
-      useEditorStore.getState().close();
-      closeDevTools();
-      window.dispatchEvent(new CustomEvent("tg-mesh-menu-close"));
-      useInteractionStore.getState().closePanel();
-      useInteractionStore.getState().clear();
-      return;
-    }
-
     if (devToolsOpen || devToolsPanelOpen) {
       closeDevTools();
-      useInteractionStore.getState().closePanel();
+    }
+
+    const interaction = useInteractionStore.getState();
+    if (interaction.panelOpen) {
+      interaction.clear();
     } else {
-      useInteractionStore.getState().openPanel();
-      openDevToolsPanel();
+      interaction.openPanel();
     }
   }
 
@@ -954,7 +948,7 @@ function handleSectionLockChange(event) {
       }
 
       const target = event.target;
-      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-dev-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view")) {
+      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-dev-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-placed-object, .tg-editor-view")) {
         return;
       }
 
@@ -1191,14 +1185,14 @@ function handleSectionLockChange(event) {
       <button
         type="button"
         className={`tg-dev-toggle tg-dev-compass-toggle ${
-          devToolsOpen || devToolsPanelOpen ? "active" : ""
+          devToolsOpen || devToolsPanelOpen || interactionPanelOpen ? "active" : ""
         }`}
         onClick={handleDevToolsClick}
-        aria-label="Open Dev Tools Panel"
+        aria-label="Open Interaction Panel"
       >
         <img
           src="/images/TG_ICON.svg"
-          alt="Testing Grounds Dev Tools"
+          alt="Testing Grounds Interaction"
           className="tg-dev-toggle-icon"
         />
       </button>

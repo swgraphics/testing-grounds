@@ -4,6 +4,7 @@ import { useWorldStore } from "../../systems/world/worldStore";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import { AREA_CONFIG } from "../../config/areaConfig";
 import { saveWorldSettings, loadWorldSettings } from "../../systems/terrain/terrainSettings";
+import WorldMap from "./WorldMap";
 
 const PANEL_LABELS = [
   ["world", "WORLD"],
@@ -40,9 +41,6 @@ export default function EditorView() {
 
   useEffect(() => {
     document.body.classList.toggle("tg-editor-active", isOpen);
-    if (isOpen) {
-      useInteractionStore.getState().closePanel();
-    }
     return () => document.body.classList.remove("tg-editor-active");
   }, [isOpen]);
 
@@ -181,6 +179,7 @@ export default function EditorView() {
 
             {viewportMode === "map" && (
               <div className="tg-editor-aerial-map">
+                <WorldMap />
                 <div className="tg-editor-map-label">AERIAL WORLD MAP</div>
                 <div className="tg-map-grid-lines" aria-hidden="true" />
                 {AREA_CONFIG.map((area) => {

@@ -61,7 +61,7 @@ export default function Aurora() {
     const night = 1 - THREE.MathUtils.clamp((terrainSettings.sunHeight - 8) / 42, 0, 1);
     const visibility = 0.58 + night * 0.42;
     material.uniforms.time.value = state.clock.elapsedTime;
-    material.uniforms.intensity.value = enabled ? (Number(terrainSettings.auroraIntensity) / 100) * visibility : 0;
+    material.uniforms.intensity.value = enabled ? Math.max(0.18, (Number(terrainSettings.auroraIntensity) / 100) * visibility * 1.35) : 0;
     material.uniforms.speed.value = Number(terrainSettings.auroraSpeed) || 0;
     groupRef.current.position.copy(camera.position);
     groupRef.current.position.y += Number(terrainSettings.auroraHeight) || 64;
@@ -72,7 +72,7 @@ export default function Aurora() {
     <group ref={groupRef} renderOrder={5}>
       {[0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2].map((rotation) => (
         <mesh key={rotation} rotation={[0, rotation, 0]} material={material}>
-          <planeGeometry args={[520, 115, 1, 1]} />
+          <planeGeometry args={[720, 180, 1, 1]} />
         </mesh>
       ))}
     </group>

@@ -280,6 +280,7 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
   ]);
 
   /*
@@ -302,6 +303,7 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
   ]);
 
   /*
@@ -324,6 +326,7 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
   ]);
 
   /*
@@ -346,6 +349,7 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
   ]);
 
   /*
@@ -388,6 +392,7 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
   ].join("-");
 
   return (

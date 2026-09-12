@@ -11,6 +11,7 @@ import * as THREE from "three";
 import {
   terrainSettings,
 } from "../../systems/terrain/terrainSettings";
+import { useWorldStore } from "../../systems/world/worldStore";
 
 const WATER_SIZE = 900;
 const WATER_DEPTH = 100;
@@ -25,6 +26,10 @@ const WATER_SEGMENTS = 180;
 
 const WATER_SURFACE_OFFSET = 0.04;
 const WATER_WIREFRAME_OFFSET = 0.045;
+
+// Stable fallback prevents Zustand useSyncExternalStore from seeing
+// a new array on every snapshot when the active chunk has no river.
+const EMPTY_RIVER_POINTS = [];
 
 /*
  * Higher values create more height levels.
@@ -44,6 +49,36 @@ function triangleWave(value) {
       Math.asin(
         Math.abs(Math.sin(value))
       )
+  );
+}
+
+function RiverPath({ points = [], waterHeight }) {
+  const geometry = useMemo(() => {
+    if (points.length < 2) return null;
+    const curvePoints = points.map(([x, z]) =>
+      new THREE.Vector3(x, waterHeight + 0.12, z)
+    );
+    const curve = new THREE.CatmullRomCurve3(curvePoints);
+    curve.curveType = "centripetal";
+    curve.tension = 0.35;
+    return new THREE.TubeGeometry(curve, Math.max(12, points.length * 2), 3.8, 8, false);
+  }, [points, waterHeight]);
+
+  useEffect(() => () => geometry?.dispose(), [geometry]);
+
+  if (!geometry) return null;
+  return (
+    <mesh geometry={geometry} renderOrder={4} receiveShadow>
+      <meshStandardMaterial
+        color="#79a9c7"
+        emissive="#173f59"
+        emissiveIntensity={0.18}
+        transparent
+        opacity={0.78}
+        roughness={0.24}
+        metalness={0.05}
+      />
+    </mesh>
   );
 }
 
@@ -276,6 +311,11 @@ export default function Water() {
 
   const waterHeight =
     terrainSettings.waterHeight ?? -4;
+
+  const riverPoints = useWorldStore((state) => {
+    const chunk = state.world.chunks[state.world.currentChunkId];
+    return chunk?.water?.riverPoints ?? EMPTY_RIVER_POINTS;
+  });
 
   return (
     <group

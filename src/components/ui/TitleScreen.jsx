@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const TG_VERSION = "1.3.2";
+const TG_VERSION = "1.4.0";
 
 const SPLASH_CARDS = [
   {
@@ -37,7 +37,7 @@ export default function TitleScreen({ onStart }) {
   useEffect(() => {
     const timer = window.setInterval(() => {
       setCardIndex((current) => (current + 1) % SPLASH_CARDS.length);
-    }, 1500);
+    }, 3000);
 
     return () => window.clearInterval(timer);
   }, []);
@@ -49,13 +49,19 @@ export default function TitleScreen({ onStart }) {
           <img className="tg-title-logo-image" src="/images/tg-logo.png" alt="Testing Grounds Logo" />
         </div>
 
-        <div className="tg-splash-card" key={cardIndex}>
+        <button
+          type="button"
+          className="tg-splash-card tg-splash-card-clickable"
+          key={cardIndex}
+          onClick={() => setCardIndex((current) => (current + 1) % SPLASH_CARDS.length)}
+          aria-label="Advance Crash Tester guide"
+        >
           <img src={card.image} alt="Crash Tester field guide" className="tg-splash-image" />
           <div className="tg-splash-copy">
             <div className="tg-splash-quote">“{card.quote}”</div>
             <div className="tg-splash-attribution">— {card.attribution}</div>
           </div>
-        </div>
+        </button>
 
         <div className="tg-splash-dots" aria-label="Crash Tester guide pages">
           {SPLASH_CARDS.map((entry, index) => (

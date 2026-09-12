@@ -8,6 +8,7 @@ import {
 } from "@react-three/rapier";
 
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
+import { useWorldStore } from "../../systems/world/worldStore";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import CrimsonTreeModel from "./CrimsonTreeModel";
 import {
@@ -523,8 +524,11 @@ function TreeScatter() {
   const treePointsRef = useRef([]);
   const frameCounterRef = useRef(0);
 
-  const treeDensity = useTerrainSetting("treeDensity", 25);
-  const treeCoverage = useTerrainSetting("treeCoverage", 50);
+  const treeDensitySetting = useTerrainSetting("treeDensity", 25);
+  const treeCoverageSetting = useTerrainSetting("treeCoverage", 50);
+  const crimsonScatter = useWorldStore((state) => state.world.scatterProfiles?.["crimson-tree"]);
+  const treeDensity = crimsonScatter?.enabled ? crimsonScatter.density : treeDensitySetting;
+  const treeCoverage = crimsonScatter?.enabled ? crimsonScatter.coverage : treeCoverageSetting;
   const scatterSeed = useTerrainSetting("scatterSeed", 1);
   const terrainHeightMultiplier = useTerrainSetting("heightMultiplier", 1.5);
   const terrainMountainHeight = useTerrainSetting("mountainHeight", 1.5);
@@ -597,6 +601,9 @@ function TreeScatter() {
   }, [
     treeDensity,
     treeCoverage,
+    treeDensitySetting,
+    treeCoverageSetting,
+    crimsonScatter,
     scatterSeed,
     terrainHeightMultiplier,
     terrainMountainHeight,

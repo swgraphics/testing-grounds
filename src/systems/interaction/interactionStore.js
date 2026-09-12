@@ -36,6 +36,14 @@ export const useInteractionStore = create((set) => ({
     set({ panelOpen: false });
   },
 
+  deactivate() {
+    set({
+      activeTarget: null,
+      activeTool: null,
+      activeMode: null,
+    });
+  },
+
   clear() {
     set({ ...IDLE_STATE });
   },

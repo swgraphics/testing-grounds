@@ -3,9 +3,9 @@ export const AREA_CONFIG = [
     id: "start",
     grid: "A1",
     name: "START",
-    position: [0, 0, 0],
+    position: [80, 0, -160],
     discoveryRadius: 42,
-    description: "Character models and animation tools",
+    description: "High cliff overlook and world starting point",
   },
 
   {

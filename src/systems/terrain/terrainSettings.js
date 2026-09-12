@@ -1,18 +1,18 @@
 import { useWorldStore } from "../world/worldStore";
 
 export const DEFAULT_TERRAIN_SETTINGS = {
-  heightMultiplier: 1.5,
-  mountainHeight: 1.5,
+  heightMultiplier: 0.5,
+  mountainHeight: 2.0,
   cliffSharpness: 1.5,
   rollingHills: 1.5,
   ridgeStrength: 1.5,
-  plateauAmount: 0,
+  plateauAmount: 50,
   geometryStrength: 55,
   
   waterHeight: -4,
   waterWaveStrength: 20,
   
-  treeDensity: 50,
+  treeDensity: 16,
   treeCoverage: 50,
   foliageDensity: 50,
   rockDensity: 50,
@@ -25,13 +25,13 @@ export const DEFAULT_TERRAIN_SETTINGS = {
 
   scatterSeed: 1,
 
-  cloudAmount: 45,
-  cloudHeight: 55,
-  cloudSpeed: 30,
+  cloudAmount: 0.57,
+  cloudHeight: 40,
+  cloudSpeed: 2.25,
   cloudColor: 65,
 
-  fogDensity: 50,
-  sunHeight: 50,
+  fogDensity: 15,
+  sunHeight: 100,
   sunRotation: 50,
   skyHaze: 50,
   stars: 50,
@@ -51,6 +51,11 @@ export const DEFAULT_TERRAIN_SETTINGS = {
 
   sunCycleEnabled: 0,
   sunCycleMinutes: 1,
+
+  terrainEditVersion: 0,
+  terrainEdits: {},
+
+  windDirection: 0,
 };
 
 export const terrainSettings = {
@@ -108,6 +113,11 @@ export function saveWorldSettings() {
     "testingGroundsWorldSettings",
     JSON.stringify(terrainSettings)
   );
+
+  localStorage.setItem(
+    "testingGroundsWorldState",
+    JSON.stringify(useWorldStore.getState().world)
+  );
 }
 
 export function loadWorldSettings() {
@@ -116,6 +126,16 @@ export function loadWorldSettings() {
 
   const parsed = JSON.parse(saved);
   Object.assign(terrainSettings, parsed);
+
+  const savedWorld = localStorage.getItem("testingGroundsWorldState");
+  if (savedWorld) {
+    try {
+      useWorldStore.getState().replaceWorld(JSON.parse(savedWorld));
+    } catch (error) {
+      console.warn("Testing Grounds: saved world state could not be loaded.", error);
+    }
+  }
+
   broadcastAllTerrainSettings();
 }
 

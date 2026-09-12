@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { terrainSettings } from "./terrainSettings";
+import { getTerrainEditDelta } from "./terrainEdits";
 
 export function smoothStep(edge0, edge1, value) {
   const x = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
@@ -103,6 +104,8 @@ const insideSpawnSquare =
   if (insideSpawnSquare) {
     height = 0;
   }
+
+  height += getTerrainEditDelta(x, z);
 
   return height;
 }

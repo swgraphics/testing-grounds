@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { cloudSettings } from "./CloudSettings";
 import { createCloudMaterial } from "./CloudMaterial";
 import { getAtmospherePalette } from "../atmospherePalette";
+import { terrainSettings } from "../../terrain/terrainSettings";
 
 export default function CloudField() {
 
@@ -66,11 +67,12 @@ useFrame((state) => {
     material.uniforms.lowerColor.value.copy(lowerColor);
     material.uniforms.edgeColor.value.copy(edgeColor);
     meshRef.current.position.copy(
-    state.camera.position
-);
-
-// TEST: temporarily disable cloud height offset
-// meshRef.current.position.y += cloudSettings.height;
+      state.camera.position
+    );
+    meshRef.current.position.y += cloudSettings.height;
+    material.uniforms.speed.value =
+      cloudSettings.speed +
+      (Number(terrainSettings.windSpeed) || 0) / 100 * 0.9;
 
 });
     return (

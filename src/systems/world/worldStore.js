@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export const WORLD_SCHEMA_VERSION = 1;
+export const WORLD_SCHEMA_VERSION = 2;
 
 function createChunk(area) {
   return {
@@ -39,6 +39,7 @@ export function createInitialWorld(areaConfig = []) {
     chunks,
     characters: {},
     quests: {},
+    scatterProfiles: {},
   };
 }
 
@@ -47,6 +48,11 @@ export const useWorldStore = create((set) => ({
 
   initializeWorld(areaConfig) {
     set({ world: createInitialWorld(areaConfig) });
+  },
+
+  replaceWorld(world) {
+    if (!world || typeof world !== "object") return;
+    set({ world });
   },
 
   setCurrentChunk(chunkId) {
@@ -157,6 +163,45 @@ export const useWorldStore = create((set) => ({
         },
       };
     });
+  },
+
+  updateObject(objectId, patch, chunkId = null) {
+    set((state) => {
+      const targetChunkId = chunkId ?? state.world.currentChunkId;
+      const chunk = state.world.chunks[targetChunkId];
+      const object = chunk?.objects?.[objectId];
+      if (!chunk || !object) return state;
+      return {
+        world: {
+          ...state.world,
+          chunks: {
+            ...state.world.chunks,
+            [targetChunkId]: {
+              ...chunk,
+              objects: {
+                ...chunk.objects,
+                [objectId]: { ...object, ...patch },
+              },
+            },
+          },
+        },
+      };
+    });
+  },
+
+  upsertScatterProfile(objectId, profile) {
+    set((state) => ({
+      world: {
+        ...state.world,
+        scatterProfiles: {
+          ...(state.world.scatterProfiles ?? {}),
+          [objectId]: {
+            ...(state.world.scatterProfiles?.[objectId] ?? {}),
+            ...profile,
+          },
+        },
+      },
+    }));
   },
 
   removeObject(objectId, chunkId = null) {

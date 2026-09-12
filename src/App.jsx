@@ -9,6 +9,9 @@ import TitleScreen from "./components/ui/TitleScreen";
 import CompassRibbon from "./components/ui/CompassRibbon";
 import EditorView from "./components/ui/EditorView";
 import InteractionIndicator from "./components/ui/InteractionIndicator";
+import InteractionPanel from "./components/ui/InteractionPanel";
+import AdaptiveReticle from "./components/ui/AdaptiveReticle";
+import GamepadMenuNavigator from "./components/ui/GamepadMenuNavigator";
 import { useEditorStore } from "./systems/editor/editorStore";
 import { useInteractionStore } from "./systems/interaction/interactionStore";
 import { AREA_CONFIG } from "./config/areaConfig";
@@ -54,16 +57,18 @@ export default function App() {
 
     function handleEscape(event) {
       if (event.key !== "Escape") return;
-      if (useInteractionStore.getState().activeMode !== "place") return;
       event.preventDefault();
       event.stopPropagation();
-      setReturnToObjectMenu(true);
+      setReturnToObjectMenu(false);
       window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
+      window.dispatchEvent(new CustomEvent("tg-mesh-menu-close"));
+      useInteractionStore.getState().clear();
+      useEditorStore.getState().closeDevTools();
+      useEditorStore.getState().close();
     }
 
     window.addEventListener("tg-place-mode-exit", handlePlacementExitRequest);
     window.addEventListener("keydown", handleEscape, true);
-
     return () => {
       window.removeEventListener("tg-place-mode-exit", handlePlacementExitRequest);
       window.removeEventListener("keydown", handleEscape, true);
@@ -169,7 +174,10 @@ export default function App() {
           <CompassRibbon />
           <AreaDiscovery />
           <InteractionIndicator />
+          <InteractionPanel />
+          <AdaptiveReticle />
           <EditorView />
+          <GamepadMenuNavigator />
         </>
       )}
 
