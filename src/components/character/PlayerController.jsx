@@ -13,6 +13,8 @@ import {
 import PlayableCharacter from "./PlayableCharacter";
 import { devSettings } from "../../systems/dev/devSettings";
 import { useWorldStore } from "../../systems/world/worldStore";
+import { useEditorStore } from "../../systems/editor/editorStore";
+import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import { AREA_CONFIG } from "../../config/areaConfig";
 import {
   getCameraSettings,
@@ -427,6 +429,11 @@ export default function PlayerController() {
 
   const [speedMultiplier, setSpeedMultiplier] =
     useState(devSettings.speedMultiplier);
+  const editorOpen = useEditorStore((state) => state.isOpen);
+  const devToolsOpen = useEditorStore((state) => state.devToolsOpen);
+  const devToolsPanelOpen = useEditorStore((state) => state.devToolsPanelOpen);
+  const [terrainRevision, setTerrainRevision] = useState(0);
+  const [terrainResetPosition, setTerrainResetPosition] = useState(null);
 const [, refreshCameraSettings] =
   useState(0);
   const activeCharacter =
@@ -479,6 +486,7 @@ useEffect(() => {
     const area = AREA_CONFIG.find((entry) => entry.id === areaId);
     if (!area) return;
 
+    setTerrainResetPosition(null);
     setTeleportRequest({
       areaId,
       nonce: Date.now(),
@@ -540,6 +548,28 @@ useEffect(() => {
     );
   };
 }, []);
+
+useEffect(() => {
+  function handleTerrainSettingsChanged() {
+    const current = controllerRef.current?.currPos;
+    if (!current) return;
+
+    const groundY = getTerrainHeightAt(current.x, current.z);
+    setTerrainResetPosition([current.x, groundY + 1.5, current.z]);
+    setTerrainRevision((value) => value + 1);
+  }
+
+  window.addEventListener("terrain-settings-changed", handleTerrainSettingsChanged);
+  return () => window.removeEventListener("terrain-settings-changed", handleTerrainSettingsChanged);
+}, []);
+
+useEffect(() => {
+  if (!terrainResetPosition) return;
+  const frame = window.requestAnimationFrame(() => {
+    setTerrainResetPosition(null);
+  });
+  return () => window.cancelAnimationFrame(frame);
+}, [terrainRevision, terrainResetPosition]);
 
 useEffect(() => {
   function handleCameraSettingsChange(event) {
@@ -634,11 +664,14 @@ useEffect(() => {
     const worldTransform =
       inputState.worldTransform || gamepadState.worldTransform;
 
+    const movementLocked = editorOpen || devToolsOpen || devToolsPanelOpen;
+
     const isMoving =
-      forward ||
+      !movementLocked &&
+      (forward ||
       backward ||
       leftward ||
-      rightward;
+      rightward);
 
    let nextAnimationState = actionState || "idle";
 
@@ -672,26 +705,28 @@ if (
       speedMultiplier > 1;
 
     controllerRef.current?.setMovement({
-      forward,
-      backward,
-      leftward,
-      rightward,
-      jump,
+      forward: movementLocked ? false : forward,
+      backward: movementLocked ? false : backward,
+      leftward: movementLocked ? false : leftward,
+      rightward: movementLocked ? false : rightward,
+      jump: movementLocked ? false : jump,
 
-    run: fpvMode
-  ? true
-  : developerSpeedActive
-    ? true
-    : sprint,
+    run: movementLocked
+      ? false
+      : fpvMode
+        ? true
+        : developerSpeedActive
+          ? true
+          : sprint,
     });
   });
 
   return (
     <>
 <Ecctrl
-  key={teleportRequest?.nonce ?? "spawn"}
+  key={`${teleportRequest?.nonce ?? "spawn"}-${terrainRevision}`}
   ref={controllerRef}
-  position={teleportRequest?.position ?? [0, 3, 0]}
+  position={terrainResetPosition ?? teleportRequest?.position ?? [0, 3, 0]}
   mode="FixedCamera"
   maxVelLimit={
     fpvMode

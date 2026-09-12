@@ -1,0 +1,18 @@
+TESTING GROUNDS 1.3.2 PATCH
+
+This is an OVERLAY PATCH. It contains only files changed for 1.3.2.
+
+1. Close the Testing Grounds dev server if it is running.
+2. Extract this folder's contents directly into your existing repository:
+   C:\Users\Tavis\testing-grounds
+3. Allow Windows to merge the src folders and overwrite the existing files.
+4. DO NOT extract into a new nested project folder.
+5. DO NOT replace or delete .git.
+6. DO NOT copy node_modules from the patch (there is none).
+7. From the repo root, run:
+      npm run build
+8. If the build succeeds, review the working tree with:
+      git status
+9. Then finalize 1.3.2 with your normal Git workflow.
+
+The patch intentionally does not include screenshots, assets, node_modules, or .git.

@@ -18,21 +18,21 @@ export const AREA_CONFIG = [
   },
 
   {
-    id: "arena",
+    id: "village",
     grid: "C1",
-    name: "ARENA",
+    name: "VILLAGE",
     position: [-80, 0, 60],
-    discoveryRadius: 50,
-    description: "Combat customization tools",
+    discoveryRadius: 48,
+    description: "Buildings and construction tools",
   },
 
   {
-    id: "village",
+    id: "arena",
     grid: "D1",
-    name: "VILLAGE",
+    name: "ARENA",
     position: [80, 0, 0],
-    discoveryRadius: 48,
-    description: "Buildings and construction tools",
+    discoveryRadius: 50,
+    description: "Combat customization tools",
   },
 
   {

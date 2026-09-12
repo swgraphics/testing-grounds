@@ -14,6 +14,7 @@ const IDLE_STATE = {
   activeTarget: null,
   activeTool: null,
   activeMode: null,
+  panelOpen: false,
 };
 
 export const useInteractionStore = create((set) => ({
@@ -25,6 +26,14 @@ export const useInteractionStore = create((set) => ({
       activeTool: tool,
       activeMode: mode,
     });
+  },
+
+  openPanel() {
+    set({ panelOpen: true });
+  },
+
+  closePanel() {
+    set({ panelOpen: false });
   },
 
   clear() {
@@ -45,5 +54,8 @@ export const interactionState = {
   },
   get activeMode() {
     return useInteractionStore.getState().activeMode;
+  },
+  get panelOpen() {
+    return useInteractionStore.getState().panelOpen;
   },
 };

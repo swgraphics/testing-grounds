@@ -608,13 +608,16 @@ const cameraPadRef = useRef({
       useEditorStore.getState().close();
       closeDevTools();
       window.dispatchEvent(new CustomEvent("tg-mesh-menu-close"));
+      useInteractionStore.getState().closePanel();
       useInteractionStore.getState().clear();
       return;
     }
 
     if (devToolsOpen || devToolsPanelOpen) {
       closeDevTools();
+      useInteractionStore.getState().closePanel();
     } else {
+      useInteractionStore.getState().openPanel();
       openDevToolsPanel();
     }
   }

@@ -18,7 +18,7 @@ function openObjectMenu(panel = "object") {
   useInteractionStore.getState().activate({
     target: "object-menu",
     tool: "OBJECT",
-    mode: "SELECT",
+    mode: "select",
   });
   window.dispatchEvent(new CustomEvent("tg-mesh-menu-open"));
 }
@@ -40,6 +40,9 @@ export default function EditorView() {
 
   useEffect(() => {
     document.body.classList.toggle("tg-editor-active", isOpen);
+    if (isOpen) {
+      useInteractionStore.getState().closePanel();
+    }
     return () => document.body.classList.remove("tg-editor-active");
   }, [isOpen]);
 
@@ -78,7 +81,7 @@ export default function EditorView() {
       useInteractionStore.getState().activate({
         target: "terrain-editor",
         tool: "TERRAIN",
-        mode: "SELECT",
+        mode: "select",
       });
       return;
     }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const TG_VERSION = "1.3.1";
+const TG_VERSION = "1.3.2";
 
 const SPLASH_CARDS = [
   {
@@ -28,11 +28,6 @@ const SPLASH_CARDS = [
     quote: "Press Q to channel world power. I recommend not channeling it directly into your sleeves.",
     attribution: "FRANK 005",
   },
-  {
-    image: "/images/crash-testers/crash-01.png",
-    quote: "The whole point is to test things. The whole other point is to survive the test. We are still working on that one.",
-    attribution: "DOUG 002",
-  },
 ];
 
 export default function TitleScreen({ onStart }) {
@@ -42,7 +37,7 @@ export default function TitleScreen({ onStart }) {
   useEffect(() => {
     const timer = window.setInterval(() => {
       setCardIndex((current) => (current + 1) % SPLASH_CARDS.length);
-    }, 3600);
+    }, 1500);
 
     return () => window.clearInterval(timer);
   }, []);

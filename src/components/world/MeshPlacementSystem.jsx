@@ -334,7 +334,10 @@ export default function MeshPlacementSystem() {
       position: previewPosition.toArray(),
     });
 
+    setPlacementMode(false);
+    setPreviewPosition(null);
     useInteractionStore.getState().clear();
+    window.dispatchEvent(new CustomEvent("tg-mesh-placement-completed"));
     return;
   }
 
@@ -353,8 +356,6 @@ export default function MeshPlacementSystem() {
       position: previewPosition.toArray(),
     });
 
-    useInteractionStore.getState().clear();
-
     return [
       ...current,
       {
@@ -366,6 +367,11 @@ export default function MeshPlacementSystem() {
       },
     ];
   });
+
+  setPlacementMode(false);
+  setPreviewPosition(null);
+  useInteractionStore.getState().clear();
+  window.dispatchEvent(new CustomEvent("tg-mesh-placement-completed"));
 }
 
     function handleKeyDown(event) {

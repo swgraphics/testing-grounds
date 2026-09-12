@@ -21,6 +21,7 @@ uniform float speed;
 uniform float coverage;
 uniform float windStrength;
 uniform vec3 color;
+uniform float seed;
 varying vec2 vUv;
 varying vec3 vWorldPosition;
 
@@ -32,46 +33,61 @@ float noise(vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
   f = f * f * (3.0 - 2.0 * f);
-  float a = hash(i);
-  float b = hash(i + vec2(1.0, 0.0));
-  float c = hash(i + vec2(0.0, 1.0));
-  float d = hash(i + vec2(1.0, 1.0));
+  float a = hash(i + seed);
+  float b = hash(i + vec2(1.0, 0.0) + seed);
+  float c = hash(i + vec2(0.0, 1.0) + seed);
+  float d = hash(i + vec2(1.0, 1.0) + seed);
   return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
 void main() {
-  vec2 p = vWorldPosition.xy * vec2(0.055, 0.085);
-  p += vec2(time * speed * (0.035 + windStrength * 0.002), -time * speed * 0.008);
+  vec2 centered = vUv - 0.5;
+  float radial = 1.0 - smoothstep(0.18, 0.56, length(centered));
 
-  float large = noise(p * 0.7);
-  float medium = noise(p * 1.55);
-  float detail = noise(p * 3.4);
+  vec2 p = vWorldPosition.xz * vec2(0.028, 0.034);
+  p += vec2(
+    time * speed * (0.03 + windStrength * 0.0018),
+    -time * speed * 0.012
+  );
+
+  float large = noise(p * 0.72);
+  float medium = noise(p * 1.65);
+  float detail = noise(p * 3.8);
   float n = large * 0.52 + medium * 0.34 + detail * 0.14;
 
-  float threshold = 1.0 - coverage * 0.82;
-  float cloud = smoothstep(threshold - 0.10, threshold + 0.12, n);
+  float threshold = 1.0 - coverage * 0.86;
+  float mist = smoothstep(threshold - 0.16, threshold + 0.11, n);
+  float breakup = smoothstep(0.24, 0.72, noise(p * 2.2 + vec2(4.3, -2.1)));
 
-  float edgeX = smoothstep(0.0, 0.16, vUv.x) * (1.0 - smoothstep(0.84, 1.0, vUv.x));
-  float edgeY = smoothstep(0.0, 0.13, vUv.y) * (1.0 - smoothstep(0.82, 1.0, vUv.y));
-  float edgeFade = edgeX * edgeY;
-
-  float opacity = cloud * edgeFade * mix(0.07, 0.68, density);
-  gl_FragColor = vec4(color, opacity);
+  float alpha = mist * breakup * radial * mix(0.025, 0.34, density);
+  gl_FragColor = vec4(color, alpha);
 }
 `;
 
-function FogSheet({ rotation = 0, offset = [0, 0, 0], material }) {
+function FogPatch({ position, scale, rotation, material }) {
   return (
     <mesh
-      position={offset}
-      rotation={[0, rotation, 0]}
+      position={position}
+      rotation={rotation}
+      scale={scale}
       material={material}
       renderOrder={3}
     >
-      <planeGeometry args={[320, 28, 1, 1]} />
+      <planeGeometry args={[72, 72, 1, 1]} />
     </mesh>
   );
 }
+
+const PATCHES = [
+  [[-72, 0.15, -48], [1.25, 0.62, 0.8], [0, 0.18, 0]],
+  [[-12, 0.42, -76], [1.05, 0.52, 0.72], [0, -0.28, 0]],
+  [[54, 0.24, -34], [1.42, 0.58, 0.86], [0, 0.38, 0]],
+  [[88, 0.55, 30], [0.92, 0.48, 0.68], [0, -0.14, 0]],
+  [[18, 0.32, 64], [1.32, 0.54, 0.82], [0, 0.52, 0]],
+  [[-70, 0.18, 62], [1.08, 0.5, 0.74], [0, -0.46, 0]],
+  [[-132, 0.28, 8], [0.86, 0.44, 0.66], [0, 0.22, 0]],
+  [[128, 0.36, -62], [1.12, 0.46, 0.7], [0, -0.35, 0]],
+];
 
 export default function GroundFog() {
   const groupRef = useRef();
@@ -81,6 +97,7 @@ export default function GroundFog() {
       new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
+        depthTest: true,
         side: THREE.DoubleSide,
         uniforms: {
           time: { value: 0 },
@@ -89,6 +106,7 @@ export default function GroundFog() {
           coverage: { value: 0.55 },
           windStrength: { value: 25 },
           color: { value: new THREE.Color("#9a9da2") },
+          seed: { value: 0 },
         },
         vertexShader,
         fragmentShader,
@@ -103,22 +121,27 @@ export default function GroundFog() {
     material.uniforms.speed.value = Number(terrainSettings.groundFogSpeed) || 0;
     material.uniforms.coverage.value = THREE.MathUtils.clamp(Number(terrainSettings.groundFogCoverage) / 100, 0, 1);
     material.uniforms.windStrength.value = Number(terrainSettings.windStrength) || 0;
+    material.uniforms.seed.value = Number(terrainSettings.scatterSeed) || 0;
 
-    // Fog formations live in world space. The shader provides the wind-driven drift,
-    // so the field does not rotate or follow the camera.
     if (groupRef.current) {
-      groupRef.current.position.y = Number(terrainSettings.groundFogHeight) || 3.5;
+      groupRef.current.position.y = Number(terrainSettings.groundFogHeight) || 0.5;
     }
 
-    const light = THREE.MathUtils.lerp(0.84, 0.46, density);
+    const light = THREE.MathUtils.lerp(0.86, 0.58, density);
     material.uniforms.color.value.setRGB(light, light, light * 1.02);
   });
 
   return (
-    <group ref={groupRef} position={[0, 3.5, 0]}>
-      <FogSheet rotation={0} offset={[0, 0, -24]} material={material} />
-      <FogSheet rotation={Math.PI / 2} offset={[28, 0, 0]} material={material} />
-      <FogSheet rotation={-Math.PI / 2} offset={[-30, 0, 22]} material={material} />
+    <group ref={groupRef} position={[0, 0.5, 0]}>
+      {PATCHES.map(([position, scale, rotation], index) => (
+        <FogPatch
+          key={index}
+          position={position}
+          scale={scale}
+          rotation={rotation}
+          material={material}
+        />
+      ))}
     </group>
   );
 }
