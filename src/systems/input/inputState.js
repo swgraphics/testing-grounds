@@ -8,4 +8,5 @@ export const inputState = {
   run: false,
   crouch: false,
   slide: false,
+  worldTransform: false,
 };

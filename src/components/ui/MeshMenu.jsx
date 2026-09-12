@@ -6,22 +6,10 @@ import {
   createCrimsonTreeDefinition,
 } from "../world/treeGenerator";
 import "./MeshMenu.css";
+import { BUILTIN_OBJECTS, createUploadedObject, createSavedObject } from "../../systems/objects/objectRegistry";
+import { useInteractionStore } from "../../systems/interaction/interactionStore";
 
-const BUILTIN_MESHES = [
-  {
-    id: "crimson-tree",
-    name: "CRIMSON TREE",
-    kind: "tree",
-    source: "procedural",
-    modelType: "crimson-tree",
-  },
-  { id: "taiga-tree", name: "TAIGA TREE", kind: "tree" },
-  { id: "palm-tree", name: "PALM TREE", kind: "tree" },
-  { id: "leafy-fern", name: "LEAFY FERN", kind: "foliage" },
-  { id: "stone-pillar", name: "STONE PILLAR", kind: "structure" },
-  { id: "cave-dome", name: "CAVE DOME", kind: "structure" },
-  { id: "castle-tower", name: "CASTLE TOWER", kind: "structure" },
-];
+
 
 function PreviewIcon({ kind = "structure" }) {
   if (kind === "tree") {
@@ -611,7 +599,7 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
 export default function MeshMenu() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mode, setMode] = useState("place");
-  const [selectedId, setSelectedId] = useState(BUILTIN_MESHES[0].id);
+  const [selectedId, setSelectedId] = useState(BUILTIN_OBJECTS[0].id);
   const [editOpen, setEditOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [uploadedMeshes, setUploadedMeshes] = useState([]);
@@ -622,7 +610,7 @@ export default function MeshMenu() {
   () =>
     [
       ...uploadedMeshes,
-      ...BUILTIN_MESHES,
+      ...BUILTIN_OBJECTS,
     ].map((mesh) => {
       const edited = editedMeshes[mesh.id];
 
@@ -666,18 +654,34 @@ useEffect(() => {
     );
   };
 }, []);
+
+  useEffect(() => {
+    function handleMeshMenuClose() {
+      setMenuOpen(false);
+      setEditOpen(false);
+    }
+
+    window.addEventListener("tg-mesh-menu-close", handleMeshMenuClose);
+    return () => window.removeEventListener("tg-mesh-menu-close", handleMeshMenuClose);
+  }, []);
+
+  useEffect(() => {
+    function handlePlacementCancelled() {
+      setMenuOpen(true);
+      setEditOpen(false);
+      setMode("place");
+    }
+
+    window.addEventListener("tg-mesh-placement-cancelled", handlePlacementCancelled);
+    return () => window.removeEventListener("tg-mesh-placement-cancelled", handlePlacementCancelled);
+  }, []);
+
   function handleUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const id = `upload-${Date.now()}`;
-    const mesh = {
-      id,
-      name: file.name.replace(/\.[^.]+$/, "").toUpperCase().slice(0, 22),
-      kind: "uploaded",
-      file,
-      status: "pending-import",
-    };
+    const mesh = createUploadedObject(file, id);
 
     setUploadedMeshes((current) => [mesh, ...current]);
     setSelectedId(id);
@@ -694,6 +698,11 @@ useEffect(() => {
 
   function selectMesh(mesh) {
     setSelectedId(mesh.id);
+    useInteractionStore.getState().activate({
+      target: `object:${mesh.id}`,
+      tool: "OBJECT",
+      mode: "SELECT",
+    });
     window.dispatchEvent(
       new CustomEvent("tg-mesh-selection-changed", {
         detail: { mesh },
@@ -704,6 +713,13 @@ useEffect(() => {
   function placeSelected() {
     if (!selectedMesh) return;
     setMode("place");
+    setEditOpen(false);
+    setMenuOpen(false);
+    useInteractionStore.getState().activate({
+      target: `object:${selectedMesh.id}`,
+      tool: "OBJECT",
+      mode: "PLACE",
+    });
     window.dispatchEvent(
       new CustomEvent("tg-mesh-place-request", {
         detail: { mesh: selectedMesh },
@@ -718,6 +734,12 @@ useEffect(() => {
     new CustomEvent("tg-mesh-cancel-placement")
   );
 
+  useInteractionStore.getState().activate({
+    target: `object:${selectedMesh.id}`,
+    tool: "OBJECT",
+    mode: "EDIT",
+  });
+
   setMode("edit");
   setEditOpen(true);
 
@@ -729,6 +751,7 @@ useEffect(() => {
 }
 
 function closeMenu() {
+  useInteractionStore.getState().clear();
   setEditOpen(false);
   setMenuOpen(false);
 
@@ -744,6 +767,12 @@ function closeMenu() {
 function addToScatter() {
   if (!selectedMesh) return;
 
+  useInteractionStore.getState().activate({
+    target: `object:${selectedMesh.id}`,
+    tool: "SCATTER",
+    mode: "EDIT",
+  });
+
   window.dispatchEvent(
     new CustomEvent("tg-mesh-cancel-placement")
   );
@@ -754,6 +783,27 @@ function addToScatter() {
     })
   );
 }
+
+  useEffect(() => {
+    function handleEscape(event) {
+      if (event.key !== "Escape") return;
+      if (!editOpen && !menuOpen) return;
+
+      event.preventDefault();
+
+      if (editOpen) {
+        setEditOpen(false);
+        useInteractionStore.getState().clear();
+        window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
+        return;
+      }
+
+      closeMenu();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [editOpen, menuOpen]);
 
   return (
   <>
@@ -801,6 +851,8 @@ function addToScatter() {
           />
         </div>
 
+        <div className="tg-mesh-library-label">QUATERNIUS STYLIZED NATURE + TG BUILT-INS</div>
+
         <div className="tg-mesh-library">
           {visibleMeshes.map((mesh) => (
             <button
@@ -819,14 +871,25 @@ function addToScatter() {
         </div>
 
         {meshes.length > pageSize && (
-          <button
-            type="button"
-            className="tg-mesh-next"
-            aria-label="Next mesh page"
-            onClick={() => setPage((current) => (current + 1) % pageCount)}
-          >
-            ›
-          </button>
+          <div className="tg-mesh-pagination">
+            <button
+              type="button"
+              className="tg-mesh-prev"
+              aria-label="Previous mesh page"
+              onClick={() => setPage((current) => (current - 1 + pageCount) % pageCount)}
+            >
+              ‹
+            </button>
+            <span>{page + 1} / {pageCount}</span>
+            <button
+              type="button"
+              className="tg-mesh-next"
+              aria-label="Next mesh page"
+              onClick={() => setPage((current) => (current + 1) % pageCount)}
+            >
+              ›
+            </button>
+          </div>
         )}
       </div>
 
@@ -845,10 +908,14 @@ function addToScatter() {
     [selectedMesh.id]: settings,
   }));
 
+  const savedObject = createSavedObject(updatedMesh, {
+    id: `${selectedMesh.id}-saved-${Date.now()}`,
+  });
+
   window.dispatchEvent(
     new CustomEvent("tg-mesh-edit-save", {
       detail: {
-        mesh: updatedMesh,
+        mesh: { ...updatedMesh, savedObject },
         settings,
         treeDefinition: settings.treeDefinition,
       },
@@ -857,7 +924,10 @@ function addToScatter() {
 
   setEditOpen(false);
 }}
-      onCancel={() => setEditOpen(false)}
+      onCancel={() => {
+        setEditOpen(false);
+        useInteractionStore.getState().clear();
+      }}
     />
   )}
 

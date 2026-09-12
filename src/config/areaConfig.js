@@ -18,30 +18,30 @@ export const AREA_CONFIG = [
   },
 
   {
-    id: "village",
+    id: "arena",
     grid: "C1",
-    name: "VILLAGE",
+    name: "ARENA",
     position: [-80, 0, 60],
     discoveryRadius: 50,
-    description: "Buildings and construction tools",
-  },
-
-  {
-    id: "combat-arena",
-    grid: "D1",
-    name: "COMBAT ARENA",
-    position: [80, 0, 0],
-    discoveryRadius: 48,
     description: "Combat customization tools",
   },
 
   {
-    id: "testing-grounds",
+    id: "village",
+    grid: "D1",
+    name: "VILLAGE",
+    position: [80, 0, 0],
+    discoveryRadius: 48,
+    description: "Buildings and construction tools",
+  },
+
+  {
+    id: "custom-chunk",
     grid: "E1",
-    name: "TESTING GROUNDS",
+    name: "CUSTOM CHUNK",
     position: [0, 0, 110],
     discoveryRadius: 55,
-    description: "Traversal and controller testing",
+    description: "Custom world chunk",
   },
 ];
 

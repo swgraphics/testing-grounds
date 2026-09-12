@@ -1988,3 +1988,1654 @@ canvas {
 .tg-dev-speed-button:disabled {
   pointer-events: none;
 }
+/* =======================================================
+   Testing Grounds / Universal Interaction Foundation
+======================================================= */
+
+:root {
+  --tg-interaction: #2a8fff;
+}
+
+.tg-interaction-indicator {
+  position: fixed;
+  left: 50%;
+  top: 18px;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+  padding: 7px 11px;
+  border: 1px solid var(--tg-interaction-color, var(--tg-interaction));
+  background: rgba(5, 6, 8, 0.78);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.tg-interaction-indicator-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tg-interaction-color, var(--tg-interaction));
+  box-shadow: 0 0 12px var(--tg-interaction-color, var(--tg-interaction));
+}
+
+.tg-editor-open-button {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 100;
+  min-width: 96px;
+  padding: 10px 14px;
+  border: 1px solid var(--tg-interaction-color, var(--tg-interaction));
+  background: rgba(5, 6, 8, 0.74);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+
+.tg-editor-open-button:hover,
+.tg-editor-area-button.active,
+.tg-editor-panel-button.active {
+  border-color: var(--tg-interaction-color, var(--tg-interaction));
+  color: var(--tg-white);
+  box-shadow: inset 0 0 0 1px var(--tg-interaction-color, var(--tg-interaction));
+}
+
+.tg-editor-view {
+  position: fixed;
+  inset: 14px;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(232, 238, 245, 0.16);
+  background: rgba(8, 11, 15, 0.96);
+  color: var(--tg-white);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px);
+}
+
+.tg-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 0 16px 0 20px;
+  border-bottom: 1px solid rgba(232, 238, 245, 0.11);
+}
+
+.tg-editor-brand {
+  display: flex;
+  gap: 7px;
+  align-items: baseline;
+  font-family: var(--tg-font-display);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+}
+
+.tg-editor-brand strong {
+  color: var(--tg-interaction);
+  font-weight: 400;
+}
+
+.tg-editor-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(232, 238, 245, 0.18);
+  background: transparent;
+  color: var(--tg-white);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tg-editor-area-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid rgba(232, 238, 245, 0.11);
+}
+
+.tg-editor-area-button,
+.tg-editor-panel-button,
+.tg-editor-bottom-bar button {
+  min-height: 34px;
+  border: 1px solid rgba(232, 238, 245, 0.13);
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(232, 238, 245, 0.78);
+  font-family: var(--tg-font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.tg-editor-area-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.tg-editor-area-button span {
+  color: var(--tg-gray);
+}
+
+.tg-editor-body {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 220px;
+  min-height: 0;
+  flex: 1;
+}
+
+.tg-editor-sidebar,
+.tg-editor-dev-panel {
+  overflow-y: auto;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.tg-editor-sidebar {
+  border-right: 1px solid rgba(232, 238, 245, 0.1);
+}
+
+.tg-editor-dev-panel {
+  border-left: 1px solid rgba(232, 238, 245, 0.1);
+}
+
+.tg-editor-panel-title {
+  margin-bottom: 10px;
+  color: rgba(232, 238, 245, 0.52);
+  font-family: var(--tg-font-display);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.tg-editor-panel-button {
+  width: 100%;
+  margin-bottom: 7px;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.tg-editor-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 10px;
+}
+
+.tg-editor-viewport {
+  position: relative;
+  flex: 1;
+  min-height: 240px;
+  overflow: hidden;
+  border: 1px solid rgba(232, 238, 245, 0.12);
+  background:
+    linear-gradient(rgba(42, 143, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42, 143, 255, 0.035) 1px, transparent 1px),
+    rgba(3, 5, 7, 0.7);
+  background-size: 42px 42px;
+}
+
+.tg-editor-viewport-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 6px 8px;
+  border: 1px solid rgba(42, 143, 255, 0.36);
+  background: rgba(5, 6, 8, 0.72);
+  color: var(--tg-interaction);
+  font-family: var(--tg-font-display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.tg-editor-bottom-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  padding-top: 8px;
+}
+
+.tg-editor-bottom-bar button {
+  padding: 8px;
+}
+
+.tg-editor-dev-placeholder {
+  margin-top: 12px;
+  color: rgba(232, 238, 245, 0.54);
+  font-family: var(--tg-font-copy);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tg-editor-dev-status {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(232, 238, 245, 0.1);
+  color: rgba(232, 238, 245, 0.46);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.tg-editor-dev-status strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--tg-white);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+@media (max-width: 900px) {
+  .tg-editor-view {
+    inset: 6px;
+  }
+
+  .tg-editor-body {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+
+  .tg-editor-dev-panel {
+    display: none;
+  }
+
+  .tg-editor-area-row {
+    grid-template-columns: repeat(5, minmax(100px, 1fr));
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .tg-editor-header {
+    min-height: 48px;
+  }
+
+  .tg-editor-brand {
+    flex-direction: column;
+    gap: 0;
+    font-size: 13px;
+  }
+
+  .tg-editor-body {
+    grid-template-columns: 1fr;
+  }
+
+  .tg-editor-sidebar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(232, 238, 245, 0.1);
+  }
+
+  .tg-editor-panel-title {
+    grid-column: 1 / -1;
+    margin: 2px 0 0;
+  }
+
+  .tg-editor-panel-button {
+    margin: 0;
+  }
+
+  .tg-editor-bottom-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+/* Pass 1.1 legacy Quick Tools styles intentionally removed: the crimson compass now owns Dev Tools panel/menu access. */
+
+/* =======================================================
+   Pass 1.1 — Editor viewport and aerial map
+======================================================= */
+
+.tg-editor-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tg-editor-header-button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(232, 238, 245, 0.14);
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(232, 238, 245, 0.72);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.tg-editor-header-button.active,
+.tg-editor-header-button:hover {
+  border-color: var(--tg-interaction);
+  color: var(--tg-white);
+  box-shadow: inset 0 0 0 1px var(--tg-interaction);
+}
+
+.tg-editor-main {
+  position: relative;
+}
+
+.tg-editor-viewport.world-mode {
+  background: rgba(3, 5, 7, 0.08);
+}
+
+.tg-editor-world-preview {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.tg-editor-world-corner {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 5px 7px;
+  border: 1px solid rgba(42, 143, 255, 0.28);
+  background: rgba(5, 6, 8, 0.54);
+  color: rgba(232, 238, 245, 0.64);
+  font-family: var(--tg-font-display);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.tg-editor-crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  opacity: 0.35;
+}
+
+.tg-editor-crosshair::before,
+.tg-editor-crosshair::after {
+  content: "";
+  position: absolute;
+  background: var(--tg-interaction);
+}
+
+.tg-editor-crosshair::before {
+  left: 8px;
+  top: 0;
+  width: 2px;
+  height: 18px;
+}
+
+.tg-editor-crosshair::after {
+  left: 0;
+  top: 8px;
+  width: 18px;
+  height: 2px;
+}
+
+.tg-editor-aerial-map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(42, 143, 255, 0.08), transparent 45%),
+    linear-gradient(rgba(42, 143, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42, 143, 255, 0.06) 1px, transparent 1px),
+    rgba(4, 7, 10, 0.92);
+  background-size: auto, 32px 32px, 32px 32px, auto;
+}
+
+.tg-editor-map-label {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 3;
+  color: rgba(232, 238, 245, 0.58);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.tg-map-grid-lines {
+  position: absolute;
+  inset: 15%;
+  border: 1px solid rgba(42, 143, 255, 0.12);
+  transform: perspective(500px) rotateX(52deg) rotateZ(2deg);
+  transform-origin: center;
+  background:
+    linear-gradient(rgba(42, 143, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42, 143, 255, 0.08) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.tg-map-node {
+  position: absolute;
+  z-index: 4;
+  min-width: 72px;
+  padding: 6px 7px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(232, 238, 245, 0.16);
+  background: rgba(5, 6, 8, 0.78);
+  color: rgba(232, 238, 245, 0.78);
+  font-family: var(--tg-font-display);
+  cursor: pointer;
+}
+
+.tg-map-node span,
+.tg-map-node small {
+  display: block;
+}
+
+.tg-map-node span {
+  color: var(--tg-interaction);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.tg-map-node small {
+  margin-top: 2px;
+  color: rgba(232, 238, 245, 0.54);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.tg-map-node.active,
+.tg-map-node:hover {
+  border-color: var(--tg-interaction);
+  box-shadow: 0 0 18px rgba(42, 143, 255, 0.2), inset 0 0 0 1px var(--tg-interaction);
+}
+
+.tg-editor-dev-placeholder {
+  margin-bottom: 14px;
+}
+
+@media (max-width: 1000px) {
+  .tg-editor-body {
+    grid-template-columns: 120px minmax(0, 1fr) 260px;
+  }
+
+  .tg-side-panel.editor-embedded {
+    right: 18px;
+    width: 248px;
+  }
+}
+
+@media (max-width: 760px) {
+  .tg-editor-header {
+    min-height: 92px;
+    align-items: flex-start;
+    padding-top: 10px;
+  }
+
+  .tg-editor-header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .tg-editor-body {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+
+  .tg-editor-dev-panel {
+    display: none;
+  }
+
+  .tg-side-panel.editor-embedded {
+    left: 92px;
+    right: 14px;
+    top: 148px;
+    bottom: 58px;
+    width: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .tg-quick-tools-toggle {
+    top: 12px;
+    right: 12px;
+    min-width: 52px;
+    width: 52px;
+    height: 46px;
+    padding: 5px;
+  }
+
+  .tg-quick-tools-toggle span {
+    display: none;
+  }
+
+  .tg-quick-tools-panel {
+    top: 66px;
+    right: 12px;
+    width: 190px;
+  }
+
+  .tg-editor-view {
+    inset: 8px;
+  }
+
+  .tg-editor-brand {
+    font-size: 12px;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+/* The editor is a frame over the live world. Its center viewport must reveal the existing WebGL canvas. */
+.tg-editor-view {
+  background: transparent;
+}
+
+.tg-editor-header,
+.tg-editor-area-row,
+.tg-editor-sidebar,
+.tg-editor-dev-panel,
+.tg-editor-bottom-bar {
+  background: rgba(8, 11, 15, 0.96);
+}
+
+.tg-editor-main {
+  background: rgba(4, 7, 10, 0.16);
+}
+
+/* =======================================================
+   Pass 1.1 FIXED OVERHAUL — unified Dev Tools control
+======================================================= */
+
+.tg-dev-compass-toggle {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  background: rgba(8, 10, 14, 0.94);
+  border: 1px solid var(--tg-crimson);
+  box-shadow: 0 0 0 rgba(205, 38, 38, 0);
+  backdrop-filter: blur(12px);
+}
+
+.tg-dev-compass-toggle.active,
+.tg-dev-compass-toggle:hover {
+  border-color: var(--tg-crimson);
+  box-shadow: 0 0 20px rgba(205, 38, 38, 0.35);
+}
+
+.tg-dev-compass-toggle .tg-dev-toggle-icon {
+  width: 28px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.tg-dev-panel {
+  position: fixed;
+  top: 88px;
+  right: 22px;
+  z-index: 120;
+  width: 260px;
+  max-height: calc(100vh - 112px);
+  box-sizing: border-box;
+  padding: 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: rgba(8, 10, 14, 0.96);
+  border: 1px solid rgba(205, 38, 38, 0.65);
+  color: var(--tg-white);
+  box-shadow:
+    0 0 22px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(205, 38, 38, 0.12);
+  backdrop-filter: blur(12px);
+  scrollbar-gutter: stable;
+}
+
+.tg-dev-panel::-webkit-scrollbar,
+.tg-dev-full-menu::-webkit-scrollbar {
+  width: 7px;
+}
+
+.tg-dev-panel::-webkit-scrollbar-track,
+.tg-dev-full-menu::-webkit-scrollbar-track {
+  background: rgba(5, 6, 8, 0.8);
+}
+
+.tg-dev-panel::-webkit-scrollbar-thumb,
+.tg-dev-full-menu::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--tg-crimson), var(--tg-maroon));
+  border-radius: 999px;
+}
+
+.tg-dev-panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.tg-dev-panel-title-row .tg-side-panel-title {
+  margin-bottom: 0;
+}
+
+.tg-dev-panel-module {
+  padding: 10px;
+  border: 1px solid rgba(205, 38, 38, 0.42);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.tg-dev-panel-module-title {
+  min-height: 30px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  margin-bottom: 9px;
+  border-left: 2px solid var(--tg-crimson);
+  background: linear-gradient(
+    90deg,
+    rgba(129, 16, 18, 0.95),
+    rgba(205, 38, 38, 0.42) 58%,
+    rgba(5, 6, 8, 0)
+  );
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+.tg-dev-panel-hint {
+  margin-top: 11px;
+  color: rgba(232, 238, 245, 0.42);
+  font-family: var(--tg-font-copy);
+  font-size: 9px;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.tg-dev-full-menu.editor-embedded {
+  top: 120px;
+  right: 25px;
+  bottom: 70px;
+  width: 300px;
+  max-height: none;
+  padding: 14px;
+  transform: none;
+  border-color: rgba(205, 38, 38, 0.65);
+  box-shadow:
+    0 20px 56px rgba(0, 0, 0, 0.44),
+    0 0 18px rgba(205, 38, 38, 0.1);
+}
+
+.tg-dev-full-menu.editor-embedded.open {
+  transform: none;
+}
+
+/* The editor is a separate layer; Dev Tools is controlled only by the compass. */
+.tg-editor-body {
+  grid-template-columns: 150px minmax(0, 1fr);
+}
+
+.tg-editor-open-button {
+  border-color: var(--tg-crimson);
+  box-shadow: none;
+}
+
+.tg-editor-open-button:hover {
+  border-color: var(--tg-crimson);
+  box-shadow: inset 0 0 0 1px var(--tg-crimson);
+}
+
+.tg-editor-brand strong {
+  color: var(--tg-crimson);
+}
+
+.tg-editor-area-button.active,
+.tg-editor-panel-button.active,
+.tg-editor-header-button.active,
+.tg-editor-header-button:hover {
+  border-color: var(--tg-crimson);
+  color: var(--tg-white);
+  box-shadow: inset 0 0 0 1px var(--tg-crimson);
+}
+
+.tg-editor-viewport {
+  background:
+    linear-gradient(rgba(205, 38, 38, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(205, 38, 38, 0.025) 1px, transparent 1px),
+    rgba(3, 5, 7, 0.7);
+}
+
+.tg-editor-viewport-label {
+  border-color: rgba(205, 38, 38, 0.36);
+  color: var(--tg-crimson);
+}
+
+.tg-editor-world-corner {
+  border-color: rgba(205, 38, 38, 0.28);
+}
+
+.tg-editor-crosshair::before,
+.tg-editor-crosshair::after {
+  background: var(--tg-crimson);
+}
+
+.tg-editor-aerial-map {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(205, 38, 38, 0.08), transparent 45%),
+    linear-gradient(rgba(205, 38, 38, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(205, 38, 38, 0.06) 1px, transparent 1px),
+    rgba(4, 7, 10, 0.92);
+}
+
+.tg-map-grid-lines {
+  border-color: rgba(205, 38, 38, 0.12);
+  background:
+    linear-gradient(rgba(205, 38, 38, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(205, 38, 38, 0.08) 1px, transparent 1px);
+}
+
+.tg-map-node span {
+  color: var(--tg-white);
+}
+
+.tg-map-node.active,
+.tg-map-node:hover {
+  border-color: var(--tg-crimson);
+  box-shadow:
+    0 0 18px rgba(205, 38, 38, 0.2),
+    inset 0 0 0 1px var(--tg-crimson);
+}
+
+/* Full Dev Tools and compact Dev Tools use the same module language. */
+.tg-dev-full-menu,
+.tg-dev-panel {
+  border-radius: 0;
+}
+
+.tg-dev-full-menu .tg-side-panel-title,
+.tg-dev-panel .tg-side-panel-title {
+  color: var(--tg-white);
+}
+
+.tg-dev-full-menu .tg-side-panel-button,
+.tg-dev-panel .tg-side-panel-button {
+  border-color: rgba(205, 38, 38, 0.72);
+}
+
+@media (max-width: 899px) {
+  .tg-dev-compass-toggle {
+    top: 16px;
+    right: 18px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .tg-dev-panel {
+    top: 82px;
+    right: 0;
+    width: 260px;
+    max-width: calc(100vw - 14px);
+    max-height: calc(100vh - 96px);
+  }
+
+  .tg-dev-full-menu:not(.editor-embedded) {
+    top: 82px;
+    right: 0;
+    bottom: 0;
+    width: 260px;
+    max-height: none;
+    padding: 14px;
+    transform: translateX(110%);
+  }
+
+  .tg-dev-full-menu:not(.editor-embedded).open {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .tg-dev-panel {
+    width: min(260px, calc(100vw - 14px));
+  }
+
+  .tg-dev-full-menu.editor-embedded {
+    left: 92px;
+    right: 14px;
+    top: 148px;
+    bottom: 58px;
+    width: auto;
+  }
+
+  .tg-editor-body {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .tg-dev-compass-toggle {
+    top: 12px;
+    right: 12px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .tg-dev-panel {
+    top: 72px;
+    right: 8px;
+    max-height: calc(100vh - 84px);
+  }
+}
+
+/* Final responsive editor-scroll correction: every breakpoint keeps the controls in a real scroll container. */
+@media (max-width: 700px) {
+  .tg-mesh-edit-window {
+    height: 88vh;
+    max-height: 88vh;
+    grid-template-columns: 1fr;
+    grid-template-rows: 36vh minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .tg-mesh-edit-preview {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .tg-mesh-edit-controls {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+.tg-dev-full-menu.editor-embedded {
+  z-index: 180;
+}
+
+.tg-dev-panel {
+  z-index: 180;
+}
+
+
+/* =======================================================
+   Testing Grounds 1.2 — final interaction / editor rules
+======================================================= */
+.tg-editor-open-button {
+  top: auto;
+  right: auto;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  border-color: var(--tg-crimson);
+  color: var(--tg-white);
+  background: rgba(8, 10, 14, 0.92);
+}
+
+.tg-editor-open-button:hover {
+  border-color: var(--tg-crimson);
+  box-shadow: inset 0 0 0 1px var(--tg-crimson);
+}
+
+.tg-editor-brand strong { color: var(--tg-crimson); }
+
+.tg-dev-slider-heading,
+.tg-dev-slider-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.tg-dev-slider-lock {
+  min-width: 32px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid rgba(205, 38, 38, 0.45);
+  background: rgba(5, 6, 8, 0.75);
+  color: rgba(232, 238, 245, 0.5);
+  font-family: var(--tg-font-copy);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.tg-dev-slider-lock:hover,
+.tg-dev-slider-lock.locked {
+  border-color: var(--tg-crimson);
+  color: var(--tg-white);
+  background: rgba(129, 16, 18, 0.52);
+}
+
+.tg-dev-slider-heading .tg-dev-slider-label { margin: 0; }
+
+.tg-dev-mode-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tg-dev-full-menu,
+.tg-dev-panel {
+  background: rgba(8, 10, 14, 0.97);
+  border-color: rgba(205, 38, 38, 0.58);
+}
+
+.tg-dev-full-menu .tg-dev-section-header,
+.tg-dev-panel .tg-dev-panel-module-title {
+  color: var(--tg-white);
+}
+
+.tg-dev-full-menu .tg-dev-speed-button.active,
+.tg-dev-full-menu .tg-side-panel-button.active {
+  color: var(--tg-white);
+}
+
+.tg-dev-panel-hint { color: rgba(232, 238, 245, 0.38); }
+
+@media (max-height: 760px) and (min-width: 701px) {
+  .tg-dev-full-menu:not(.editor-embedded) {
+    top: 82px;
+    bottom: 16px;
+    max-height: none;
+  }
+
+  .tg-dev-panel {
+    top: 82px;
+    bottom: 16px;
+    max-height: none;
+  }
+
+  .tg-mesh-edit-window {
+    height: calc(100vh - 24px);
+    max-height: calc(100vh - 24px);
+  }
+}
+
+@media (max-width: 700px) {
+  .tg-editor-open-button {
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+  }
+  .tg-dev-mode-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* 1.2: Editor and Dev Tools stay crimson; interaction blue is reserved for active world interaction. */
+.tg-editor-area-button.active,
+.tg-editor-panel-button.active,
+.tg-editor-header-button.active,
+.tg-editor-header-button:hover,
+.tg-editor-open-button:hover {
+  border-color: var(--tg-crimson);
+  box-shadow: inset 0 0 0 1px var(--tg-crimson);
+}
+
+.tg-dev-color-row {
+  min-height: 34px;
+  margin-bottom: 8px;
+  padding: 5px 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(205, 38, 38, 0.34);
+  background: rgba(5, 6, 8, 0.55);
+  color: rgba(232, 238, 245, 0.78);
+  font-family: var(--tg-font-copy);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.tg-dev-color-row input[type="color"] {
+  width: 34px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(205, 38, 38, 0.65);
+  background: transparent;
+  cursor: pointer;
+}
+
+.tg-editor-area-button.active,
+.tg-editor-panel-button.active,
+.tg-editor-header-button.active,
+.tg-editor-header-button:hover {
+  color: var(--tg-white);
+}
+
+
+/* =======================================================
+   OVERHAUL 1.3 — live Editor workspace
+======================================================= */
+.tg-canvas-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
+
+.tg-canvas-shell.editor-open {
+  top: 108px;
+  left: 84px;
+  right: 270px;
+  bottom: 60px;
+  z-index: 120;
+}
+
+.tg-canvas-shell.editor-open canvas {
+  border: 1px solid rgba(232, 238, 245, 0.16);
+}
+
+.tg-editor-view {
+  inset: 8px;
+  z-index: 160;
+  pointer-events: none;
+  background: transparent;
+  border-color: rgba(232, 238, 245, 0.22);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.48);
+}
+
+.tg-editor-header,
+.tg-editor-area-row,
+.tg-editor-sidebar,
+.tg-editor-bottom-bar,
+.tg-editor-header-actions,
+.tg-editor-header button,
+.tg-editor-area-button,
+.tg-editor-panel-button,
+.tg-editor-bottom-bar button {
+  pointer-events: auto;
+}
+
+.tg-editor-header {
+  background: rgba(8, 10, 14, 0.94);
+}
+
+.tg-editor-area-row {
+  background: rgba(8, 10, 14, 0.94);
+}
+
+.tg-editor-body {
+  grid-template-columns: 76px minmax(0, 1fr);
+  background: transparent;
+}
+
+.tg-editor-sidebar {
+  width: 76px;
+  padding: 10px 7px;
+  background: rgba(8, 10, 14, 0.94);
+}
+
+.tg-editor-panel-title {
+  font-size: 9px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  height: 46px;
+  margin: 0 auto 10px;
+}
+
+.tg-editor-panel-button {
+  min-height: 42px;
+  padding: 7px 5px;
+  text-align: center;
+  font-size: 10px;
+}
+
+.tg-editor-main {
+  padding: 0;
+  pointer-events: none;
+}
+
+.tg-editor-viewport {
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.tg-editor-viewport-label {
+  top: 10px;
+  left: 10px;
+  pointer-events: none;
+  background: rgba(5, 6, 8, 0.65);
+}
+
+.tg-editor-bottom-bar {
+  padding: 8px 0 0;
+  background: rgba(8, 10, 14, 0.94);
+}
+
+.tg-editor-bottom-bar button {
+  min-height: 30px;
+}
+
+.tg-editor-world-preview,
+.tg-editor-crosshair {
+  display: none;
+}
+
+.tg-editor-aerial-map {
+  pointer-events: auto;
+}
+
+/* Compact Dev Tools is a modular right-side Editor attachment. */
+.tg-editor-active .tg-dev-panel {
+  top: 108px;
+  right: 16px;
+  bottom: 60px;
+  width: 252px;
+  max-height: none;
+  z-index: 190;
+}
+
+.tg-dev-panel-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.tg-dev-panel-section-button {
+  min-height: 28px;
+  border: 1px solid rgba(205, 38, 38, 0.38);
+  background: rgba(255, 255, 255, 0.018);
+  color: rgba(232, 238, 245, 0.66);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.tg-dev-panel-section-button:hover,
+.tg-dev-panel-section-button.active {
+  border-color: var(--tg-crimson);
+  color: var(--tg-white);
+  background: rgba(129, 16, 18, 0.35);
+}
+
+.tg-dev-open-full-button {
+  margin-top: 10px;
+}
+
+/* Object modules occupy the same right-side slot as Dev Tools. */
+.tg-editor-active .tg-mesh-menu {
+  position: fixed;
+  top: 108px;
+  right: 16px;
+  bottom: 60px;
+  width: 252px;
+  max-height: none;
+  overflow-y: auto;
+  z-index: 190;
+}
+
+.tg-editor-active .tg-mesh-mode-label {
+  position: fixed;
+  top: 82px;
+  right: 16px;
+  z-index: 191;
+}
+
+.tg-editor-active .tg-mesh-edit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 195;
+  pointer-events: none;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.tg-editor-active .tg-mesh-edit-window {
+  position: fixed;
+  top: 108px;
+  right: 16px;
+  bottom: 60px;
+  width: 420px;
+  height: auto;
+  max-height: none;
+  pointer-events: auto;
+  grid-template-columns: 1fr;
+  grid-template-rows: 230px minmax(0, 1fr);
+}
+
+.tg-editor-active .tg-mesh-edit-controls {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* World mode remains the unobstructed default experience. */
+.tg-editor-active .tg-interaction-indicator {
+  z-index: 175;
+}
+
+.tg-place-mode-exit {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 400;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(232, 238, 245, 0.82);
+  background: rgba(5, 6, 8, 0.84);
+  color: var(--tg-white);
+  font-family: var(--tg-font-copy);
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.tg-place-mode-exit:hover {
+  border-color: var(--tg-crimson);
+  color: var(--tg-crimson);
+}
+
+@media (max-width: 900px) {
+  .tg-canvas-shell.editor-open {
+    top: 94px;
+    left: 74px;
+    right: 216px;
+    bottom: 54px;
+  }
+
+  .tg-editor-active .tg-dev-panel,
+  .tg-editor-active .tg-mesh-menu {
+    top: 94px;
+    right: 8px;
+    bottom: 54px;
+    width: 208px;
+  }
+
+  .tg-editor-active .tg-mesh-edit-window {
+    top: 94px;
+    right: 8px;
+    bottom: 54px;
+    width: 330px;
+  }
+}
+
+@media (max-width: 620px) {
+  .tg-canvas-shell.editor-open {
+    top: 104px;
+    left: 8px;
+    right: 8px;
+    bottom: 100px;
+  }
+
+  .tg-editor-view {
+    inset: 5px;
+  }
+
+  .tg-editor-body {
+    grid-template-columns: 1fr;
+  }
+
+  .tg-editor-sidebar {
+    width: auto;
+    height: 56px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 5px;
+  }
+
+  .tg-editor-panel-title {
+    display: none;
+  }
+
+  .tg-editor-panel-button {
+    min-height: 42px;
+  }
+
+  .tg-editor-active .tg-dev-panel,
+  .tg-editor-active .tg-mesh-menu {
+    left: 8px;
+    right: 8px;
+    top: 162px;
+    bottom: 52px;
+    width: auto;
+  }
+
+  .tg-editor-active .tg-mesh-edit-window {
+    left: 8px;
+    right: 8px;
+    top: 162px;
+    bottom: 52px;
+    width: auto;
+  }
+}
+
+/* =======================================================
+   OVERHAUL 1.3 — Crash Tester splash field guide
+======================================================= */
+.tg-splash-panel {
+  width: min(760px, calc(100vw - 36px));
+  min-height: 0;
+  padding: 22px 26px 16px;
+  background: rgba(5, 6, 8, 0.78);
+  border: 1px solid rgba(205, 38, 38, 0.46);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+}
+
+.tg-splash-panel .tg-title-logo {
+  margin-top: 0;
+}
+
+.tg-splash-panel .tg-title-logo-image {
+  width: 170px;
+}
+
+.tg-splash-card {
+  position: relative;
+  width: 100%;
+  height: 310px;
+  margin-top: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(232, 238, 245, 0.16);
+  background: #080a0e;
+  animation: tg-splash-card-in 0.45s ease both;
+}
+
+.tg-splash-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  opacity: 0.72;
+}
+
+.tg-splash-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(5,6,8,0.84) 0%, rgba(5,6,8,0.32) 55%, rgba(5,6,8,0.04) 100%);
+  pointer-events: none;
+}
+
+.tg-splash-copy {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  z-index: 2;
+  max-width: 430px;
+}
+
+.tg-splash-title {
+  color: var(--tg-crimson);
+  font-family: var(--tg-font-display);
+  font-size: 44px;
+  letter-spacing: 0.08em;
+}
+
+.tg-splash-text {
+  margin-top: 5px;
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 15px;
+  letter-spacing: 0.07em;
+  line-height: 1.25;
+}
+
+.tg-splash-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.tg-splash-dots button {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 1px solid rgba(232,238,245,0.45);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tg-splash-dots button.active {
+  border-color: var(--tg-crimson);
+  background: var(--tg-crimson);
+  box-shadow: 0 0 10px rgba(205,38,38,0.45);
+}
+
+.tg-splash-panel .tg-title-buttons {
+  margin-top: 18px;
+  width: 190px;
+  gap: 8px;
+}
+
+.tg-splash-panel .tg-title-buttons button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.tg-splash-panel .tg-title-footer {
+  margin-top: 18px;
+  justify-content: space-between;
+  gap: 18px;
+  color: rgba(232,238,245,0.5);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+@keyframes tg-splash-card-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 700px) {
+  .tg-splash-panel {
+    padding: 16px;
+  }
+
+  .tg-splash-card {
+    height: 250px;
+  }
+
+  .tg-splash-title {
+    font-size: 34px;
+  }
+
+  .tg-splash-text {
+    font-size: 12px;
+  }
+
+  .tg-splash-panel .tg-title-footer {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* 1.3: Editor entry point lives top-left, opposite the compass. */
+.tg-editor-open-button {
+  top: 18px;
+  left: 18px;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  z-index: 170;
+}
+
+.tg-dev-panel {
+  position: fixed;
+  z-index: 180;
+  top: 84px;
+  right: 18px;
+  bottom: 18px;
+  width: 280px;
+  padding: 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  pointer-events: auto;
+  background: rgba(8,10,14,0.96);
+  border: 1px solid rgba(205,38,38,0.68);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.48), 0 0 20px rgba(205,38,38,0.08);
+  backdrop-filter: blur(12px);
+}
+
+.tg-dev-panel-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tg-dev-panel-title-row .tg-side-panel-title {
+  margin-bottom: 10px;
+}
+
+.tg-dev-panel-module-title {
+  margin: 8px 0 8px;
+  color: var(--tg-crimson);
+  font-family: var(--tg-font-display);
+  font-size: 18px;
+  letter-spacing: 0.09em;
+}
+
+.tg-dev-panel-hint {
+  padding: 12px 8px;
+  border-left: 2px solid var(--tg-crimson);
+  color: rgba(232,238,245,0.5);
+  font-family: var(--tg-font-copy);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.tg-dev-panel .tg-side-panel-close {
+  pointer-events: auto;
+}
+
+/* Keep Editor navigation crimson; Royal Blue remains reserved for live interaction. */
+.tg-editor-header-button.active,
+.tg-editor-header-button:hover,
+.tg-editor-area-button.active,
+.tg-editor-area-button:hover,
+.tg-editor-panel-button.active,
+.tg-editor-panel-button:hover {
+  border-color: var(--tg-crimson) !important;
+  color: var(--tg-white) !important;
+  box-shadow: inset 0 0 0 1px var(--tg-crimson) !important;
+}
+
+
+/* =======================================================
+   1.3.1 CORRECTION PASS
+======================================================= */
+.tg-editor-view {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Larger Compact Dev Tools labels without turning blue into a general UI accent. */
+.tg-editor-active .tg-dev-panel-section-button {
+  min-height: 34px;
+  font-size: 13px;
+  letter-spacing: 0.075em;
+}
+.tg-editor-active .tg-dev-panel .tg-side-panel-button {
+  min-height: 38px;
+  height: auto;
+  font-size: 16px;
+  padding: 8px 9px;
+}
+.tg-editor-active .tg-dev-panel-module-title { font-size: 20px; }
+
+/* Expanded Object library in the Editor attachment. */
+.tg-editor-active .tg-mesh-menu {
+  width: min(500px, calc(100vw - 112px));
+  display: block;
+  padding: 14px;
+  overflow-y: auto;
+}
+.tg-editor-active .tg-mesh-menu-actions {
+  width: 100%;
+  flex: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(38px, auto));
+  gap: 8px;
+}
+.tg-editor-active .tg-mesh-menu-actions button { min-height: 38px; font-size: 15px; }
+.tg-editor-active .tg-mesh-library-label { margin-top: 13px; font-size: 10px; }
+.tg-editor-active .tg-mesh-library {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  max-height: none;
+  overflow: visible;
+}
+.tg-editor-active .tg-mesh-card { min-height: 118px; padding: 8px; }
+.tg-editor-active .tg-mesh-card-art { min-height: 82px; }
+.tg-editor-active .tg-mesh-card span { font-size: 13px; }
+
+/* Wider Object Editor with side-by-side preview and controls. */
+.tg-editor-active .tg-mesh-edit-window {
+  width: min(560px, calc(100vw - 112px));
+  grid-template-columns: minmax(0, 1.05fr) minmax(190px, 0.95fr);
+  grid-template-rows: 1fr;
+  gap: 12px;
+  padding: 12px;
+}
+.tg-editor-active .tg-mesh-edit-preview { height: 100%; min-height: 0; }
+.tg-editor-active .tg-mesh-edit-controls { height: 100%; padding: 14px 12px 10px; gap: 11px; }
+
+/* Place Mode: only the world and one small exit control remain visible. */
+.tg-place-mode-exit {
+  width: 36px;
+  height: 36px;
+  top: 14px;
+  right: 14px;
+  font-size: 22px;
+  background: rgba(5, 6, 8, 0.72);
+}
+
+/* Quote-led Crash Tester splash cards. */
+.tg-splash-copy { min-height: 96px; }
+.tg-splash-quote {
+  font-family: var(--tg-font-display);
+  font-size: clamp(20px, 2.35vw, 30px);
+  line-height: 1.06;
+  letter-spacing: 0.035em;
+  color: var(--tg-white);
+  text-transform: uppercase;
+}
+.tg-splash-attribution {
+  margin-top: 12px;
+  color: var(--tg-crimson);
+  font-family: var(--tg-font-display);
+  font-size: 16px;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 900px) {
+  .tg-editor-active .tg-mesh-menu { width: min(430px, calc(100vw - 40px)); }
+  .tg-editor-active .tg-mesh-library { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tg-editor-active .tg-mesh-edit-window {
+    width: min(460px, calc(100vw - 40px));
+    grid-template-columns: 1fr;
+    grid-template-rows: 240px minmax(0, 1fr);
+  }
+}
+@media (max-width: 620px) {
+  .tg-editor-active .tg-mesh-menu,
+  .tg-editor-active .tg-mesh-edit-window { left: 8px; right: 8px; width: auto; }
+  .tg-editor-active .tg-mesh-menu { top: 162px; bottom: 52px; }
+  .tg-editor-active .tg-mesh-edit-window {
+    top: 162px;
+    bottom: 52px;
+    grid-template-rows: 220px minmax(0, 1fr);
+  }
+  .tg-splash-quote { font-size: 19px; }
+}

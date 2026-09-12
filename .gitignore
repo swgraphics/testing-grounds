@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local development/source files
+Quaternius Stylized Nature Pack/
+Screenshots/
+TG_Screenshots/
+Testing-Grounds-Source-of-Truth.zip.zip

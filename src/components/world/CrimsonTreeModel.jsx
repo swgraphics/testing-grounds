@@ -172,6 +172,7 @@ export default function CrimsonTreeModel({
   windPhase = 0,
   crownRef,
   legacyCrown = false,
+  legacyCrownOnly = false,
 
   treeDefinition,
 
@@ -238,15 +239,17 @@ const proceduralBranchData = useMemo(
   ]
 );
 const proceduralCanopyData = useMemo(
-  () =>
-    createProceduralCanopyData(
+  () => {
+    if (legacyCrownOnly) return null;
+    return createProceduralCanopyData(
       proceduralBranchData,
       treeDefinition?.trunk,
       treeDefinition?.branches,
       treeDefinition?.leaves,
       treeDefinition?.seed ?? 1
-    ),
-  [
+    );
+  }, [
+    legacyCrownOnly,
     proceduralBranchData,
     treeDefinition?.trunk,
     treeDefinition?.branches,
@@ -265,13 +268,15 @@ const floatingLeavesDefinition =
   };
 
 const floatingLeafData = useMemo(
-  () =>
-    createProceduralFloatingLeafData(
+  () => {
+    if (legacyCrownOnly) return [];
+    return createProceduralFloatingLeafData(
       proceduralBranchData,
       floatingLeavesDefinition,
       treeDefinition?.seed ?? 1
-    ),
-  [
+    );
+  }, [
+    legacyCrownOnly,
     proceduralBranchData,
     floatingLeavesDefinition,
     treeDefinition?.seed,
@@ -286,8 +291,9 @@ const floatingLeavesRef = useRef(null);
 const generatorLeaves =
   treeDefinition?.leaves;
 const proceduralCanopyGeometry = useMemo(
-  () =>
-    createProceduralCanopyGeometry(
+  () => {
+    if (legacyCrownOnly) return null;
+    return createProceduralCanopyGeometry(
       proceduralCanopyData,
       {
         gradientEnabled:
@@ -299,8 +305,9 @@ const proceduralCanopyGeometry = useMemo(
         baseColor:
           generatorLeaves?.color ?? crownColor,
       }
-    ),
-  [
+    );
+  }, [
+    legacyCrownOnly,
     proceduralCanopyData,
     generatorLeaves?.gradientEnabled,
     generatorLeaves?.gradientColor,
@@ -631,7 +638,7 @@ useFrame((state, delta) => {
     />
   </mesh>
 )}
-        {proceduralCanopyGeometry?.attributes?.position && (
+        {!legacyCrownOnly && proceduralCanopyGeometry?.attributes?.position && (
   <mesh
     geometry={proceduralCanopyGeometry}
     castShadow
@@ -651,7 +658,7 @@ useFrame((state, delta) => {
 />
   </mesh>
   )}
-  {proceduralCanopyEdges && (
+  {!legacyCrownOnly && proceduralCanopyEdges && (
   <lineSegments
     geometry={proceduralCanopyEdges}
     scale={1.006}
@@ -664,6 +671,7 @@ useFrame((state, delta) => {
     />
   </lineSegments>
 )}
+{!legacyCrownOnly && (
 <group ref={floatingLeavesRef}>
   {floatingLeafData.map((leaf) => (
     <mesh
@@ -693,6 +701,7 @@ useFrame((state, delta) => {
     </mesh>
   ))}
 </group>
+)}
 {legacyCrown && (
   <group
     position={[

@@ -13,6 +13,7 @@ export const gamepadState = {
   slide: false,
   sprint: false,
   crouch: false,
+  worldTransform: false,
 };
 
 export function resetGamepadState() {
@@ -30,4 +31,5 @@ export function resetGamepadState() {
   gamepadState.slide = false;
   gamepadState.sprint = false;
   gamepadState.crouch = false;
+  gamepadState.worldTransform = false;
 }

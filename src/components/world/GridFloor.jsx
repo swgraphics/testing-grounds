@@ -4,7 +4,7 @@ import {
 } from "react";
 
 import { RigidBody } from "@react-three/rapier";
-import { Text } from "@react-three/drei";
+import { Billboard, Text } from "@react-three/drei";
 
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 
@@ -28,7 +28,7 @@ const OSWALD_FONT_URL =
  * against the terrain mesh or grid lines.
  */
 const DISTANCE_LABEL_OFFSET = 0.22;
-const SECTOR_LABEL_OFFSET = 0.32;
+const SECTOR_LABEL_OFFSET = 1.15;
 /*
  * Samples several positions beneath a label and
  * returns the highest terrain point.
@@ -80,33 +80,13 @@ function getLabelTerrainHeight(
  * Oswald keeps them technical and readable
  * without competing with the larger region IDs.
  */
-function DistanceLabel({
-  children,
-  x,
-  z,
-  rotationZ = 0,
-}) {
-const terrainHeight =
-  getLabelTerrainHeight(
-    x,
-    z,
-    5,
-    2.5
-  );
+function DistanceLabel({ children, x, z }) {
+  const terrainHeight = getLabelTerrainHeight(x, z, 5, 2.5);
 
   return (
     <Text
-      position={[
-        x,
-        terrainHeight +
-          DISTANCE_LABEL_OFFSET,
-        z,
-      ]}
-      rotation={[
-        -Math.PI / 2,
-        0,
-        rotationZ,
-      ]}
+      position={[x, terrainHeight + DISTANCE_LABEL_OFFSET, z]}
+      rotation={[-Math.PI / 2, 0, 0]}
       font={OSWALD_FONT_URL}
       fontSize={4.2}
       color="#c8d0d7"
@@ -123,50 +103,33 @@ const terrainHeight =
 }
 
 /*
- * Large A1–H8 world-region labels.
- *
- * Bebas Neue gives these identifiers the same
- * tall, condensed visual language as the main
- * Testing Grounds branding.
+ * Large A1–F6 world-region labels.
+ * They stand upright and billboard toward the camera
+ * instead of lying flat on the terrain.
  */
-function SectorLabel({
-  children,
-  x,
-  z,
-}) {
-const terrainHeight =
-  getLabelTerrainHeight(
-    x,
-    z,
-    8,
-    5
-  );
+function SectorLabel({ children, x, z }) {
+  const terrainHeight = getLabelTerrainHeight(x, z, 8, 5);
+
   return (
-    <Text
-      position={[
-        x,
-        terrainHeight +
-          SECTOR_LABEL_OFFSET,
-        z,
-      ]}
-      rotation={[
-        -Math.PI / 2,
-        0,
-        0,
-      ]}
-      font={BEBAS_FONT_URL}
-      fontSize={13}
-      letterSpacing={0.04}
-      color="#e7edf1"
-      anchorX="center"
-      anchorY="middle"
-      fillOpacity={0.34}
-      outlineWidth={0.02}
-      outlineColor="#080b10"
-      outlineOpacity={0.55}
+    <Billboard
+      follow
+      position={[x, terrainHeight + SECTOR_LABEL_OFFSET + 0.7, z]}
     >
-      {children}
-    </Text>
+      <Text
+        font={BEBAS_FONT_URL}
+        fontSize={13}
+        letterSpacing={0.04}
+        color="#e7edf1"
+        anchorX="center"
+        anchorY="middle"
+        fillOpacity={0.34}
+        outlineWidth={0.02}
+        outlineColor="#080b10"
+        outlineOpacity={0.55}
+      >
+        {children}
+      </Text>
+    </Billboard>
   );
 }
 
@@ -320,8 +283,7 @@ export default function GridFloor() {
         key={`z-label-${value}`}
         x={-18}
         z={value}
-        rotationZ={Math.PI / 2}
-      >
+        >
         {Math.abs(value)}m
       </DistanceLabel>
     );

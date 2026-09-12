@@ -302,7 +302,12 @@ export function getAtmospherePalette() {
     auroraColor:
       new THREE.Color("#65ffd0"),
 
-    auroraIntensity: 0,
+    auroraIntensity:
+      Number(terrainSettings.auroraIntensity) || 0,
+
+    rainbowEnabled: Boolean(terrainSettings.rainbowEnabled),
+    rainbowIntensity: Number(terrainSettings.rainbowIntensity) || 0,
+    rainbowWidth: Number(terrainSettings.rainbowWidth) || 28,
 
     sunDirection,
   };

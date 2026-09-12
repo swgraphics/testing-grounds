@@ -7,6 +7,6 @@ export const animationConfig = {
   runJump: "/animations/adventurer/Run Jump.fbx",
   slide: "/animations/adventurer/Running Slide.fbx",
   wallRun: "/animations/adventurer/Wall Run.fbx",
-  wallClimbStart: "/animations/adventurer/Sprint to Wall Climb.fbx",
-  wallClimb: "/animations/adventurer/Climbing up Wall.fbx",
+  wallClimbStart: "/animations/adventurer/Sprint To Wall Climb.fbx",
+  wallClimb: "/animations/adventurer/Climbing Up Wall.fbx",
 };

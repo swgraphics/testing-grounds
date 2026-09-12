@@ -85,20 +85,6 @@ function makeTreePoints() {
   });
 }
 
-function makeGrassPoints() {
-  const coverage = terrainSettings.grassCoverage ?? 50;
-  const spread = 70 + coverage * 2.35;
-
-  return makeScatterPoints(MAX_GRASS, 1400 + terrainSettings.scatterSeed * 100, {
-    minX: -spread,
-    maxX: spread,
-    minZ: -spread,
-    maxZ: spread,
-    minScale: 0.55,
-    maxScale: 1.35,
-  });
-}
-
 function makeFoliagePoints() {
   return makeScatterPoints(
     MAX_FOLIAGE,
@@ -296,6 +282,7 @@ function CrimsonTree({
   treeDefinition,
   treeSeed,
   crownRef,
+  treeRef,
   windPhase = 0,
   collisionEnabled = false,
   physicsKey,
@@ -322,12 +309,14 @@ const treeVisual = (
     windPhase={windPhase}
     crownRef={crownRef}
     treeDefinition={treeDefinition}
+    legacyCrown
+    legacyCrownOnly
   />
 );
 
   if (!collisionEnabled) {
     return (
-      <group position={position}>
+      <group ref={treeRef} position={position}>
         {treeVisual}
       </group>
     );
@@ -341,6 +330,7 @@ const treeVisual = (
 
   return (
     <RigidBody
+      ref={treeRef}
       key={physicsKey}
       type="fixed"
       colliders={false}
@@ -411,6 +401,7 @@ function SimpleRock({
   rotation = 0,
   boulderHeightMultiplier = 1,
   collisionEnabled = false,
+  rockRef,
   physicsKey,
 }) {
   const halfWidth = scale * 1.2;
@@ -447,6 +438,7 @@ const rockCenterHeight =
   if (!collisionEnabled) {
     return (
       <group
+        ref={rockRef}
         position={position}
         rotation={[0, rotation, 0]}
       >
@@ -457,6 +449,7 @@ const rockCenterHeight =
 
   return (
     <RigidBody
+      ref={rockRef}
       key={physicsKey}
       type="fixed"
       colliders={false}
@@ -510,92 +503,44 @@ function useTerrainSetting(settingKey, fallbackValue) {
   );
 
   useEffect(() => {
-    function handleTerrainChange() {
+    function handleTerrainChange(event) {
+      if (event.detail?.key !== settingKey) return;
       setValue(terrainSettings[settingKey] ?? fallbackValue);
     }
 
     window.addEventListener("terrain-settings-changed", handleTerrainChange);
-
-    return () => {
-      window.removeEventListener(
-        "terrain-settings-changed",
-        handleTerrainChange
-      );
-    };
+    return () => window.removeEventListener("terrain-settings-changed", handleTerrainChange);
   }, [settingKey, fallbackValue]);
 
   return value;
 }
 
-function useTerrainShapeRefresh() {
-  const heightMultiplier =
-    useTerrainSetting(
-      "heightMultiplier",
-      1
-    );
 
-  const mountainHeight =
-    useTerrainSetting(
-      "mountainHeight",
-      1
-    );
-
-  const cliffSharpness =
-    useTerrainSetting(
-      "cliffSharpness",
-      1
-    );
-
-  const rollingHills =
-    useTerrainSetting(
-      "rollingHills",
-      1
-    );
-
-  const ridgeStrength =
-    useTerrainSetting(
-      "ridgeStrength",
-      1
-    );
-
-  const plateauAmount =
-    useTerrainSetting(
-      "plateauAmount",
-      0
-    );
-
-  const geometryStrength =
-    useTerrainSetting(
-      "geometryStrength",
-      0
-    );
-
-  return [
-    heightMultiplier,
-    mountainHeight,
-    cliffSharpness,
-    rollingHills,
-    ridgeStrength,
-    plateauAmount,
-    geometryStrength,
-  ];
-}
 
 function TreeScatter() {
   const crownRefs = useRef([]);
+  const treeRefs = useRef([]);
+  const treePointsRef = useRef([]);
   const frameCounterRef = useRef(0);
 
   const treeDensity = useTerrainSetting("treeDensity", 25);
   const treeCoverage = useTerrainSetting("treeCoverage", 50);
   const scatterSeed = useTerrainSetting("scatterSeed", 1);
+  const terrainHeightMultiplier = useTerrainSetting("heightMultiplier", 1.5);
+  const terrainMountainHeight = useTerrainSetting("mountainHeight", 1.5);
+  const terrainCliffSharpness = useTerrainSetting("cliffSharpness", 1.5);
+  const terrainRollingHills = useTerrainSetting("rollingHills", 1.5);
+  const terrainRidgeStrength = useTerrainSetting("ridgeStrength", 1.5);
+  const terrainPlateauAmount = useTerrainSetting("plateauAmount", 0);
+  const terrainGeometryStrength = useTerrainSetting("geometryStrength", 55);
 
   const windStrength = useTerrainSetting("windStrength", 25);
   const windSpeed = useTerrainSetting("windSpeed", 35);
 
-  const terrainShape = useTerrainShapeRefresh();
-
   const trees = useMemo(() => {
     crownRefs.current = [];
+    treeRefs.current = [];
+    treePointsRef.current = [];
 
     const count = countFromSlider(
       treeDensity,
@@ -605,6 +550,7 @@ function TreeScatter() {
     return makeTreePoints()
   .slice(0, count)
   .map((point, index) => {
+    treePointsRef.current[index] = point;
     const y = getTerrainHeightAt(
       point.x,
       point.z
@@ -628,6 +574,8 @@ function TreeScatter() {
         variant={point.variant}
         treeDefinition={treeDefinition}
         treeSeed={point.seed}
+        legacyCrown
+        legacyCrownOnly
         windPhase={
           point.variant * Math.PI * 2
         }
@@ -650,7 +598,13 @@ function TreeScatter() {
     treeDensity,
     treeCoverage,
     scatterSeed,
-    ...terrainShape,
+    terrainHeightMultiplier,
+    terrainMountainHeight,
+    terrainCliffSharpness,
+    terrainRollingHills,
+    terrainRidgeStrength,
+    terrainPlateauAmount,
+    terrainGeometryStrength,
   ]);
 
   useFrame((state) => {
@@ -713,12 +667,20 @@ function TreeScatter() {
 
 function FoliageScatter() {
   const fernRefs = useRef([]);
+  const foliagePointsRef = useRef([]);
   const frameCounterRef = useRef(0);
 
   const foliageDensity =
     useTerrainSetting("foliageDensity", 25);
   const scatterSeed =
     useTerrainSetting("scatterSeed", 1);
+  const terrainHeightMultiplier = useTerrainSetting("heightMultiplier", 1.5);
+  const terrainMountainHeight = useTerrainSetting("mountainHeight", 1.5);
+  const terrainCliffSharpness = useTerrainSetting("cliffSharpness", 1.5);
+  const terrainRollingHills = useTerrainSetting("rollingHills", 1.5);
+  const terrainRidgeStrength = useTerrainSetting("ridgeStrength", 1.5);
+  const terrainPlateauAmount = useTerrainSetting("plateauAmount", 0);
+  const terrainGeometryStrength = useTerrainSetting("geometryStrength", 55);
 
   const windStrength =
     useTerrainSetting("windStrength", 25);
@@ -726,11 +688,9 @@ function FoliageScatter() {
   const windSpeed =
     useTerrainSetting("windSpeed", 35);
 
-  const terrainShape =
-    useTerrainShapeRefresh();
-
   const foliage = useMemo(() => {
     fernRefs.current = [];
+    foliagePointsRef.current = [];
 
     const count = countFromSlider(
       foliageDensity,
@@ -740,6 +700,7 @@ function FoliageScatter() {
     return makeFoliagePoints()
       .slice(0, count)
       .map((point, index) => {
+        foliagePointsRef.current[index] = point;
         const y =
           getTerrainHeightAt(
             point.x,
@@ -762,7 +723,13 @@ function FoliageScatter() {
   }, [
     foliageDensity,
     scatterSeed,
-    ...terrainShape,
+    terrainHeightMultiplier,
+    terrainMountainHeight,
+    terrainCliffSharpness,
+    terrainRollingHills,
+    terrainRidgeStrength,
+    terrainPlateauAmount,
+    terrainGeometryStrength,
   ]);
 
   useFrame((state) => {
@@ -818,13 +785,22 @@ function FoliageScatter() {
 }
 
 function RockScatter() {
+  const rockRefs = useRef([]);
+  const rockPointsRef = useRef([]);
   const rockDensity = useTerrainSetting("rockDensity", 20);
   const boulderAmount = useTerrainSetting("boulderAmount", 0);
   const boulderHeight = useTerrainSetting("boulderHeight", 50);
   const scatterSeed = useTerrainSetting("scatterSeed", 1);
-  const terrainShape = useTerrainShapeRefresh();
-
+  const terrainHeightMultiplier = useTerrainSetting("heightMultiplier", 1.5);
+  const terrainMountainHeight = useTerrainSetting("mountainHeight", 1.5);
+  const terrainCliffSharpness = useTerrainSetting("cliffSharpness", 1.5);
+  const terrainRollingHills = useTerrainSetting("rollingHills", 1.5);
+  const terrainRidgeStrength = useTerrainSetting("ridgeStrength", 1.5);
+  const terrainPlateauAmount = useTerrainSetting("plateauAmount", 0);
+  const terrainGeometryStrength = useTerrainSetting("geometryStrength", 55);
   const rocks = useMemo(() => {
+    rockRefs.current = [];
+    rockPointsRef.current = [];
     const count = countFromSlider(rockDensity, MAX_ROCKS);
     const boulderChance = (Number(boulderAmount) || 0) / 100;
 
@@ -832,12 +808,14 @@ function RockScatter() {
       1 + ((Number(boulderHeight) || 0) / 100) * 5;
 
     return makeRockPoints().slice(0, count).map((point, index) => {
+      rockPointsRef.current[index] = point;
       const y = getTerrainHeightAt(point.x, point.z);
       const isBoulder = point.variant < boulderChance;
 
       return (
         <SimpleRock
           key={`rock-${index}`}
+          rockRef={(object) => { rockRefs.current[index] = object; }}
           position={[point.x, y, point.z]}
           scale={point.scale}
           rotation={point.rotation}
@@ -854,7 +832,13 @@ function RockScatter() {
     boulderAmount,
     boulderHeight,
     scatterSeed,
-    ...terrainShape,
+    terrainHeightMultiplier,
+    terrainMountainHeight,
+    terrainCliffSharpness,
+    terrainRollingHills,
+    terrainRidgeStrength,
+    terrainPlateauAmount,
+    terrainGeometryStrength,
   ]);
 
   return <>{rocks}</>;

@@ -12,6 +12,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getTerrainHeightAt } from "./../../systems/terrain/terrainHeight";
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
+import { useWorldStore } from "../../systems/world/worldStore";
+import { useInteractionStore } from "../../systems/interaction/interactionStore";
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -121,27 +123,32 @@ export default function MeshPlacementSystem() {
   // --------------------------------------------------
 
   useEffect(() => {
-    function loadMeshFile(file) {
-      if (!file) return;
+    function loadMeshSource(mesh) {
+      if (!mesh) return;
 
-      const objectUrl = URL.createObjectURL(file);
+      const source = mesh.file
+        ? URL.createObjectURL(mesh.file)
+        : mesh.modelPath;
+
+      if (!source) return;
 
       loader.load(
-        objectUrl,
+        source,
         (gltf) => {
           setLoadedScene(() => cloneScene(gltf.scene));
-          URL.revokeObjectURL(objectUrl);
+          if (mesh.file) URL.revokeObjectURL(source);
         },
         undefined,
         (error) => {
-          console.error(
-            "Testing Grounds: failed to load mesh.",
-            error
-          );
-
-          URL.revokeObjectURL(objectUrl);
+          console.error("Testing Grounds: failed to load mesh.", error);
+          if (mesh.file) URL.revokeObjectURL(source);
         }
       );
+    }
+
+    function loadMeshFile(file) {
+      if (!file) return;
+      loadMeshSource({ file });
     }
 
     function handleSelection(event) {
@@ -151,8 +158,8 @@ export default function MeshPlacementSystem() {
 
       setSelectedMesh(mesh);
 
-      if (mesh.file) {
-        loadMeshFile(mesh.file);
+      if (mesh.file || mesh.modelPath) {
+        loadMeshSource(mesh);
       }
     }
 
@@ -163,6 +170,11 @@ export default function MeshPlacementSystem() {
 
       setSelectedMesh(mesh);
       setPlacementMode(true);
+      useInteractionStore.getState().activate({
+        target: `object:${mesh.id}`,
+        tool: "OBJECT",
+        mode: "PLACE",
+      });
       setPreviewPosition(null);
 
       setLoadedScene(null);
@@ -173,9 +185,9 @@ export default function MeshPlacementSystem() {
         return;
       }
 
-      if (mesh.file) {
-       loadMeshFile(mesh.file);
-    }
+      if (mesh.file || mesh.modelPath) {
+        loadMeshSource(mesh);
+      }
   }
 
     function handleUploadRequest(event) {
@@ -189,6 +201,8 @@ export default function MeshPlacementSystem() {
     function handleCancelPlacement() {
       setPlacementMode(false);
       setPreviewPosition(null);
+      useInteractionStore.getState().clear();
+      window.dispatchEvent(new CustomEvent("tg-mesh-placement-cancelled"));
     }
     function handleEditSave(event) {
       const mesh = event.detail?.mesh;
@@ -300,33 +314,58 @@ export default function MeshPlacementSystem() {
 
     object.position.copy(previewPosition);
 
+    const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
+
     setPlacedMeshes((current) => [
       ...current,
       {
-        id: `placed-mesh-${Date.now()}-${current.length}`,
+        id: objectId,
         type: "scene",
         object,
       },
     ]);
 
+    useWorldStore.getState().upsertObject({
+      id: objectId,
+      type: "scene",
+      source: selectedMesh?.source ?? "uploaded",
+      name: selectedMesh?.name ?? "UPLOADED OBJECT",
+      modelPath: selectedMesh?.modelPath,
+      position: previewPosition.toArray(),
+    });
+
+    useInteractionStore.getState().clear();
     return;
   }
 
   setPlacedMeshes((current) => {
-  const id =
-    `placed-mesh-${Date.now()}-${current.length}`;
+    const id =
+      `placed-mesh-${Date.now()}-${current.length}`;
 
-  return [
-    ...current,
-    {
+    useWorldStore.getState().upsertObject({
       id,
       type: "procedural",
-      mesh: proceduralMesh,
-      position: previewPosition.clone(),
-      windPhase: current.length * 1.73,
-    },
-  ];
-});
+      source: "generated",
+      name: proceduralMesh?.name ?? "PROCEDURAL OBJECT",
+      modelType: proceduralMesh?.modelType,
+      treeDefinition: proceduralMesh?.treeDefinition,
+      editSettings: proceduralMesh?.editSettings,
+      position: previewPosition.toArray(),
+    });
+
+    useInteractionStore.getState().clear();
+
+    return [
+      ...current,
+      {
+        id,
+        type: "procedural",
+        mesh: proceduralMesh,
+        position: previewPosition.clone(),
+        windPhase: current.length * 1.73,
+      },
+    ];
+  });
 }
 
     function handleKeyDown(event) {

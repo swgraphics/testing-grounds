@@ -807,3 +807,146 @@
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Pass 1.1: keep the Add Object window reachable at desktop heights. */
+.tg-mesh-menu {
+  max-height: min(42vh, 340px);
+  min-height: 0;
+}
+
+.tg-mesh-library {
+  min-height: 0;
+  max-height: min(34vh, 270px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.tg-mesh-library::-webkit-scrollbar {
+  width: 7px;
+}
+
+.tg-mesh-library::-webkit-scrollbar-track {
+  background: rgba(5, 6, 8, 0.72);
+}
+
+.tg-mesh-library::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--tg-crimson), var(--tg-maroon));
+  border-radius: 999px;
+}
+
+@media (max-width: 1000px) {
+  .tg-mesh-menu {
+    max-height: 52vh;
+  }
+
+  .tg-mesh-library {
+    max-height: 44vh;
+  }
+}
+
+@media (max-width: 700px) {
+  .tg-mesh-menu {
+    max-height: 62vh;
+    overflow: hidden;
+  }
+
+  .tg-mesh-library {
+    max-height: 51vh;
+  }
+}
+
+/* Pass 1.1: the editor window stays inside the viewport; only its parameter column scrolls. */
+.tg-mesh-edit-window {
+  width: min(900px, 90vw);
+  height: min(700px, calc(100vh - 36px));
+  min-height: 0;
+  max-height: calc(100vh - 36px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+}
+
+.tg-mesh-edit-preview {
+  min-height: 0;
+  height: 100%;
+}
+
+.tg-mesh-edit-controls {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.tg-mesh-edit-controls::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tg-mesh-edit-controls::-webkit-scrollbar-track {
+  background: rgba(5, 6, 8, 0.74);
+}
+
+.tg-mesh-edit-controls::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--tg-crimson), var(--tg-maroon));
+  border-radius: 999px;
+}
+
+@media (max-width: 1000px) {
+  .tg-mesh-edit-window {
+    width: min(94vw, 860px);
+  }
+}
+
+@media (max-width: 700px) {
+  .tg-mesh-edit-window {
+    width: 94vw;
+    height: 88vh;
+    max-height: 88vh;
+    grid-template-columns: 1fr;
+    overflow: hidden;
+  }
+
+  .tg-mesh-edit-preview {
+    height: 36vh;
+    min-height: 220px;
+  }
+
+  .tg-mesh-edit-controls {
+    height: auto;
+    min-height: 0;
+  }
+}
+
+.tg-mesh-library-label {
+  margin: 7px 0 5px;
+  color: rgba(232, 238, 245, 0.5);
+  font-family: var(--tg-font-copy);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+
+.tg-mesh-pagination {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.tg-mesh-pagination > span {
+  text-align: center;
+  color: rgba(232,238,245,0.45);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.tg-mesh-prev,
+.tg-mesh-next {
+  width: 34px;
+  height: 34px;
+}

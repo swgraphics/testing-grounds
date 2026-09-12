@@ -1,3 +1,5 @@
+import { useWorldStore } from "../../world/worldStore";
+
 export const cloudSettings = {
 
   brightness: 0.75,
@@ -25,16 +27,25 @@ export const cloudSettings = {
   speed: 2.50,
 
   windDirection: 0,
+  rotation: 0,
 
   upperColor: "#7a7474",
 
   lowerColor: "#242425",
   
-  edgeColor: "#fdf7fd"
+  edgeColor: "#fdf7fd",
+
+  usePalette: true
 
 };
 export function updateCloudSetting(key, value) {
+  cloudSettings[key] = value;
 
-    cloudSettings[key] = value;
-
+  const state = useWorldStore.getState();
+  state.updateAtmosphere({
+    clouds: {
+      ...state.world.atmosphere.clouds,
+      [key]: value,
+    },
+  });
 }

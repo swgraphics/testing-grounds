@@ -43,6 +43,7 @@ function findConnectedGamepad() {
 
 export default function XboxController() {
   const loggedControllerRef = useRef("");
+  const previousButtonsRef = useRef({});
 
   useEffect(() => {
     function handleConnected(event) {
@@ -57,6 +58,7 @@ export default function XboxController() {
     function handleDisconnected(event) {
       console.log("Gamepad disconnected:", event.gamepad.id);
       resetGamepadState();
+      previousButtonsRef.current = {};
       loggedControllerRef.current = "";
     }
 
@@ -90,6 +92,7 @@ export default function XboxController() {
 
     if (!gamepad) {
       resetGamepadState();
+      previousButtonsRef.current = {};
       return;
     }
 
@@ -154,6 +157,23 @@ export default function XboxController() {
 
     gamepadState.crouch =
       gamepad.buttons[11]?.pressed ?? false;
+
+    const buttonPressed = (index) => Boolean(gamepad.buttons[index]?.pressed);
+    const wasPressed = (index) => Boolean(previousButtonsRef.current[index]);
+    const dispatchEdgeAction = (index, action, duration) => {
+      const pressed = buttonPressed(index);
+      if (pressed && !wasPressed(index)) {
+        window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action, duration } }));
+      }
+      previousButtonsRef.current[index] = pressed;
+      return pressed;
+    };
+
+    dispatchEdgeAction(7, "attack", 620);
+    dispatchEdgeAction(5, "attackCross", 700);
+    dispatchEdgeAction(4, "interact", 700);
+    gamepadState.worldTransform = buttonPressed(6);
+    previousButtonsRef.current[6] = gamepadState.worldTransform;
 
     gamepadState.connected = true;
     gamepadState.id = gamepad.id;

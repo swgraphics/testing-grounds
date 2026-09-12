@@ -12,6 +12,8 @@ import {
 } from "./characterRegistry";
 import PlayableCharacter from "./PlayableCharacter";
 import { devSettings } from "../../systems/dev/devSettings";
+import { useWorldStore } from "../../systems/world/worldStore";
+import { AREA_CONFIG } from "../../config/areaConfig";
 import {
   getCameraSettings,
 } from "../../systems/camera/cameraSettings";
@@ -413,6 +415,10 @@ export default function PlayerController() {
   const positionBroadcastTimeRef = useRef(0);
   const [animationState, setAnimationState] = useState("idle");
   const animationStateRef = useRef("idle");
+  const [actionState, setActionState] = useState(null);
+  const [actionVersion, setActionVersion] = useState(0);
+  const actionTimerRef = useRef(null);
+  const [teleportRequest, setTeleportRequest] = useState(null);
   const [currentCharacterId, setCurrentCharacterId] =
     useState(activeCharacterId);
 
@@ -434,6 +440,56 @@ const activeCameraProfile =
 const fpvMoveSpeed =
   activeCameraProfile.fpvMoveSpeed ?? 15;
   
+useEffect(() => {
+  function triggerAction(event) {
+    if (!currentCharacterId.startsWith("crashTester")) return;
+
+    const action = event.detail?.action || "attack";
+    const duration = Number(event.detail?.duration) || 700;
+
+    setActionState(action);
+    setActionVersion((value) => value + 1);
+
+    if (actionTimerRef.current) {
+      window.clearTimeout(actionTimerRef.current);
+    }
+
+    actionTimerRef.current = window.setTimeout(() => {
+      setActionState(null);
+      actionTimerRef.current = null;
+    }, duration);
+  }
+
+  window.addEventListener("crash-unit-action", triggerAction);
+  window.addEventListener("crash-unit-attack", triggerAction);
+
+  return () => {
+    window.removeEventListener("crash-unit-action", triggerAction);
+    window.removeEventListener("crash-unit-attack", triggerAction);
+    if (actionTimerRef.current) {
+      window.clearTimeout(actionTimerRef.current);
+      actionTimerRef.current = null;
+    }
+  };
+}, [currentCharacterId]);
+
+useEffect(() => {
+  function handleTeleport(event) {
+    const areaId = event.detail?.areaId;
+    const area = AREA_CONFIG.find((entry) => entry.id === areaId);
+    if (!area) return;
+
+    setTeleportRequest({
+      areaId,
+      nonce: Date.now(),
+      position: [area.position[0], area.position[1] + 3, area.position[2]],
+    });
+  }
+
+  window.addEventListener("tg-teleport-to-area", handleTeleport);
+  return () => window.removeEventListener("tg-teleport-to-area", handleTeleport);
+}, []);
+
 useEffect(() => {
   function handleCharacterChange(event) {
     setCurrentCharacterId(
@@ -575,28 +631,26 @@ useEffect(() => {
     const sprint =
       inputState.run || gamepadState.sprint;
 
+    const worldTransform =
+      inputState.worldTransform || gamepadState.worldTransform;
+
     const isMoving =
       forward ||
       backward ||
       leftward ||
       rightward;
 
-   let nextAnimationState = "idle";
+   let nextAnimationState = actionState || "idle";
 
-if (slide && isMoving) {
+if (!actionState && worldTransform && currentCharacterId.startsWith("crashTester")) {
+  nextAnimationState = "worldTransform";
+} else if (!actionState && slide && isMoving) {
   nextAnimationState = "slide";
-} else if (
-  jump &&
-  sprint &&
-  isMoving
-) {
+} else if (jump && sprint && isMoving) {
   nextAnimationState = "runJump";
 } else if (jump) {
   nextAnimationState = "jump";
-} else if (
-  crouch &&
-  isMoving
-) {
+} else if (crouch && isMoving) {
   nextAnimationState = "crouchWalk";
 } else if (isMoving && sprint) {
   nextAnimationState = "run";
@@ -635,8 +689,9 @@ if (
   return (
     <>
 <Ecctrl
+  key={teleportRequest?.nonce ?? "spawn"}
   ref={controllerRef}
-  position={[0, 3, 0]}
+  position={teleportRequest?.position ?? [0, 3, 0]}
   mode="FixedCamera"
   maxVelLimit={
     fpvMode
@@ -656,10 +711,13 @@ if (
   turnVelMultiplier={
     speedProfile.turnVelMultiplier
   }
+  autoBalance={false}
+  enabledRotations={[false, true, false]}
 >
         <PlayableCharacter
           character={activeCharacter}
           animationState={animationState}
+          animationTrigger={actionVersion}
           hidden={fpvMode}
         />
       </Ecctrl>

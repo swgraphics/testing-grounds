@@ -1,4 +1,6 @@
 import CloudField from "../../systems/atmosphere/clouds/CloudField";
+import Aurora from "./Aurora";
+import GroundFog from "./GroundFog";
 import {
   Stars,
 } from "@react-three/drei";
@@ -56,6 +58,9 @@ const SKY_FRAGMENT_SHADER = `
   uniform float uSunsetAmount;
   uniform float uHorizonSpread;
   uniform float uSunGlowStrength;
+  uniform float uRainbowEnabled;
+  uniform float uRainbowIntensity;
+  uniform float uRainbowWidth;
 
   varying vec3 vWorldDirection;
 
@@ -158,6 +163,37 @@ const SKY_FRAGMENT_SHADER = `
         uSunsetAmount
       );
 
+    // A deliberately visible rainbow arc opposite the sun.
+    // Width is the total arc width, while the colors are distributed across it.
+    vec3 rainbowDirection = normalize(-uSunDirection);
+    float rainbowAngle = acos(clamp(dot(direction, rainbowDirection), -1.0, 1.0));
+    float rainbowCenter = 0.68;
+    float rainbowHalfWidth = max(0.09, uRainbowWidth / 100.0);
+    float rainbowDistance = abs(rainbowAngle - rainbowCenter);
+    float rainbowBand = 1.0 - smoothstep(rainbowHalfWidth * 0.72, rainbowHalfWidth, rainbowDistance);
+    float rainbowT = clamp(
+      (rainbowAngle - (rainbowCenter - rainbowHalfWidth)) /
+      max(0.001, rainbowHalfWidth * 2.0),
+      0.0,
+      1.0
+    );
+
+    vec3 rainbowColor;
+    if (rainbowT < 0.2) {
+      rainbowColor = mix(vec3(1.0, 0.12, 0.08), vec3(1.0, 0.78, 0.08), rainbowT / 0.2);
+    } else if (rainbowT < 0.4) {
+      rainbowColor = mix(vec3(1.0, 0.78, 0.08), vec3(0.12, 0.95, 0.42), (rainbowT - 0.2) / 0.2);
+    } else if (rainbowT < 0.6) {
+      rainbowColor = mix(vec3(0.12, 0.95, 0.42), vec3(0.10, 0.52, 1.0), (rainbowT - 0.4) / 0.2);
+    } else if (rainbowT < 0.8) {
+      rainbowColor = mix(vec3(0.10, 0.52, 1.0), vec3(0.48, 0.16, 1.0), (rainbowT - 0.6) / 0.2);
+    } else {
+      rainbowColor = vec3(0.48, 0.16, 1.0);
+    }
+
+    float rainbowHeight = smoothstep(-0.08, 0.34, direction.y);
+    skyColor += rainbowColor * rainbowBand * rainbowHeight * uRainbowEnabled * uRainbowIntensity * 1.15;
+
     gl_FragColor =
       vec4(
         skyColor,
@@ -183,6 +219,9 @@ function mapRange(
 
 function SkyDome({
   palette,
+  rainbowEnabled,
+  rainbowIntensity,
+  rainbowWidth,
 }) {
   const meshRef =
     useRef(null);
@@ -239,6 +278,9 @@ function SkyDome({
               palette.sunsetAmount *
                 0.9,
           },
+          uRainbowEnabled: { value: rainbowEnabled ? 1 : 0 },
+          uRainbowIntensity: { value: rainbowIntensity / 100 },
+          uRainbowWidth: { value: rainbowWidth },
         },
 
         vertexShader:
@@ -284,9 +326,16 @@ function SkyDome({
         0.32 +
         palette.sunsetAmount *
           0.9;
+
+    material.uniforms.uRainbowEnabled.value = rainbowEnabled ? 1 : 0;
+    material.uniforms.uRainbowIntensity.value = rainbowIntensity / 100;
+    material.uniforms.uRainbowWidth.value = rainbowWidth;
   }, [
     material,
     palette,
+    rainbowEnabled,
+    rainbowIntensity,
+    rainbowWidth,
   ]);
 
   useEffect(() => {
@@ -348,6 +397,18 @@ export default function Atmosphere({
         "sunRotation",
         "skyHaze",
         "stars",
+        "atmosphereMode",
+        "rainbowEnabled",
+        "rainbowIntensity",
+        "rainbowWidth",
+        "auroraEnabled",
+        "auroraIntensity",
+        "auroraSpeed",
+        "auroraHeight",
+        "groundFogDensity",
+        "groundFogSpeed",
+        "groundFogHeight",
+        "groundFogCoverage",
       ];
 
       if (
@@ -438,9 +499,16 @@ export default function Atmosphere({
 
   return (
     <>
-    <SkyDome palette={palette} />
+    <SkyDome
+      palette={palette}
+      rainbowEnabled={Boolean(terrainSettings.rainbowEnabled)}
+      rainbowIntensity={Number(terrainSettings.rainbowIntensity) || 0}
+      rainbowWidth={Number(terrainSettings.rainbowWidth) || 28}
+    />
 
     <CloudField />
+    <Aurora />
+    <GroundFog />
 
     <Stars
         radius={350}
