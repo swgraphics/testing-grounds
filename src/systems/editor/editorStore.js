@@ -2,19 +2,17 @@ import { create } from "zustand";
 
 export const useEditorStore = create((set) => ({
   isOpen: false,
-  activePanel: "world",
+  activePanel: "editor",
   devToolsOpen: false,
   devToolsPanelOpen: false,
-  quickToolsOpen: false,
   viewportMode: "world",
 
   open() {
     set({
       isOpen: true,
-      activePanel: "world",
+      activePanel: "editor",
       devToolsOpen: false,
       devToolsPanelOpen: false,
-      quickToolsOpen: false,
       viewportMode: "world",
     });
   },
@@ -24,7 +22,6 @@ export const useEditorStore = create((set) => ({
       isOpen: false,
       devToolsOpen: false,
       devToolsPanelOpen: false,
-      quickToolsOpen: false,
       viewportMode: "world",
     });
   },
@@ -32,7 +29,6 @@ export const useEditorStore = create((set) => ({
   toggle() {
     set((state) => ({
       isOpen: !state.isOpen,
-      quickToolsOpen: false,
       devToolsOpen: state.isOpen ? false : state.devToolsOpen,
       devToolsPanelOpen: state.isOpen ? false : state.devToolsPanelOpen,
     }));
@@ -70,10 +66,6 @@ export const useEditorStore = create((set) => ({
 
   setDevToolsOpen(devToolsOpen) {
     set({ devToolsOpen: Boolean(devToolsOpen), devToolsPanelOpen: false });
-  },
-
-  toggleQuickTools() {
-    set((state) => ({ quickToolsOpen: !state.quickToolsOpen }));
   },
 
   setViewportMode(viewportMode) {

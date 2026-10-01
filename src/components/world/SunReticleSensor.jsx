@@ -20,7 +20,11 @@ export default function SunReticleSensor() {
 
     const palette = getAtmospherePalette();
     const targetDirection = palette.sunDirection.clone().normalize();
-    const aligned = directionRef.current.dot(targetDirection) > 0.992;
+    // The original narrow cone made the sun difficult to acquire.
+    // Keep the reticle attached to a generous sky region so the user can
+    // acquire the sun naturally, then drag it around the sky without losing
+    // the interaction state.
+    const aligned = directionRef.current.dot(targetDirection) > 0.965;
 
     if (lastTargetRef.current === aligned) return;
 

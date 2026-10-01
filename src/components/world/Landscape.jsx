@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import {
   RigidBody,
@@ -14,6 +15,7 @@ import CrimsonTreeModel from "./CrimsonTreeModel";
 import {
   createCrimsonTreeDefinition,
 } from "./treeGenerator";
+import { BUILTIN_OBJECTS } from "../../systems/objects/objectRegistry";
 const MAX_TREES = 900;
 const MAX_FOLIAGE = 1400;
 const MAX_ROCKS = 650;
@@ -287,6 +289,10 @@ function CrimsonTree({
   windPhase = 0,
   collisionEnabled = false,
   physicsKey,
+  treeId = null,
+  editable = false,
+  proceduralAlways = false,
+  legacyCrown = false,
 }) {
   const crownWidth =
     0.88 + variant * 0.26;
@@ -310,8 +316,10 @@ const treeVisual = (
     windPhase={windPhase}
     crownRef={crownRef}
     treeDefinition={treeDefinition}
-    legacyCrown
-    legacyCrownOnly
+    treeId={treeId}
+    legacyCrown={legacyCrown}
+    legacyCrownOnly={!editable && !proceduralAlways}
+    proceduralAlways={proceduralAlways}
   />
 );
 
@@ -518,158 +526,261 @@ function useTerrainSetting(settingKey, fallbackValue) {
 
 
 
-function TreeScatter() {
+function mergeScatterTreeDefinition(baseDefinition, patch) {
+  const base = createCrimsonTreeDefinition(baseDefinition ?? {});
+  return createCrimsonTreeDefinition({
+    ...base,
+    ...patch,
+    trunk: { ...base.trunk, ...(patch?.trunk ?? {}) },
+    branches: {
+      ...base.branches,
+      ...(patch?.branches ?? {}),
+      overrides: {
+        ...(base.branches?.overrides ?? {}),
+        ...(patch?.branches?.overrides ?? {}),
+      },
+      secondary: {
+        ...base.branches.secondary,
+        ...(patch?.branches?.secondary ?? {}),
+      },
+    },
+    leaves: { ...base.leaves, ...(patch?.leaves ?? {}) },
+  });
+}
+
+function makeProfileTreePoints(count, coverage, seedOffset, centerX = 0, centerZ = 0) {
+  const spread = 80 + Number(coverage ?? 50) * 2.2;
+  return makeScatterPoints(count, seedOffset, {
+    minX: centerX - spread,
+    maxX: centerX + spread,
+    minZ: centerZ - spread,
+    maxZ: centerZ + spread,
+    minScale: 0.55,
+    maxScale: 1.8,
+  });
+}
+
+function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, currentChunk, terrainValues, editableTreeId }) {
   const crownRefs = useRef([]);
-  const treeRefs = useRef([]);
-  const treePointsRef = useRef([]);
   const frameCounterRef = useRef(0);
 
-  const treeDensitySetting = useTerrainSetting("treeDensity", 25);
-  const treeCoverageSetting = useTerrainSetting("treeCoverage", 50);
-  const crimsonScatter = useWorldStore((state) => state.world.scatterProfiles?.["crimson-tree"]);
-  const treeDensity = crimsonScatter?.enabled ? crimsonScatter.density : treeDensitySetting;
-  const treeCoverage = crimsonScatter?.enabled ? crimsonScatter.coverage : treeCoverageSetting;
-  const scatterSeed = useTerrainSetting("scatterSeed", 1);
-  const terrainHeightMultiplier = useTerrainSetting("heightMultiplier", 1.5);
-  const terrainMountainHeight = useTerrainSetting("mountainHeight", 1.5);
-  const terrainCliffSharpness = useTerrainSetting("cliffSharpness", 1.5);
-  const terrainRollingHills = useTerrainSetting("rollingHills", 1.5);
-  const terrainRidgeStrength = useTerrainSetting("ridgeStrength", 1.5);
-  const terrainPlateauAmount = useTerrainSetting("plateauAmount", 0);
-  const terrainGeometryStrength = useTerrainSetting("geometryStrength", 55);
-
-  const windStrength = useTerrainSetting("windStrength", 25);
-  const windSpeed = useTerrainSetting("windSpeed", 35);
+  const density = Math.max(0, Math.min(100, Number(profile?.density ?? 0)));
+  const coverage = Math.max(0, Math.min(100, Number(profile?.coverage ?? 50)));
+  const isDefaultCrimson = profileId === "crimson-tree";
+  const maxCount = isDefaultCrimson ? MAX_TREES : 260;
+  const count = countFromSlider(density, maxCount);
+  const chunkX = isDefaultCrimson ? 0 : Number(currentChunk?.position?.[0] ?? 0);
+  const chunkZ = isDefaultCrimson ? 0 : Number(currentChunk?.position?.[2] ?? 0);
+  const seedBase = Number(terrainValues.scatterSeed) || 1;
+  const profileSeed = Number(profile?.seed ?? 1);
+  const baseDefinition = useMemo(
+    () => profile?.treeDefinition
+      ? createCrimsonTreeDefinition(profile.treeDefinition)
+      : createCrimsonTreeDefinition(),
+    [profile?.treeDefinition],
+  );
+  const treeOverrides = profile?.treeOverrides ?? {};
 
   const trees = useMemo(() => {
     crownRefs.current = [];
-    treeRefs.current = [];
-    treePointsRef.current = [];
-
-    const count = countFromSlider(
-      treeDensity,
-      MAX_TREES
+    const points = makeProfileTreePoints(
+      count,
+      coverage,
+      10 + seedBase * 100 + profileSeed * 7919 + profileId.length * 31,
+      chunkX,
+      chunkZ,
     );
 
-    return makeTreePoints()
-  .slice(0, count)
-  .map((point, index) => {
-    treePointsRef.current[index] = point;
-    const y = getTerrainHeightAt(
-      point.x,
-      point.z
-    );
+    return points.map((point, index) => {
+      const treeId = `scatter-tree-${profileId}-${currentChunkId}-${index}`;
+      const override = treeOverrides[treeId];
+      const treeDefinition = mergeScatterTreeDefinition(
+        { ...baseDefinition, seed: point.seed },
+        override,
+      );
+      const y = getTerrainHeightAt(point.x, point.z);
 
-    const treeDefinition =
-      createCrimsonTreeDefinition({
-        seed: point.seed,
-      });
+      return (
+        <CrimsonTree
+          key={treeId}
+          position={[point.x, y, point.z]}
+          scale={point.scale}
+          rotation={point.rotation}
+          variant={point.variant}
+          treeDefinition={treeDefinition}
+          treeId={treeId}
+          editable={editableTreeId === treeId}
+          treeSeed={point.seed}
+          windPhase={point.variant * Math.PI * 2}
+          legacyCrown={isDefaultCrimson}
+          proceduralAlways={Boolean(profile?.treeDefinition)}
+          collisionEnabled={isDefaultCrimson && index < MAX_TREE_COLLIDERS}
+          physicsKey={`tree-body-${profileId}-${index}-${seedBase}-${y.toFixed(3)}`}
+          crownRef={(object) => {
+            crownRefs.current[index] = object;
+          }}
+        />
+      );
+    });
+  }, [count, coverage, seedBase, profileSeed, profileId, currentChunkId, chunkX, chunkZ, baseDefinition, treeOverrides, editableTreeId, terrainValues.heightMultiplier, terrainValues.mountainHeight, terrainValues.cliffSharpness, terrainValues.rollingHills, terrainValues.ridgeStrength, terrainValues.plateauAmount, terrainValues.geometryStrength]);
 
-    return (
-      <CrimsonTree
-        key={`tree-${index}`}
-        position={[
-          point.x,
-          y,
-          point.z,
-        ]}
-        scale={point.scale}
-        rotation={point.rotation}
-        variant={point.variant}
-        treeDefinition={treeDefinition}
-        treeSeed={point.seed}
-        legacyCrown
-        legacyCrownOnly
-        windPhase={
-          point.variant * Math.PI * 2
-        }
-  collisionEnabled={
-    index < MAX_TREE_COLLIDERS
-  }
-  physicsKey={
-    `tree-body-${index}-` +
-    `${scatterSeed}-` +
-    `${y.toFixed(3)}`
-  }
-  crownRef={(object) => {
-    crownRefs.current[index] =
-      object;
-  }}
-/>
-        );
-      });
-  }, [
-    treeDensity,
-    treeCoverage,
-    treeDensitySetting,
-    treeCoverageSetting,
-    crimsonScatter,
-    scatterSeed,
-    terrainHeightMultiplier,
-    terrainMountainHeight,
-    terrainCliffSharpness,
-    terrainRollingHills,
-    terrainRidgeStrength,
-    terrainPlateauAmount,
-    terrainGeometryStrength,
-  ]);
+  const windStrength = Number(terrainValues.windStrength) || 0;
+  const windSpeed = Number(terrainValues.windSpeed) || 0;
 
   useFrame((state) => {
-    /*
-     * Update every second frame to reduce the amount
-     * of vegetation transform work.
-     */
     frameCounterRef.current += 1;
+    if (frameCounterRef.current % 2 !== 0) return;
 
-    if (frameCounterRef.current % 2 !== 0) {
-      return;
-    }
-
-    const strength =
-      (Number(windStrength) || 0) / 100;
-
+    const strength = windStrength / 100;
     if (strength <= 0) {
       crownRefs.current.forEach((crown) => {
         if (!crown) return;
-
         crown.rotation.x = 0;
         crown.rotation.z = 0;
       });
-
       return;
     }
 
-    const speed =
-      0.25 +
-      ((Number(windSpeed) || 0) / 100) * 2.75;
-
-    const time =
-      state.clock.elapsedTime * speed;
-
+    const speed = 0.25 + (windSpeed / 100) * 2.75;
+    const time = state.clock.elapsedTime * speed;
     crownRefs.current.forEach((crown) => {
       if (!crown) return;
-
-      const phase =
-        crown.userData.windPhase ?? 0;
-
-      const mainSway =
-        Math.sin(time + phase) *
-        strength *
-        0.055;
-
-      const secondarySway =
-        Math.cos(
-        time * 0.65 + phase
-      ) *
-      strength *
-      0.025;
-
-      crown.rotation.z = mainSway;
-      crown.rotation.x = secondarySway;
+      const phase = crown.userData.windPhase ?? 0;
+      crown.rotation.z = Math.sin(time + phase) * strength * 0.055;
+      crown.rotation.x = Math.cos(time * 0.65 + phase) * strength * 0.025;
     });
   });
 
   return <>{trees}</>;
+}
+
+function TreeScatter() {
+  const profiles = useWorldStore((state) => state.world.scatterProfiles ?? {});
+  const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
+  const currentChunk = useWorldStore((state) => state.world.chunks?.[state.world.currentChunkId]);
+  const [editableTreeId, setEditableTreeId] = useState(null);
+
+  const terrainValues = {
+    scatterSeed: useTerrainSetting("scatterSeed", 1),
+    heightMultiplier: useTerrainSetting("heightMultiplier", 1.5),
+    mountainHeight: useTerrainSetting("mountainHeight", 1.5),
+    cliffSharpness: useTerrainSetting("cliffSharpness", 1.5),
+    rollingHills: useTerrainSetting("rollingHills", 1.5),
+    ridgeStrength: useTerrainSetting("ridgeStrength", 1.5),
+    plateauAmount: useTerrainSetting("plateauAmount", 0),
+    geometryStrength: useTerrainSetting("geometryStrength", 55),
+    windStrength: useTerrainSetting("windStrength", 25),
+    windSpeed: useTerrainSetting("windSpeed", 35),
+  };
+  const treeDensityFallback = useTerrainSetting("treeDensity", 25);
+  const treeCoverageFallback = useTerrainSetting("treeCoverage", 50);
+
+  useEffect(() => {
+    function handleTreeEditChange(event) {
+      const treeId = event.detail?.treeId;
+      const patch = event.detail?.patch;
+      const scope = event.detail?.scope ?? "global";
+      if (!treeId || !treeId.startsWith("scatter-tree-")) return;
+
+      let matchingProfileId = Object.keys(useWorldStore.getState().world.scatterProfiles ?? {})
+        .find((profileId) => treeId.startsWith(`scatter-tree-${profileId}-${currentChunkId}-`));
+      if (!matchingProfileId && treeId.startsWith(`scatter-tree-crimson-tree-${currentChunkId}-`)) {
+        matchingProfileId = "crimson-tree";
+      }
+      if (!matchingProfileId) return;
+
+      setEditableTreeId(treeId);
+      const world = useWorldStore.getState().world;
+      const profile = world.scatterProfiles?.[matchingProfileId] ?? {
+        enabled: true,
+        objectId: "crimson-tree",
+        name: "CRIMSON TREE",
+        source: "procedural",
+        modelType: "crimson-tree",
+        density: treeDensityFallback,
+        coverage: treeCoverageFallback,
+        treeDefinition: createCrimsonTreeDefinition(),
+        treeOverrides: {},
+      };
+      const baseDefinition = mergeScatterTreeDefinition(profile.treeDefinition ?? createCrimsonTreeDefinition(), {});
+
+      if (scope === "single") {
+        const existing = mergeScatterTreeDefinition(baseDefinition, profile.treeOverrides?.[treeId] ?? {});
+        const nextDefinition = mergeScatterTreeDefinition(existing, patch);
+        useWorldStore.getState().upsertScatterProfile(matchingProfileId, {
+          treeDefinition: profile.treeDefinition ?? createCrimsonTreeDefinition(),
+          treeOverrides: {
+            ...(profile.treeOverrides ?? {}),
+            [treeId]: nextDefinition,
+          },
+        });
+        return;
+      }
+
+      const nextOverrides = Object.fromEntries(
+        Object.entries(profile.treeOverrides ?? {}).map(([instanceId, override]) => [
+          instanceId,
+          mergeScatterTreeDefinition(mergeScatterTreeDefinition(baseDefinition, override), patch),
+        ])
+      );
+      useWorldStore.getState().upsertScatterProfile(matchingProfileId, {
+        treeDefinition: mergeScatterTreeDefinition(baseDefinition, patch),
+        treeOverrides: nextOverrides,
+      });
+    }
+
+    function handleTreeEditExit() {
+      setEditableTreeId(null);
+    }
+
+    window.addEventListener("crimson-tree-edit-change", handleTreeEditChange);
+    window.addEventListener("crimson-tree-edit-exit", handleTreeEditExit);
+    return () => {
+      window.removeEventListener("crimson-tree-edit-change", handleTreeEditChange);
+      window.removeEventListener("crimson-tree-edit-exit", handleTreeEditExit);
+    };
+  }, [currentChunkId, treeDensityFallback, treeCoverageFallback]);
+
+  const treeProfiles = useMemo(() => {
+    const entries = [];
+    const defaultProfile = profiles["crimson-tree"];
+    if (defaultProfile?.enabled !== false) {
+      entries.push([
+        "crimson-tree",
+        defaultProfile ?? {
+          enabled: true,
+          density: treeDensityFallback,
+          coverage: treeCoverageFallback,
+          modelType: "crimson-tree",
+        },
+      ]);
+    }
+
+    Object.entries(profiles).forEach(([profileId, profile]) => {
+      if (profileId === "crimson-tree") return;
+      if (!profile?.enabled) return;
+      if (profile?.modelType !== "crimson-tree" && profile?.treeDefinition?.generator !== "TreeGenerator") return;
+      entries.push([profileId, profile]);
+    });
+
+    return entries;
+  }, [profiles, treeDensityFallback, treeCoverageFallback]);
+
+  return (
+    <>
+      {treeProfiles.map(([profileId, profile]) => (
+        <ProceduralTreeScatterProfile
+          key={`tree-scatter-${profileId}`}
+          profileId={profileId}
+          profile={profile}
+          currentChunkId={currentChunkId}
+          currentChunk={currentChunk}
+          terrainValues={terrainValues}
+          editableTreeId={editableTreeId}
+        />
+      ))}
+    </>
+  );
 }
 
 function FoliageScatter() {
@@ -851,13 +962,118 @@ function RockScatter() {
   return <>{rocks}</>;
 }
 
+function seededScatterRandom(seed) {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function resolveScatterAsset(objectId, profile) {
+  const registered = BUILTIN_OBJECTS.find((entry) => entry.id === objectId);
+  return {
+    modelPath: profile?.modelPath ?? registered?.modelPath ?? null,
+    kind: profile?.kind ?? registered?.kind ?? null,
+    name: profile?.name ?? registered?.name ?? objectId,
+  };
+}
+
+function ScatterGLTFAsset({ modelPath, position, rotation, scale }) {
+  const gltf = useGLTF(modelPath);
+  const scene = useMemo(() => {
+    const clone = gltf.scene.clone(true);
+    clone.traverse((child) => {
+      if (!child.isMesh) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+    });
+    return clone;
+  }, [gltf.scene]);
+
+  return (
+    <primitive
+      object={scene}
+      position={position}
+      rotation={[0, rotation, 0]}
+      scale={scale}
+    />
+  );
+}
+
+function GenericObjectScatter({ objectId, profile }) {
+  const currentChunk = useWorldStore((state) => state.world.chunks?.[state.world.currentChunkId]);
+  const asset = resolveScatterAsset(objectId, profile);
+  const scatterSeed = useTerrainSetting("scatterSeed", 1);
+  const terrainHeightMultiplier = useTerrainSetting("heightMultiplier", 1.5);
+  const terrainMountainHeight = useTerrainSetting("mountainHeight", 1.5);
+  const terrainCliffSharpness = useTerrainSetting("cliffSharpness", 1.5);
+  const terrainRollingHills = useTerrainSetting("rollingHills", 1.5);
+  const terrainRidgeStrength = useTerrainSetting("ridgeStrength", 1.5);
+  const terrainPlateauAmount = useTerrainSetting("plateauAmount", 0);
+  const terrainGeometryStrength = useTerrainSetting("geometryStrength", 55);
+
+  const density = Math.max(0, Math.min(100, Number(profile?.density ?? 0)));
+  const coverage = Math.max(0, Math.min(100, Number(profile?.coverage ?? 50)));
+  const count = Math.min(260, Math.floor(260 * density / 100));
+  const spread = 22 + coverage * 1.05;
+  const chunkX = Number(currentChunk?.position?.[0] ?? 0);
+  const chunkZ = Number(currentChunk?.position?.[2] ?? 0);
+
+  const points = useMemo(() => {
+    return Array.from({ length: count }, (_, index) => {
+      const base = index + 1 + objectId.length * 31 + Number(scatterSeed) * 101;
+      const x = chunkX + (seededScatterRandom(base) - 0.5) * spread * 2;
+      const z = chunkZ + (seededScatterRandom(base + 17) - 0.5) * spread * 2;
+      const scaleVariation = Math.max(0, Math.min(100, Number(profile?.scaleVariation ?? 25))) / 100;
+      const scale = 0.7 + seededScatterRandom(base + 33) * (0.45 * scaleVariation);
+      const rotation = seededScatterRandom(base + 61) * Math.PI * 2;
+      const y = getTerrainHeightAt(x, z) + 0.02;
+      return { position: [x, y, z], rotation, scale };
+    });
+  }, [count, objectId, scatterSeed, spread, chunkX, chunkZ, terrainHeightMultiplier, terrainMountainHeight, terrainCliffSharpness, terrainRollingHills, terrainRidgeStrength, terrainPlateauAmount, terrainGeometryStrength, profile?.scaleVariation]);
+
+  if (!asset.modelPath || count <= 0) return null;
+
+  return (
+    <group>
+      {points.map((point, index) => (
+        <ScatterGLTFAsset
+          key={`${objectId}-scatter-${index}`}
+          modelPath={asset.modelPath}
+          position={point.position}
+          rotation={point.rotation}
+          scale={point.scale}
+        />
+      ))}
+    </group>
+  );
+}
+
+function GenericScatterCollection() {
+  const profiles = useWorldStore((state) => state.world.scatterProfiles ?? {});
+  return (
+    <>
+      {Object.entries(profiles)
+        .filter(([objectId, profile]) => profile?.enabled && (profile?.modelPath || BUILTIN_OBJECTS.some((entry) => entry.id === objectId)))
+        .filter(([objectId]) => objectId !== "crimson-tree")
+        .map(([objectId, profile]) => (
+          <GenericObjectScatter
+            key={`generic-scatter-${objectId}`}
+            objectId={objectId}
+            profile={{ ...profile, objectId }}
+          />
+        ))}
+    </>
+  );
+}
+
 export default function Landscape() {
   return (
     <>
       <TreeScatter />
       <FoliageScatter />
       <RockScatter />
-
+      <Suspense fallback={null}>
+        <GenericScatterCollection />
+      </Suspense>
     </>
   );
 }

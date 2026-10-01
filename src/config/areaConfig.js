@@ -6,6 +6,8 @@ export const AREA_CONFIG = [
     position: [80, 0, -160],
     discoveryRadius: 42,
     description: "High cliff overlook and world starting point",
+    mapPosition: [0, 0],
+    mapLabel: "A",
   },
 
   {
@@ -15,6 +17,8 @@ export const AREA_CONFIG = [
     position: [-140, 0, -80],
     discoveryRadius: 50,
     description: "Terrain and landscape model tools",
+    mapPosition: [1, 0],
+    mapLabel: "B",
   },
 
   {
@@ -24,6 +28,8 @@ export const AREA_CONFIG = [
     position: [-80, 0, 60],
     discoveryRadius: 48,
     description: "Buildings and construction tools",
+    mapPosition: [0, 1],
+    mapLabel: "C",
   },
 
   {
@@ -33,6 +39,8 @@ export const AREA_CONFIG = [
     position: [80, 0, 0],
     discoveryRadius: 50,
     description: "Combat customization tools",
+    mapPosition: [1, 1],
+    mapLabel: "D",
   },
 
   {
@@ -42,6 +50,8 @@ export const AREA_CONFIG = [
     position: [0, 0, 110],
     discoveryRadius: 55,
     description: "Custom world chunk",
+    mapPosition: [2, 0],
+    mapLabel: "E",
   },
 ];
 

@@ -173,6 +173,14 @@ export default function CrimsonTreeModel({
   crownRef,
   legacyCrown = false,
   legacyCrownOnly = false,
+  treeId = null,
+  interactiveTrunk = false,
+  onTrunkPointerMove,
+  onTrunkPointerOut,
+  onTrunkPointerDown,
+  onBranchPointerMove,
+  onBranchPointerOut,
+  onBranchPointerDown,
 
   treeDefinition,
 
@@ -213,12 +221,14 @@ const proceduralTrunkTop =
   proceduralTrunkGeometry?.boundingBox?.max.y ??
   trunkHeight;
 const proceduralBranchGeometry = useMemo(
-  () =>
-    createProceduralBranchGeometry(
+  () => {
+    if (legacyCrownOnly) return new THREE.BufferGeometry();
+    return createProceduralBranchGeometry(
       treeDefinition?.trunk,
       treeDefinition?.branches,
       treeDefinition?.seed ?? 1
-    ),
+    );
+  },
   [
     treeDefinition?.trunk,
     treeDefinition?.branches,
@@ -226,12 +236,14 @@ const proceduralBranchGeometry = useMemo(
   ]
 );
 const proceduralBranchData = useMemo(
-  () =>
-    createProceduralBranchData(
+  () => {
+    if (legacyCrownOnly) return [];
+    return createProceduralBranchData(
       treeDefinition?.trunk,
       treeDefinition?.branches,
       treeDefinition?.seed ?? 1
-    ),
+    );
+  },
   [
     treeDefinition?.trunk,
     treeDefinition?.branches,
@@ -304,6 +316,7 @@ const proceduralCanopyGeometry = useMemo(
 
         baseColor:
           generatorLeaves?.color ?? crownColor,
+        leafVertices: generatorLeaves?.vertices ?? null,
       }
     );
   }, [
@@ -312,6 +325,7 @@ const proceduralCanopyGeometry = useMemo(
     generatorLeaves?.gradientEnabled,
     generatorLeaves?.gradientColor,
     generatorLeaves?.color,
+    generatorLeaves?.vertices,
     crownColor,
   ]
 );
@@ -616,6 +630,10 @@ useFrame((state, delta) => {
       >
         <mesh
   geometry={proceduralTrunkGeometry}
+  userData={{ tgCrimsonTreeTrunk: Boolean(treeId) || interactiveTrunk, tgCrimsonTreeId: treeId, tgTreeDefinition: treeDefinition }}
+  onPointerMove={interactiveTrunk ? onTrunkPointerMove : undefined}
+  onPointerOut={interactiveTrunk ? onTrunkPointerOut : undefined}
+  onPointerDown={interactiveTrunk ? onTrunkPointerDown : undefined}
   castShadow
   receiveShadow
 >
@@ -628,6 +646,15 @@ useFrame((state, delta) => {
 {proceduralBranchGeometry?.attributes?.position && (
   <mesh
     geometry={proceduralBranchGeometry}
+    userData={{
+      tgCrimsonTreeBranch: Boolean(treeId) || interactiveTrunk,
+      tgCrimsonTreeId: treeId,
+      tgTreeDefinition: treeDefinition,
+      tgTreeBranchData: proceduralBranchData,
+    }}
+    onPointerMove={interactiveTrunk ? onBranchPointerMove : undefined}
+    onPointerOut={interactiveTrunk ? onBranchPointerOut : undefined}
+    onPointerDown={interactiveTrunk ? onBranchPointerDown : undefined}
     castShadow
     receiveShadow
   >

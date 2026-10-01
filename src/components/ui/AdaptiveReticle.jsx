@@ -6,11 +6,17 @@ import { useInteractionStore } from "../../systems/interaction/interactionStore"
 
 export default function AdaptiveReticle() {
   const [sunTarget, setSunTarget] = useState(false);
+  const [treeTarget, setTreeTarget] = useState(false);
   const [held, setHeld] = useState(false);
+  const sunMode = useInteractionStore((state) => state.activeTool === "SUN");
+  const sunInteractable = sunMode || sunTarget;
+  const treeMode = useInteractionStore((state) => state.activeTool === "TREE");
+  const treeInteractable = !sunInteractable && (treeTarget || treeMode);
   const targetRef = useRef(false);
   const pointerHeldRef = useRef(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
   const lastGamepadActiveRef = useRef(false);
+  const lastSpellRef = useRef(0);
 
   useEffect(() => {
     function handleTargetChange(event) {
@@ -18,16 +24,24 @@ export default function AdaptiveReticle() {
       targetRef.current = active;
       setSunTarget((current) => (current === active ? current : active));
 
-      /* If the player looks away while holding the sun, release the tool. */
-      if (!active && useInteractionStore.getState().activeTool === "SUN") {
-        pointerHeldRef.current = false;
-        setHeld(false);
-        useInteractionStore.getState().deactivate();
-      }
+      /* Once Sun Interaction is held, leaving the original sun disc does not
+       * cancel the tool. The user is intentionally free to move the cursor
+       * through the sky while the sun follows it. */
+      // Explicit SUN activation remains active even when the physical sun leaves the original target.
+
     }
 
     window.addEventListener("sun-reticle-target-changed", handleTargetChange);
     return () => window.removeEventListener("sun-reticle-target-changed", handleTargetChange);
+  }, []);
+
+  useEffect(() => {
+    function handleTreeTargetChange(event) {
+      setTreeTarget(Boolean(event.detail?.active));
+    }
+
+    window.addEventListener("crimson-tree-reticle-target-changed", handleTreeTargetChange);
+    return () => window.removeEventListener("crimson-tree-reticle-target-changed", handleTreeTargetChange);
   }, []);
 
   /*
@@ -38,7 +52,8 @@ export default function AdaptiveReticle() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       const controllerHolding = Boolean(
-        gamepadState.connected && gamepadState.jump && targetRef.current
+        gamepadState.connected &&
+        sunInteractable
       );
 
       if (controllerHolding && !lastGamepadActiveRef.current) {
@@ -63,8 +78,8 @@ export default function AdaptiveReticle() {
 
       if (!controllerHolding) return;
 
-      const x = Number(gamepadState.rightStickX) || 0;
-      const y = Number(gamepadState.rightStickY) || 0;
+      const x = Number(gamepadState.leftStickX) || 0;
+      const y = Number(gamepadState.leftStickY) || 0;
       if (Math.abs(x) > 0.01) {
         updateTerrainSetting(
           "sunRotation",
@@ -74,6 +89,10 @@ export default function AdaptiveReticle() {
             100
           )
         );
+      }
+      if ((Math.abs(x) > 0.01 || Math.abs(y) > 0.01) && performance.now() - lastSpellRef.current > 500) {
+        lastSpellRef.current = performance.now();
+        window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: "worldTransform", duration: 520 } }));
       }
       if (Math.abs(y) > 0.01) {
         updateTerrainSetting(
@@ -88,11 +107,11 @@ export default function AdaptiveReticle() {
     }, 50);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [sunInteractable]);
 
   useEffect(() => {
     function onPointerDown(event) {
-      if (!targetRef.current || event.button !== 0) return;
+      if (!sunInteractable || event.button !== 0) return;
       const target = event.target;
       if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-interaction-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view")) return;
 
@@ -114,6 +133,11 @@ export default function AdaptiveReticle() {
       const dx = event.clientX - lastPointerRef.current.x;
       const dy = event.clientY - lastPointerRef.current.y;
       lastPointerRef.current = { x: event.clientX, y: event.clientY };
+
+      if (performance.now() - lastSpellRef.current > 500) {
+        lastSpellRef.current = performance.now();
+        window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: "worldTransform", duration: 520 } }));
+      }
 
       updateTerrainSetting(
         "sunRotation",
@@ -153,22 +177,41 @@ export default function AdaptiveReticle() {
       window.removeEventListener("pointerup", release, true);
       window.removeEventListener("pointercancel", release, true);
     };
-  }, []);
+  }, [sunInteractable]);
+
+  const sunHeight = Number(terrainSettings.sunHeight ?? 100);
+  const sunRotation = Number(terrainSettings.sunRotation ?? 50);
+  const heightScale = 0.68 + (sunHeight / 100) * 0.72;
+  const rotationDegrees = (sunRotation / 100) * 360;
 
   return (
-    <div className={`tg-adaptive-reticle ${sunTarget ? "sun-target" : ""} ${held ? "held" : ""}`} aria-hidden="true">
-      {!sunTarget ? (
-        <span className="tg-reticle-dot" />
-      ) : (
-        <span className="tg-sun-reticle">
+    <div className={`tg-adaptive-reticle ${sunInteractable ? "sun-target" : ""} ${treeInteractable ? "tree-target" : ""} ${treeMode ? "tree-active" : ""} ${held ? "held" : ""}`} aria-hidden="true">
+      {sunInteractable || held ? (
+        <span
+          className="tg-sun-reticle"
+          style={{
+            "--sun-height-scale": heightScale,
+            "--sun-rotation": `${rotationDegrees}deg`,
+          }}
+        >
           <span className="tg-sun-reticle-orbit" />
           <span className="tg-sun-reticle-node node-a" />
           <span className="tg-sun-reticle-node node-b" />
           <span className="tg-sun-reticle-node node-c" />
           <span className="tg-sun-reticle-center" />
+          <span className="tg-sun-reticle-sun-icon" />
           {held && <span className="tg-sun-reticle-rotation" />}
           {held && <span className="tg-sun-reticle-height" />}
         </span>
+      ) : treeInteractable ? (
+        <span className="tg-tree-reticle">
+          <span className="tg-tree-reticle-ring" />
+          <span className="tg-tree-reticle-leaf leaf-a" />
+          <span className="tg-tree-reticle-leaf leaf-b" />
+          <span className="tg-tree-reticle-leaf leaf-c" />
+        </span>
+      ) : (
+        <span className="tg-reticle-dot" />
       )}
     </div>
   );

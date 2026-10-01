@@ -1,0 +1,5 @@
+.tg-leaf-editor-window-backdrop{position:fixed;inset:0;z-index:500;display:grid;place-items:center;background:rgba(0,0,0,.58);backdrop-filter:blur(5px)}
+.tg-leaf-editor-window{width:min(560px,92vw);padding:14px;background:rgba(8,10,14,.98);border:1px solid rgba(205,38,38,.72);box-shadow:0 0 30px rgba(0,0,0,.55);color:var(--tg-white)}
+.tg-leaf-editor-canvas{width:100%;aspect-ratio:1;margin-top:10px;background:#111;border:1px solid rgba(205,38,38,.45)}
+.tg-leaf-editor-footer{display:flex;align-items:center;gap:12px;padding-top:12px;font-family:var(--tg-font-display);font-size:13px;letter-spacing:.06em}.tg-leaf-editor-footer span{flex:1;color:rgba(232,238,245,.6)}.tg-leaf-editor-footer strong{color:var(--tg-white)}
+.tg-leaf-preset-row{display:flex;gap:6px;margin-top:9px}.tg-leaf-preset-row button{min-height:29px;padding:4px 10px;border:1px solid rgba(205,38,38,.55);background:rgba(5,6,8,.82);color:var(--tg-white);font-family:var(--tg-font-display);font-size:10px;letter-spacing:.07em;cursor:pointer}.tg-leaf-preset-row button:hover{border-color:var(--tg-crimson);background:rgba(129,16,18,.22)}

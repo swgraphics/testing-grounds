@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const TG_VERSION = "1.4.0";
+const TG_VERSION = "1.5.0";
 
 const SPLASH_CARDS = [
   {
@@ -30,15 +30,23 @@ const SPLASH_CARDS = [
   },
 ];
 
-export default function TitleScreen({ onStart }) {
+export default function TitleScreen({ onStart, onLoad, hasSavedWorld }) {
   const [cardIndex, setCardIndex] = useState(0);
+  const [startMode, setStartMode] = useState("default");
   const card = SPLASH_CARDS[cardIndex];
+
+  useEffect(() => {
+    function handleGamepadStart() {
+      onStart(startMode);
+    }
+    window.addEventListener("tg-gamepad-start", handleGamepadStart);
+    return () => window.removeEventListener("tg-gamepad-start", handleGamepadStart);
+  }, [onStart, startMode]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       setCardIndex((current) => (current + 1) % SPLASH_CARDS.length);
     }, 3000);
-
     return () => window.clearInterval(timer);
   }, []);
 
@@ -65,19 +73,22 @@ export default function TitleScreen({ onStart }) {
 
         <div className="tg-splash-dots" aria-label="Crash Tester guide pages">
           {SPLASH_CARDS.map((entry, index) => (
-            <button
-              key={entry.attribution}
-              type="button"
-              className={index === cardIndex ? "active" : ""}
-              onClick={() => setCardIndex(index)}
-              aria-label={`Show Crash Tester ${index + 1} guide`}
-            />
+            <button key={entry.attribution} type="button" className={index === cardIndex ? "active" : ""} onClick={() => setCardIndex(index)} aria-label={`Show Crash Tester ${index + 1} guide`} />
           ))}
         </div>
 
+        <div className="tg-world-start-choice" aria-label="Starting world">
+          <button type="button" className={startMode === "default" ? "active" : ""} onClick={() => setStartMode("default")}>
+            DEFAULT WORLD
+          </button>
+          <button type="button" className={startMode === "blank" ? "active" : ""} onClick={() => setStartMode("blank")}>
+            BLANK CANVAS
+          </button>
+        </div>
+
         <div className="tg-title-buttons">
-          <button onClick={onStart}>ENTER WORLD</button>
-          <button disabled>LOAD WORLD</button>
+          <button onClick={() => onStart(startMode)}>ENTER WORLD</button>
+          <button onClick={onLoad} disabled={!hasSavedWorld}>LOAD WORLD</button>
           <button disabled>SETTINGS</button>
         </div>
 

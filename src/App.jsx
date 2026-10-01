@@ -8,43 +8,43 @@ import InputHUD from "./components/ui/InputHUD";
 import TitleScreen from "./components/ui/TitleScreen";
 import CompassRibbon from "./components/ui/CompassRibbon";
 import EditorView from "./components/ui/EditorView";
-import InteractionIndicator from "./components/ui/InteractionIndicator";
 import InteractionPanel from "./components/ui/InteractionPanel";
+import CrimsonTreeInteractionPanel from "./components/ui/CrimsonTreeInteractionPanel";
 import AdaptiveReticle from "./components/ui/AdaptiveReticle";
 import GamepadMenuNavigator from "./components/ui/GamepadMenuNavigator";
+import LeafVertexEditorWindow from "./components/ui/LeafVertexEditorWindow";
+import MeshMenu from "./components/ui/MeshMenu";
 import { useEditorStore } from "./systems/editor/editorStore";
 import { useInteractionStore } from "./systems/interaction/interactionStore";
 import { AREA_CONFIG } from "./config/areaConfig";
 import { useWorldStore } from "./systems/world/worldStore";
+import { clearHistory } from "./systems/history/historyStore";
+import {
+  loadWorldSettings,
+  initializeBlankCanvasTerrain,
+  loadChunkTerrainSettings,
+} from "./systems/terrain/terrainSettings";
+import { hasSavedWorld } from "./systems/world/worldPersistence";
+import { updateDevSetting } from "./systems/dev/devSettings";
 import {
   showLoadingOverlay,
   hideLoadingOverlay,
 } from "./systems/ui/loadingOverlay";
 
 
-function PlaceModeExit() {
-  return (
-    <button
-      type="button"
-      className="tg-place-mode-exit"
-      aria-label="Exit placement mode"
-      onClick={() => window.dispatchEvent(new CustomEvent("tg-place-mode-exit"))}
-    >
-      ×
-    </button>
-  );
-}
 
 /* Testing Grounds shell: world state and editor state are intentionally kept outside the 3D render tree. */
 export default function App() {
   const [showTitleScreen, setShowTitleScreen] = useState(true);
   const initializeWorld = useWorldStore((state) => state.initializeWorld);
   const editorOpen = useEditorStore((state) => state.isOpen);
+  const worldType = useWorldStore((state) => state.world.worldType);
   const placeMode = useInteractionStore((state) => state.activeMode === "place");
   const [returnToObjectMenu, setReturnToObjectMenu] = useState(false);
 
   useEffect(() => {
     initializeWorld(AREA_CONFIG);
+    clearHistory();
   }, [initializeWorld]);
 
   useEffect(() => {
@@ -124,25 +124,36 @@ export default function App() {
     };
   }, []);
 
-  function handleStartWorld() {
-    showLoadingOverlay("LOADING WORLD");
-
-    /*
-     * Hide the title screen and mount the player/HUD.
-     */
+  function finishWorldStart() {
     setShowTitleScreen(false);
-
-    /*
-     * Wait for React and the browser to render the
-     * gameplay view before removing the overlay.
-     */
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        window.setTimeout(() => {
-          hideLoadingOverlay();
-        }, 900);
+        window.setTimeout(() => hideLoadingOverlay(), 900);
       });
     });
+  }
+
+  function handleStartWorld(startMode = "default") {
+    showLoadingOverlay(startMode === "blank" ? "CREATING BLANK CANVAS" : "LOADING WORLD");
+
+    if (startMode === "blank") {
+      useWorldStore.getState().initializeBlankWorld();
+      initializeBlankCanvasTerrain();
+      updateDevSetting("fpvMode", true);
+    } else {
+      initializeWorld(AREA_CONFIG);
+      loadChunkTerrainSettings(useWorldStore.getState().world.currentChunkId);
+    }
+
+    finishWorldStart();
+  }
+
+  function handleLoadWorld() {
+    if (!hasSavedWorld()) return;
+    showLoadingOverlay("LOADING SAVED WORLD");
+    loadWorldSettings();
+    clearHistory();
+    finishWorldStart();
   }
 
   return (
@@ -172,20 +183,28 @@ export default function App() {
         <>
           <InputHUD />
           <CompassRibbon />
-          <AreaDiscovery />
-          <InteractionIndicator />
+          {worldType !== "blank" && <AreaDiscovery />}
           <InteractionPanel />
+          <CrimsonTreeInteractionPanel />
+          <LeafVertexEditorWindow />
           <AdaptiveReticle />
           <EditorView />
-          <GamepadMenuNavigator />
         </>
       )}
 
-      {!showTitleScreen && placeMode && <PlaceModeExit />}
+      {!showTitleScreen && placeMode && (
+        <>
+          <EditorView />
+        </>
+      )}
+      {!showTitleScreen && <MeshMenu />}
+      <GamepadMenuNavigator />
 
       {showTitleScreen && (
         <TitleScreen
           onStart={handleStartWorld}
+          onLoad={handleLoadWorld}
+          hasSavedWorld={hasSavedWorld()}
         />
       )}
 

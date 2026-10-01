@@ -37,3 +37,6 @@ npm run dev
 
 Do not commit yet if the runtime error remains. Report the new console
 error/stack before changing anything else.
+
+
+PATCH 1.4.2.03: World UI hierarchy transition, terrain-control cleanup, topographic map pass, FPV toggle, animated fireflies, terrain-tone procedural materials, and first geology-to-terrain stamping path.

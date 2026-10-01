@@ -18,6 +18,7 @@ import {
 } from "../../systems/camera/cameraSettings";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
+import { useWorldStore } from "../../systems/world/worldStore";
 
 function FollowCamera({ controllerRef, character, fpvMode }) {
   const { camera, gl } = useThree();
@@ -414,6 +415,7 @@ function getSpeedProfile(speedMultiplier) {
 export default function PlayerController() {
   const controllerRef = useRef();
   const positionBroadcastTimeRef = useRef(0);
+  const sunTargetRef = useRef(false);
   const [animationState, setAnimationState] = useState("idle");
   const animationStateRef = useRef("idle");
   const [actionState, setActionState] = useState(null);
@@ -428,6 +430,7 @@ export default function PlayerController() {
 
   const [speedMultiplier, setSpeedMultiplier] =
     useState(devSettings.speedMultiplier);
+  const worldType = useWorldStore((state) => state.world.worldType);
   const activeTool = useInteractionStore((state) => state.activeTool);
   const activeMode = useInteractionStore((state) => state.activeMode);
 const [, refreshCameraSettings] =
@@ -442,6 +445,7 @@ const activeCameraProfile =
 
 const fpvMoveSpeed =
   activeCameraProfile.fpvMoveSpeed ?? 15;
+const crashTesterMovement = currentCharacterId.startsWith("crashTester");
   
 useEffect(() => {
   function triggerAction(event) {
@@ -477,16 +481,78 @@ useEffect(() => {
 }, [currentCharacterId]);
 
 useEffect(() => {
+  function handleSunTargetChange(event) {
+    sunTargetRef.current = Boolean(event.detail?.active);
+  }
+
+  window.addEventListener("sun-reticle-target-changed", handleSunTargetChange);
+  return () => window.removeEventListener("sun-reticle-target-changed", handleSunTargetChange);
+}, []);
+
+useEffect(() => {
+  function stabilizePlayerAgainstTerrain() {
+    const controller = controllerRef.current;
+    if (!controller?.body || !controller.currPos) return;
+
+    const position = controller.currPos;
+    const terrainY = getTerrainHeightAt(position.x, position.z);
+    const minimumClearance = Math.max(1.8, (activeCharacter?.scale ?? 1) * 1.9);
+    const targetY = terrainY + minimumClearance;
+
+    // Terrain edits can replace the Rapier terrain collider while the
+    // character is standing on it. If the new surface rises through the
+    // character, explicitly lift the controller above the new surface
+    // before Rapier gets a chance to integrate another falling frame.
+    if (position.y < targetY) {
+      controller.body.setTranslation(
+        { x: position.x, y: targetY, z: position.z },
+        true
+      );
+      controller.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      controller.body.wakeUp();
+    }
+  }
+
+  function handleTerrainChange(event) {
+    const key = event.detail?.key;
+    if (![
+      "terrainEditVersion",
+      "terrainVertexEditVersion",
+      "terrainPreviewVersion",
+      "heightMultiplier",
+      "mountainHeight",
+      "cliffSharpness",
+      "rollingHills",
+      "ridgeStrength",
+      "plateauAmount",
+      "geometryStrength",
+    ].includes(key)) return;
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(stabilizePlayerAgainstTerrain);
+    });
+  }
+
+  window.addEventListener("terrain-settings-changed", handleTerrainChange);
+  return () => window.removeEventListener("terrain-settings-changed", handleTerrainChange);
+}, [activeCharacter]);
+
+useEffect(() => {
   function handleTeleport(event) {
-    const areaId = event.detail?.areaId;
-    const area = AREA_CONFIG.find((entry) => entry.id === areaId);
+    const areaId = event.detail?.areaId ?? event.detail?.chunkId;
+    const world = useWorldStore.getState().world;
+    const chunk = world.chunks?.[areaId];
+    const area = chunk ?? AREA_CONFIG.find((entry) => entry.id === areaId);
     if (!area) return;
 
-    setTerrainResetPosition(null);
+    const [x, , z] = area.position ?? [0, 0, 0];
+    const terrainY = getTerrainHeightAt(x, z);
+    const controllerLift = Math.max(3.5, (activeCharacter?.scale ?? 1) * 2.5);
+
     setTeleportRequest({
       areaId,
       nonce: Date.now(),
-      position: [area.position[0], getTerrainHeightAt(area.position[0], area.position[2]) + 2.5, area.position[2]],
+      position: [x, terrainY + controllerLift, z],
     });
   }
 
@@ -623,8 +689,12 @@ useEffect(() => {
     const rightward =
       inputState.rightward || controllerRight;
 
+    const sunControlActive =
+      sunTargetRef.current || activeTool === "SUN";
     const jump =
-      inputState.jump || gamepadState.jump;
+      !sunControlActive &&
+      activeTool !== "TREE" &&
+      (inputState.jump || gamepadState.jump);
 
     const slide =
       inputState.slide || gamepadState.slide;
@@ -638,17 +708,11 @@ useEffect(() => {
     const worldTransform =
       inputState.worldTransform || gamepadState.worldTransform;
 
-    const movementLocked = Boolean(
-      activeTool &&
-      ["edit", "place", "sculpt", "grab"].includes(activeMode)
-    );
-
-    const isMoving =
-      !movementLocked &&
-      (forward ||
-      backward ||
-      leftward ||
-      rightward);
+    // Opening a panel/editor does not lock movement. Only an actually active
+    // world tool transfers the left stick from character movement to interaction.
+    const interactionToolActive = Boolean(activeTool && activeMode && ["sculpt", "grab", "place", "edit"].includes(activeMode));
+    const movementLocked = interactionToolActive;
+    const isMoving = !movementLocked && (forward || backward || leftward || rightward);
 
    let nextAnimationState = actionState || "idle";
 
@@ -688,7 +752,8 @@ if (
       rightward: movementLocked ? false : rightward,
       jump: movementLocked ? false : jump,
 
-    run: movementLocked
+    run:
+      movementLocked
       ? false
       : fpvMode
         ? true
@@ -698,12 +763,19 @@ if (
     });
   });
 
+  const defaultSpawn = worldType === "blank" ? [50, 0, 50] : [80, 0, -160];
+  const defaultSpawnPosition = [
+    defaultSpawn[0],
+    getTerrainHeightAt(defaultSpawn[0], defaultSpawn[2]) + Math.max(3.5, (activeCharacter?.scale ?? 1) * 2.5),
+    defaultSpawn[2],
+  ];
+
   return (
     <>
 <Ecctrl
   key={`${teleportRequest?.nonce ?? "spawn"}`}
   ref={controllerRef}
-  position={teleportRequest?.position ?? [80, getTerrainHeightAt(80, -160) + 2.5, -160]}
+  position={teleportRequest?.position ?? defaultSpawnPosition}
   mode="FixedCamera"
   maxVelLimit={
     fpvMode
@@ -717,11 +789,13 @@ if (
   }
   accDeltaTime={
     fpvMode
-      ? 35
+      ? 15
       : speedProfile.accDeltaTime
   }
   turnVelMultiplier={
-    speedProfile.turnVelMultiplier
+    crashTesterMovement
+      ? 0.25
+      : speedProfile.turnVelMultiplier
   }
   autoBalance={false}
   enabledRotations={[false, true, false]}

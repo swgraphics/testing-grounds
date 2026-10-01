@@ -21,11 +21,7 @@ export const useInteractionStore = create((set) => ({
   ...IDLE_STATE,
 
   activate({ target = null, tool = null, mode = null }) {
-    set({
-      activeTarget: target,
-      activeTool: tool,
-      activeMode: mode,
-    });
+    set({ activeTarget: target, activeTool: tool, activeMode: mode });
   },
 
   openPanel() {

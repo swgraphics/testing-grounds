@@ -28,3 +28,8 @@ Quaternius Stylized Nature Pack/
 Screenshots/
 TG_Screenshots/
 Testing-Grounds-Source-of-Truth.zip.zip
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example

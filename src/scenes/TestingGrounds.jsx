@@ -13,7 +13,10 @@ import TestCourse from "../components/world/TestCourse";
 import CameraTelemetry from "../components/ui/CameraTelemetry";
 import MeshPlacementSystem from "../components/world/MeshPlacementSystem";
 import WorldInteractionSystem from "../components/world/WorldInteractionSystem";
+import TerrainVertexEditor from "../components/world/TerrainVertexEditor";
 import SunReticleSensor from "../components/world/SunReticleSensor";
+import CrimsonTreeInteractionSystem from "../components/world/CrimsonTreeInteractionSystem";
+import { useWorldStore } from "../systems/world/worldStore";
 function TitleOrbitCamera({ active }) {
   const { camera } = useThree();
 
@@ -37,6 +40,9 @@ function TitleOrbitCamera({ active }) {
 }
 
 export default function TestingGrounds({ titleMode = false }) {
+  const worldType = useWorldStore((state) => state.world.worldType);
+  const isBlankWorld = worldType === "blank";
+
   return (
     <>
       <TitleOrbitCamera active={titleMode} />
@@ -44,7 +50,9 @@ export default function TestingGrounds({ titleMode = false }) {
       <CameraTelemetry />
       <MeshPlacementSystem />
       {!titleMode && <SunReticleSensor />}
+      {!titleMode && <CrimsonTreeInteractionSystem />}
       {!titleMode && <WorldInteractionSystem />}
+      {!titleMode && <TerrainVertexEditor />}
       <Atmosphere titleMode={titleMode} />
       <Lighting />
 
@@ -55,7 +63,7 @@ export default function TestingGrounds({ titleMode = false }) {
       <Landscape />
       <WorldGizmos />
 
-      <TestCourse />
+      {!isBlankWorld && <TestCourse />}
 
       {!titleMode && <PlayerController />}
 

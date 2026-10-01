@@ -3657,9 +3657,9 @@ canvas {
   overflow-y: auto;
   overflow-x: hidden;
   background: rgba(8, 10, 14, 0.96);
-  border: 1px solid rgba(42, 143, 255, 0.7);
+  border: 1px solid rgba(205, 38, 38, 0.65);
   color: var(--tg-white);
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgba(42, 143, 255, 0.12);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgba(205, 38, 38, 0.12);
   backdrop-filter: blur(12px);
   scrollbar-gutter: stable;
 }
@@ -3722,6 +3722,248 @@ canvas {
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid rgba(232, 238, 245, 0.1);
+}
+
+
+.tg-tree-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+}
+
+.tg-tree-reticle-ring {
+  position: absolute;
+  inset: 1px;
+  border: 1.5px solid rgba(232, 238, 245, 0.92);
+  border-radius: 50%;
+}
+
+.tg-tree-reticle-leaf {
+  position: absolute;
+  width: 8px;
+  height: 13px;
+  border: 1.5px solid rgba(232, 238, 245, 0.92);
+  border-radius: 100% 0 100% 0;
+  transform-origin: bottom center;
+}
+
+.tg-tree-reticle-leaf.leaf-a { left: 5px; top: 3px; transform: rotate(-28deg); }
+.tg-tree-reticle-leaf.leaf-b { right: 5px; top: 3px; transform: rotate(28deg); }
+.tg-tree-reticle-leaf.leaf-c { left: 11px; bottom: 2px; transform: rotate(180deg); }
+
+.tg-adaptive-reticle.tree-active .tg-tree-reticle-ring,
+.tg-adaptive-reticle.tree-active .tg-tree-reticle-leaf {
+  border-color: rgba(232, 238, 245, 0.92);
+}
+
+.tg-tree-editor-preview {
+  position: relative;
+  min-height: 470px;
+  height: 100%;
+  overflow: hidden;
+  background: #111111;
+}
+
+.tg-tree-editor-preview canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tg-tree-editor-reticle {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  margin-top: -14px;
+  border: 1.5px solid rgba(42, 143, 255, 0.72);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: scale(1);
+  transition: transform 0.08s ease, border-color 0.08s ease;
+}
+
+.tg-tree-editor-reticle::before,
+.tg-tree-editor-reticle::after {
+  content: "";
+  position: absolute;
+  background: rgba(42, 143, 255, 0.72);
+}
+
+.tg-tree-editor-reticle::before {
+  left: 50%;
+  top: -5px;
+  width: 1px;
+  height: calc(100% + 10px);
+  transform: translateX(-50%);
+}
+
+.tg-tree-editor-reticle::after {
+  top: 50%;
+  left: -5px;
+  width: calc(100% + 10px);
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.tg-tree-editor-reticle.active {
+  border-color: var(--tg-interaction);
+  transform: scale(1.12);
+}
+
+.tg-tree-editor-reticle.active::before,
+.tg-tree-editor-reticle.active::after {
+  background: var(--tg-interaction);
+}
+
+.tg-tree-editor-mode-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: 4;
+  padding: 5px 7px;
+  border-left: 2px solid var(--tg-crimson);
+  background: rgba(5, 6, 8, 0.72);
+  color: rgba(232, 238, 245, 0.72);
+  font-family: var(--tg-font-copy);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+.tg-tree-interaction-panel {
+  position: fixed;
+  top: 88px;
+  right: 22px;
+  z-index: 215;
+  width: 280px;
+  max-height: calc(100vh - 112px);
+  box-sizing: border-box;
+  padding: 14px;
+  overflow-y: auto;
+  background: rgba(8, 10, 14, 0.96);
+  border: 1px solid rgba(205, 38, 38, 0.65);
+  color: var(--tg-white);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgba(205, 38, 38, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.tg-tree-interaction-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tg-tree-interaction-subtitle {
+  color: rgba(232, 238, 245, 0.48);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.tg-tree-interaction-close {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(205, 38, 38, 0.55);
+  background: rgba(129, 16, 18, 0.18);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.tg-tree-interaction-close:hover {
+  border-color: var(--tg-crimson);
+  box-shadow: inset 0 0 0 1px var(--tg-crimson);
+}
+
+.tg-tree-interaction-slider {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+  color: rgba(232, 238, 245, 0.75);
+  font-family: var(--tg-font-copy);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.tg-tree-interaction-slider span {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.tg-tree-interaction-slider strong {
+  color: var(--tg-crimson);
+  font-family: var(--tg-font-display);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.tg-tree-interaction-slider input {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.tg-tree-interaction-slider input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--tg-maroon), var(--tg-crimson), var(--tg-maroon));
+}
+
+.tg-tree-interaction-slider input::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--tg-maroon), var(--tg-crimson), var(--tg-maroon));
+}
+
+.tg-tree-interaction-slider input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--tg-white);
+  background: var(--tg-crimson);
+  box-shadow: 0 0 10px rgba(205, 38, 38, 0.6);
+}
+
+.tg-tree-interaction-slider input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--tg-white);
+  background: var(--tg-crimson);
+  box-shadow: 0 0 10px rgba(205, 38, 38, 0.6);
+}
+
+.tg-tree-interaction-hint {
+  margin-top: 15px;
+  padding: 9px 8px;
+  border-left: 2px solid var(--tg-crimson);
+  color: rgba(232, 238, 245, 0.42);
+  font-family: var(--tg-font-copy);
+  font-size: 9px;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 900px) {
+  .tg-tree-interaction-panel {
+    top: 94px;
+    right: 8px;
+    width: 250px;
+  }
 }
 
 .tg-adaptive-reticle {
@@ -3833,7 +4075,249 @@ canvas {
   max-height: none;
 }
 
-.tg-editor-active .tg-adaptive-reticle {
+.tg-editor-active
+.tg-tree-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+}
+
+.tg-tree-reticle-ring {
+  position: absolute;
+  inset: 1px;
+  border: 1.5px solid rgba(232, 238, 245, 0.92);
+  border-radius: 50%;
+}
+
+.tg-tree-reticle-leaf {
+  position: absolute;
+  width: 8px;
+  height: 13px;
+  border: 1.5px solid rgba(232, 238, 245, 0.92);
+  border-radius: 100% 0 100% 0;
+  transform-origin: bottom center;
+}
+
+.tg-tree-reticle-leaf.leaf-a { left: 5px; top: 3px; transform: rotate(-28deg); }
+.tg-tree-reticle-leaf.leaf-b { right: 5px; top: 3px; transform: rotate(28deg); }
+.tg-tree-reticle-leaf.leaf-c { left: 11px; bottom: 2px; transform: rotate(180deg); }
+
+.tg-adaptive-reticle.tree-active .tg-tree-reticle-ring,
+.tg-adaptive-reticle.tree-active .tg-tree-reticle-leaf {
+  border-color: rgba(232, 238, 245, 0.92);
+}
+
+.tg-tree-editor-preview {
+  position: relative;
+  min-height: 470px;
+  height: 100%;
+  overflow: hidden;
+  background: #111111;
+}
+
+.tg-tree-editor-preview canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tg-tree-editor-reticle {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  margin-top: -14px;
+  border: 1.5px solid rgba(42, 143, 255, 0.72);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: scale(1);
+  transition: transform 0.08s ease, border-color 0.08s ease;
+}
+
+.tg-tree-editor-reticle::before,
+.tg-tree-editor-reticle::after {
+  content: "";
+  position: absolute;
+  background: rgba(42, 143, 255, 0.72);
+}
+
+.tg-tree-editor-reticle::before {
+  left: 50%;
+  top: -5px;
+  width: 1px;
+  height: calc(100% + 10px);
+  transform: translateX(-50%);
+}
+
+.tg-tree-editor-reticle::after {
+  top: 50%;
+  left: -5px;
+  width: calc(100% + 10px);
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.tg-tree-editor-reticle.active {
+  border-color: var(--tg-interaction);
+  transform: scale(1.12);
+}
+
+.tg-tree-editor-reticle.active::before,
+.tg-tree-editor-reticle.active::after {
+  background: var(--tg-interaction);
+}
+
+.tg-tree-editor-mode-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: 4;
+  padding: 5px 7px;
+  border-left: 2px solid var(--tg-crimson);
+  background: rgba(5, 6, 8, 0.72);
+  color: rgba(232, 238, 245, 0.72);
+  font-family: var(--tg-font-copy);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+
+.tg-tree-interaction-panel {
+  position: fixed;
+  top: 88px;
+  right: 22px;
+  z-index: 215;
+  width: 280px;
+  max-height: calc(100vh - 112px);
+  box-sizing: border-box;
+  padding: 14px;
+  overflow-y: auto;
+  background: rgba(8, 10, 14, 0.96);
+  border: 1px solid rgba(205, 38, 38, 0.65);
+  color: var(--tg-white);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgba(205, 38, 38, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.tg-tree-interaction-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tg-tree-interaction-subtitle {
+  color: rgba(232, 238, 245, 0.48);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.tg-tree-interaction-close {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(205, 38, 38, 0.55);
+  background: rgba(129, 16, 18, 0.18);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.tg-tree-interaction-close:hover {
+  border-color: var(--tg-crimson);
+  box-shadow: inset 0 0 0 1px var(--tg-crimson);
+}
+
+.tg-tree-interaction-slider {
+  display: grid;
+  gap: 7px;
+  margin-top: 13px;
+  color: rgba(232, 238, 245, 0.75);
+  font-family: var(--tg-font-copy);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.tg-tree-interaction-slider span {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.tg-tree-interaction-slider strong {
+  color: var(--tg-crimson);
+  font-family: var(--tg-font-display);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.tg-tree-interaction-slider input {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.tg-tree-interaction-slider input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--tg-maroon), var(--tg-crimson), var(--tg-maroon));
+}
+
+.tg-tree-interaction-slider input::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--tg-maroon), var(--tg-crimson), var(--tg-maroon));
+}
+
+.tg-tree-interaction-slider input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 50%;
+  border: 2px solid var(--tg-white);
+  background: var(--tg-crimson);
+  box-shadow: 0 0 10px rgba(205, 38, 38, 0.6);
+}
+
+.tg-tree-interaction-slider input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--tg-white);
+  background: var(--tg-crimson);
+  box-shadow: 0 0 10px rgba(205, 38, 38, 0.6);
+}
+
+.tg-tree-interaction-hint {
+  margin-top: 15px;
+  padding: 9px 8px;
+  border-left: 2px solid var(--tg-crimson);
+  color: rgba(232, 238, 245, 0.42);
+  font-family: var(--tg-font-copy);
+  font-size: 9px;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 900px) {
+  .tg-tree-interaction-panel {
+    top: 94px;
+    right: 8px;
+    width: 250px;
+  }
+}
+
+.tg-adaptive-reticle {
   z-index: 185;
 }
 
@@ -3926,3 +4410,719 @@ canvas {
   cursor: pointer;
   color: inherit;
 }
+
+/* =======================================================
+   1.4.1 CORRECTION — ACTIVE INTERACTION STATE TAG
+   The active tool replaces the old center-screen popup.
+======================================================= */
+.tg-interaction-state-tag {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 210;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--tg-interaction);
+  background: rgba(5, 6, 8, 0.78);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.tg-interaction-state-tag:hover {
+  box-shadow: inset 0 0 0 1px var(--tg-interaction);
+}
+
+.tg-interaction-state-close {
+  margin-left: 4px;
+  color: var(--tg-interaction);
+  font-size: 11px;
+}
+
+.tg-editor-area-rename-input,
+.tg-mesh-card-rename-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--tg-interaction);
+  background: rgba(5, 6, 8, 0.94);
+  color: var(--tg-white);
+  font: inherit;
+  outline: none;
+}
+
+.tg-editor-area-rename-input {
+  min-height: 38px;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.tg-mesh-card-rename-input {
+  padding: 4px 5px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+/* Sun reticle responds to actual atmosphere settings while held. */
+.tg-sun-reticle-orbit {
+  transform: rotate(-18deg) scaleY(var(--sun-height-scale, 1));
+}
+
+.tg-sun-reticle-sun-icon {
+  position: absolute;
+  left: 50%;
+  top: -1px;
+  width: 8px;
+  height: 8px;
+  transform-origin: 50% calc(19px + 1px);
+  transform: translateX(-50%) rotate(var(--sun-rotation, 0deg));
+  border: 1.5px solid var(--tg-white);
+  border-radius: 50%;
+  background: rgba(5, 6, 8, 0.45);
+  /* Stay legible when the reticle is directly over the white sun. */
+  mix-blend-mode: difference;
+}
+
+.tg-adaptive-reticle.held .tg-sun-reticle-sun-icon {
+  border-color: var(--tg-interaction);
+}
+
+/* 1.4.1 D-pad quick interaction assignments. */
+.tg-quick-interaction-slots {
+  position: fixed;
+  left: 18px;
+  top: 50%;
+  z-index: 155;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+  width: 132px;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.tg-quick-interaction-slot {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: center;
+  min-height: 34px;
+  padding: 5px 7px;
+  border: 1px solid rgba(232, 238, 245, 0.2);
+  background: rgba(5, 6, 8, 0.68);
+  color: rgba(232, 238, 245, 0.72);
+  font-family: var(--tg-font-display);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-align: left;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+
+.tg-quick-interaction-slot:hover,
+.tg-quick-interaction-slot.active {
+  border-color: var(--tg-interaction-color, var(--tg-interaction));
+  color: var(--tg-white);
+  box-shadow: inset 0 0 0 1px var(--tg-interaction-color, var(--tg-interaction));
+}
+
+.tg-quick-interaction-arrow {
+  color: var(--tg-interaction-color, var(--tg-interaction));
+  font-size: 15px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .tg-quick-interaction-slots {
+    left: 10px;
+    width: 116px;
+  }
+}
+
+@media (max-width: 620px) {
+  .tg-quick-interaction-slots {
+    left: 8px;
+    top: auto;
+    bottom: 112px;
+    width: 112px;
+    transform: none;
+  }
+}
+
+/* 1.4.1 correction: controller/menu focus must be visibly distinct from the active tool state. */
+.tg-editor-view button:focus-visible,
+.tg-interaction-panel button:focus-visible,
+.tg-mesh-menu button:focus-visible,
+.tg-mesh-edit-backdrop button:focus-visible,
+.tg-dev-panel button:focus-visible,
+.tg-side-panel button:focus-visible,
+.tg-quick-interaction-slot:focus-visible {
+  outline: 2px solid var(--tg-interaction);
+  outline-offset: 2px;
+}
+
+
+/* 1.4.2.03 — Firefly editor preview and terrain-control naming. */
+.tg-firefly-edit-preview {
+  position: relative;
+  overflow: hidden;
+  background: #080b10;
+}
+
+.tg-firefly-edit-preview .tg-firefly-preview-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d9ff8a;
+  box-shadow: 0 0 8px 2px rgba(217, 255, 138, 0.72);
+  animation: tg-firefly-preview-float ease-in-out infinite, tg-firefly-preview-flicker ease-in-out infinite;
+}
+
+.tg-firefly-edit-preview strong {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+}
+
+@keyframes tg-firefly-preview-float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(8px, -12px); }
+}
+
+@keyframes tg-firefly-preview-flicker {
+  0%, 100% { opacity: 0.25; }
+  45% { opacity: 1; }
+  60% { opacity: 0.4; }
+}
+
+.tg-editor-area-label {
+  flex: 0 0 auto;
+  align-self: center;
+  color: rgba(232, 238, 245, 0.52);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+/* 1.4.2.04 — visible live aerial map sizing/layering. */
+.tg-editor-aerial-map {
+  position: absolute;
+  inset: 0;
+  display: block;
+  z-index: 2;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.tg-editor-aerial-map .tg-world-map-canvas-wrap {
+  position: absolute;
+  inset: 5%;
+  width: auto;
+  height: auto;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: auto;
+}
+.tg-editor-aerial-map .tg-world-map-canvas {
+  display: block;
+  width: min(82%, 720px);
+  height: auto;
+  max-width: 82%;
+  max-height: 82%;
+  aspect-ratio: 1 / 1;
+  image-rendering: auto;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+.tg-editor-aerial-map .tg-world-map-overlay-label { z-index: 2; }
+
+/* =======================================================
+   1.5.0 — World construction foundation
+======================================================= */
+.tg-world-start-choice {
+  width: 260px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.tg-world-start-choice button {
+  min-height: 32px;
+  border: 1px solid rgba(232, 238, 245, 0.16);
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(232, 238, 245, 0.62);
+  font-family: var(--tg-font-display);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.tg-world-start-choice button:hover,
+.tg-world-start-choice button.active {
+  border-color: var(--tg-crimson);
+  color: var(--tg-white);
+  box-shadow: inset 0 0 0 1px var(--tg-crimson);
+}
+
+.tg-editor-bottom-bar {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tg-editor-bottom-bar button:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+.tg-chunk-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.58);
+  /* The Editor frame intentionally uses pointer-events:none so the live
+     world remains interactive. A modal is an explicit interaction surface
+     and must opt back into pointer events. */
+  pointer-events: auto;
+}
+
+.tg-chunk-dialog {
+  width: min(430px, calc(100vw - 40px));
+  padding: 20px;
+  border: 1px solid rgba(205, 38, 38, 0.48);
+  background: rgba(5, 6, 8, 0.96);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.65);
+}
+
+.tg-chunk-dialog-title {
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 16px;
+  letter-spacing: 0.1em;
+}
+
+.tg-chunk-dialog-copy {
+  margin-top: 7px;
+  color: rgba(232, 238, 245, 0.5);
+  font-family: var(--tg-font-copy);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.tg-chunk-dialog label {
+  display: block;
+  margin-top: 16px;
+}
+
+.tg-chunk-dialog label span {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(232, 238, 245, 0.5);
+  font-family: var(--tg-font-display);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+
+.tg-chunk-dialog select,
+.tg-chunk-dialog input {
+  width: 100%;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid rgba(232, 238, 245, 0.16);
+  background: #080b10;
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.tg-chunk-dialog-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 18px;
+}
+
+.tg-chunk-dialog-actions button {
+  min-height: 36px;
+  border: 1px solid rgba(232, 238, 245, 0.16);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.tg-chunk-dialog-actions button:last-child {
+  border-color: var(--tg-crimson);
+  background: rgba(205, 38, 38, 0.12);
+}
+
+.tg-chunk-dialog-actions button:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .tg-world-start-choice {
+    width: min(260px, 100%);
+  }
+
+  .tg-editor-bottom-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =======================================================
+   1.5.0.06 — World Map / Grid Rework
+   The map is the world grid first. Terrain is a preview
+   contained inside the occupied world cells.
+======================================================= */
+.tg-world-map-shell {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(36px, 6%, 54px) clamp(18px, 4%, 48px) 18px;
+  box-sizing: border-box;
+  background: rgba(3, 5, 7, 0.94);
+  pointer-events: auto;
+}
+
+.tg-world-map-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+  margin: 0 auto 10px;
+  width: min(86%, 860px);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.tg-world-map-heading small {
+  color: rgba(232, 238, 245, 0.38);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.tg-world-map-grid {
+  position: relative;
+  width: min(86%, 860px);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(232, 238, 245, 0.18);
+  background: #05070a;
+  box-shadow: inset 0 0 0 1px rgba(205, 38, 38, 0.06);
+}
+
+.tg-world-map-terrain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  opacity: 0.78;
+  image-rendering: auto;
+}
+
+.tg-world-map-cell {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  border-right: 1px solid rgba(232, 238, 245, 0.12);
+  border-bottom: 1px solid rgba(232, 238, 245, 0.12);
+  background: rgba(4, 7, 10, 0.78);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.tg-world-map-cell:nth-child(6n) {
+  border-right: 0;
+}
+
+.tg-world-map-cell:nth-last-child(-n + 6) {
+  border-bottom: 0;
+}
+
+.tg-world-map-cell.occupied {
+  background: rgba(5, 7, 10, 0.16);
+}
+
+.tg-world-map-cell.empty {
+  background: rgba(4, 7, 10, 0.92);
+  color: rgba(232, 238, 245, 0.3);
+}
+
+.tg-world-map-cell:hover {
+  background: rgba(205, 38, 38, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(205, 38, 38, 0.42);
+}
+
+.tg-world-map-cell.active {
+  background: rgba(205, 38, 38, 0.14);
+  box-shadow: inset 0 0 0 2px var(--tg-crimson);
+}
+
+.tg-world-map-cell-grid {
+  display: block;
+  color: var(--tg-white);
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+
+.tg-world-map-cell strong {
+  display: block;
+  max-width: 100%;
+  margin-top: 5px;
+  overflow: hidden;
+  color: rgba(232, 238, 245, 0.8);
+  font-size: 9px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tg-world-map-cell small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(232, 238, 245, 0.38);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+}
+
+.tg-world-map-add {
+  display: block;
+  margin-bottom: 4px;
+  color: rgba(232, 238, 245, 0.42);
+  font-family: Arial, sans-serif;
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 0.9;
+}
+
+.tg-world-map-footer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+  width: min(86%, 860px);
+  margin: 10px auto 0;
+  color: rgba(232, 238, 245, 0.42);
+  font-family: var(--tg-font-display);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.tg-world-map-footer strong {
+  color: var(--tg-white);
+  font-weight: 400;
+}
+
+.tg-world-map-hint {
+  margin-left: auto;
+  color: rgba(232, 238, 245, 0.3);
+}
+
+@media (max-width: 700px) {
+  .tg-world-map-shell {
+    padding: 34px 10px 12px;
+  }
+
+  .tg-world-map-heading,
+  .tg-world-map-grid,
+  .tg-world-map-footer {
+    width: 96%;
+  }
+
+  .tg-world-map-heading small,
+  .tg-world-map-footer {
+    font-size: 7px;
+  }
+
+  .tg-world-map-cell {
+    padding: 5px;
+  }
+
+  .tg-world-map-cell strong {
+    font-size: 7px;
+  }
+}
+
+
+/* =======================================================
+   1.5.0.06.04 — Continuous cartographic map
+   One topographic surface, one 6x6 world grid, and
+   high-level chunk markers only.
+======================================================= */
+.tg-world-map-viewport {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(232, 238, 245, 0.16);
+  background: #05070a;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.tg-world-map-viewport.is-dragging { cursor: grabbing; }
+
+.tg-world-map-space {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.tg-world-map-terrain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.86;
+  image-rendering: auto;
+  pointer-events: none;
+}
+
+.tg-world-map-grid-surface {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  z-index: 2;
+}
+
+.tg-world-map-grid-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid rgba(245, 249, 252, 0.34);
+  border-bottom: 1px solid rgba(245, 249, 252, 0.34);
+  background: transparent;
+  color: var(--tg-white);
+  cursor: pointer;
+}
+
+.tg-world-map-grid-cell:hover {
+  background: rgba(205, 38, 38, 0.06);
+}
+
+.tg-world-map-grid-cell.active {
+  box-shadow: inset 0 0 0 2px var(--tg-crimson);
+}
+
+.tg-world-map-grid-cell.empty {
+  background: rgba(3, 5, 7, 0.02);
+}
+
+.tg-world-map-major-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(248, 250, 252, 0.55);
+  font-family: var(--tg-font-display);
+  font-size: clamp(74px, 9vw, 124px);
+  font-weight: 500;
+  line-height: 0.8;
+  letter-spacing: 0;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.tg-world-map-empty-add {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(250, 252, 255, 0.88);
+  font-family: Arial, sans-serif;
+  font-size: 42px;
+  font-weight: 200;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.tg-world-map-pan-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: 20;
+  padding: 4px 6px;
+  background: rgba(3, 5, 7, 0.56);
+  color: rgba(232, 238, 245, 0.28);
+  font-family: var(--tg-font-display);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+@media (max-width: 700px) {
+  .tg-world-map-pan-hint { display: none; }
+  .tg-world-map-major-label { font-size: 74px; }
+  .tg-world-map-empty-add { font-size: 32px; }
+}
+
+
+.tg-tree-interaction-mode-row, .tg-mesh-edit-mode-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin-bottom:12px; }
+.tg-tree-interaction-mode, .tg-mesh-edit-mode-row .tg-mesh-edit-action { min-height:32px; border:1px solid rgba(205,38,38,.55); background:rgba(129,16,18,.18); color:var(--tg-white); font-family:var(--tg-font-display); font-size:11px; letter-spacing:.08em; cursor:pointer; }
+.tg-tree-interaction-mode.active, .tg-mesh-edit-mode-row .tg-mesh-edit-action.active { background:var(--tg-crimson); border-color:var(--tg-crimson); }
+.tg-tree-interaction-section { margin-top:16px; padding-top:11px; border-top:1px solid rgba(232,238,245,.1); color:rgba(232,238,245,.55); font-family:var(--tg-font-display); font-size:10px; letter-spacing:.08em; }
+
+/* 1.6.03.04 — SHORTCUTS is a temporary centered bottom HUD. */
+.tg-quick-interaction-slots{position:fixed;left:50%;right:auto;top:auto;bottom:18px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;z-index:260}
+.tg-quick-shortcuts-toggle{min-height:30px;padding:5px 14px;border:1px solid rgba(205,38,38,.65);background:rgba(5,6,8,.88);color:var(--tg-white);font-family:var(--tg-font-display);font-size:10px;letter-spacing:.08em;cursor:pointer}
+.tg-quick-shortcuts-toggle:hover{border-color:var(--tg-crimson);background:rgba(129,16,18,.22)}
+.tg-quick-shortcut-panel{display:flex;flex-direction:column;align-items:center;gap:6px;padding:7px;background:rgba(5,6,8,.9);border:1px solid rgba(232,238,245,.16)}
+.tg-quick-add-shortcut{min-height:27px;padding:4px 10px;border:1px solid rgba(205,38,38,.58);background:rgba(5,6,8,.82);color:var(--tg-white);font-family:var(--tg-font-display);font-size:9px;letter-spacing:.08em;cursor:pointer}
+.tg-quick-shortcut-grid{display:grid;grid-template-columns:repeat(4,minmax(96px,1fr));gap:5px}
+.tg-quick-interaction-slot{min-height:42px;border:1px solid rgba(232,238,245,.22);background:rgba(8,10,14,.88);color:var(--tg-white);font-family:var(--tg-font-display);font-size:9px;letter-spacing:.06em;cursor:pointer}
+.tg-quick-interaction-slot:hover{border-color:rgba(232,238,245,.5)}
+.tg-quick-interaction-slot.active,.tg-quick-interaction-slot.assignment-active{border-color:var(--tg-interaction-color);background:rgba(42,143,255,.18);box-shadow:0 0 12px rgba(42,143,255,.24)}
+.tg-quick-interaction-arrow{display:block;font-size:16px;line-height:1;margin-bottom:2px}
+.tg-quick-assignment-hint{font-family:var(--tg-font-display);font-size:8px;letter-spacing:.08em;color:rgba(232,238,245,.62)}
+@media(max-width:900px){.tg-quick-shortcut-grid{grid-template-columns:repeat(2,minmax(96px,1fr))}}
+@media(max-width:620px){.tg-quick-interaction-slots{bottom:112px}.tg-quick-shortcut-grid{grid-template-columns:repeat(2,minmax(82px,1fr))}}
+.tg-tree-interaction-mode-row{grid-template-columns:repeat(3,minmax(0,1fr));}
+/* 1.6.03.03 — Tree branch gesture controls remain compact and brand-consistent. */
+.tg-tree-interaction-panel .tg-tree-interaction-mode-row{display:flex;flex-wrap:wrap;gap:4px}
+.tg-tree-interaction-panel .tg-tree-interaction-mode-row .tg-tree-interaction-mode{flex:1 1 auto;min-width:72px;font-size:9px;padding:6px 7px}

@@ -665,6 +665,7 @@ export function createProceduralCanopyGeometry(
     gradientEnabled = false,
     gradientColor = "#181818",
     baseColor = "#080808",
+    leafVertices = null,
   } = {}
 ) {
   const geometry =
@@ -676,12 +677,16 @@ export function createProceduralCanopyGeometry(
 
   const leafGeometry =
     createLeafPolygonGeometry();
-  const basePositions =
+  const defaultPositions =
     leafGeometry
       .getAttribute(
         "position"
       )
       .array;
+
+  const basePositions = Array.isArray(leafVertices) && leafVertices.length === defaultPositions.length
+    ? leafVertices
+    : defaultPositions;
 
   const baseIndices =
     leafGeometry.index

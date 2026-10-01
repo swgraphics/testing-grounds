@@ -8,7 +8,7 @@ import { Billboard, Text } from "@react-three/drei";
 
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 
-const SIZE = 400;
+const SIZE = 300;
 const MINOR_STEP = 10;
 const MAJOR_STEP = 50;
 const CELL_STEP = 100;

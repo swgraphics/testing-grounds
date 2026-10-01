@@ -146,11 +146,15 @@ export default function XboxController() {
      * 10 = left-stick click
      * 11 = right-stick click
      */
-    gamepadState.jump =
-      gamepad.buttons[0]?.pressed ?? false;
+    const aPressedNow = gamepad.buttons[0]?.pressed ?? false;
+    const bPressedNow = gamepad.buttons[1]?.pressed ?? false;
+    gamepadState.jump = aPressedNow;
+    gamepadState.aPressed = aPressedNow && !Boolean(previousButtonsRef.current[0]);
+    gamepadState.bPressed = bPressedNow && !Boolean(previousButtonsRef.current[1]);
+    previousButtonsRef.current[0] = aPressedNow;
+    previousButtonsRef.current[1] = bPressedNow;
 
-    gamepadState.slide =
-      gamepad.buttons[1]?.pressed ?? false;
+    gamepadState.slide = bPressedNow;
 
     gamepadState.sprint =
       gamepad.buttons[10]?.pressed ?? false;
@@ -172,8 +176,14 @@ export default function XboxController() {
     dispatchEdgeAction(7, "attack", 620);
     dispatchEdgeAction(5, "attackCross", 700);
     dispatchEdgeAction(4, "interact", 700);
-    gamepadState.worldTransform = buttonPressed(6);
-    previousButtonsRef.current[6] = gamepadState.worldTransform;
+    // Standard mapping: 6 = left trigger, 7 = right trigger.
+    gamepadState.leftTrigger = buttonPressed(6);
+    previousButtonsRef.current[6] = gamepadState.leftTrigger;
+    gamepadState.worldTransform = gamepadState.leftTrigger;
+
+    // RT remains the universal world-tool ACTION button.
+    gamepadState.rightTrigger = buttonPressed(7);
+    previousButtonsRef.current[7] = gamepadState.rightTrigger;
 
     gamepadState.connected = true;
     gamepadState.id = gamepad.id;

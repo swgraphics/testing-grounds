@@ -357,21 +357,143 @@ export function createProceduralBranchData(
       lerp(1.14, 0.72, trunkT) *
       thicknessVariation;
 
+    const overrides = branchDefinition?.overrides?.[branchIndex] ?? null;
+    let resolvedDirection = direction.clone();
+    let resolvedLength = branchLength;
+    let resolvedThickness = structuralThickness;
+    let resolvedTaper = clamp01((branchDefinition?.taper ?? 50) / 100);
+
+    if (overrides) {
+      if (Number.isFinite(Number(overrides.length))) {
+        resolvedLength = THREE.MathUtils.lerp(0.45, 6, clamp01(Number(overrides.length) / 100));
+      }
+      if (Number.isFinite(Number(overrides.thickness))) {
+        resolvedThickness = THREE.MathUtils.lerp(0.02, 0.22, clamp01(Number(overrides.thickness) / 100));
+      }
+      if (Number.isFinite(Number(overrides.verticality))) {
+        const targetVerticality = lerp(-0.45, 0.65, clamp01(Number(overrides.verticality) / 100));
+        const horizontal = Math.sqrt(Math.max(0.02, 1 - targetVerticality * targetVerticality));
+        resolvedDirection.set(
+          Math.cos(azimuth) * horizontal,
+          targetVerticality,
+          Math.sin(azimuth) * horizontal,
+        ).normalize();
+      }
+      if (Number.isFinite(Number(overrides.taper))) {
+        resolvedTaper = clamp01(Number(overrides.taper) / 100);
+      }
+    }
+
+    const resolvedEnd = origin
+      .clone()
+      .add(resolvedDirection.clone().multiplyScalar(resolvedLength));
+
     branches.push({
       index: branchIndex,
       trunkT,
       origin,
-      end,
-      direction,
-      length: branchLength,
-      thickness: structuralThickness,
+      end: resolvedEnd,
+      direction: resolvedDirection,
+      length: resolvedLength,
+      thickness: resolvedThickness,
       localRadius,
       azimuth,
-      elevation: branchElevation,
+      elevation: Math.acos(THREE.MathUtils.clamp(resolvedDirection.y, -1, 1)),
+      taper: resolvedTaper,
     });
   }
 
-  return branches;
+  return [
+    ...branches,
+    ...createCustomBranchData(
+      trunkDefinition,
+      branchDefinition,
+      seed,
+      branches.length
+    ),
+  ];
+}
+
+
+function createCustomBranchData(trunkDefinition, branchDefinition, seed, proceduralCount) {
+  const custom = Array.isArray(branchDefinition?.custom) ? branchDefinition.custom : [];
+  if (!custom.length) return [];
+
+  const height = lerp(4.5, 8.5, clamp01((trunkDefinition?.height ?? 50) / 100));
+  const radius = lerp(0.16, 0.42, clamp01((trunkDefinition?.radius ?? 50) / 100));
+  const taper = clamp01((trunkDefinition?.taper ?? 50) / 100);
+  const maxBend = lerp(0, 0.85, clamp01((trunkDefinition?.bend ?? 50) / 100));
+  const baseThickness = lerp(0.035, 0.16, clamp01((branchDefinition?.thickness ?? 50) / 100));
+  const secondaryCount = Math.max(0, Math.min(8, Math.round(branchDefinition?.secondary?.count ?? 0)));
+
+  const trunkPoint = (t) => {
+    const clampedT = THREE.MathUtils.clamp(Number(t) || 0.5, 0.05, 0.95);
+    const bendAmount = Math.sin(clampedT * Math.PI * 0.5) * maxBend;
+    return new THREE.Vector3(
+      bendAmount,
+      clampedT * height,
+      Math.sin(clampedT * Math.PI) * maxBend * 0.22,
+    );
+  };
+
+  const result = [];
+  custom.forEach((entry, customIndex) => {
+    const origin = Array.isArray(entry?.origin)
+      ? new THREE.Vector3(Number(entry.origin[0]) || 0, Number(entry.origin[1]) || 0, Number(entry.origin[2]) || 0)
+      : trunkPoint(entry?.trunkT ?? 0.55);
+    const direction = new THREE.Vector3(
+      Number(entry?.direction?.[0]) || 1,
+      Number(entry?.direction?.[1]) || 0.12,
+      Number(entry?.direction?.[2]) || 0,
+    ).normalize();
+    const length = THREE.MathUtils.clamp(Number(entry?.length) || 2.2, 0.45, 6);
+    const thickness = THREE.MathUtils.clamp(Number(entry?.thickness) || baseThickness, 0.02, 0.22);
+    const end = origin.clone().add(direction.clone().multiplyScalar(length));
+    const primary = {
+      index: proceduralCount + result.length,
+      custom: true,
+      customIndex,
+      trunkT: Number(entry?.trunkT ?? 0.55),
+      origin,
+      end,
+      direction,
+      length,
+      thickness,
+      localRadius: radius,
+      azimuth: Math.atan2(direction.z, direction.x),
+      elevation: Math.acos(THREE.MathUtils.clamp(direction.y, -1, 1)),
+      taper,
+    };
+    result.push(primary);
+
+    for (let childIndex = 0; childIndex < secondaryCount; childIndex += 1) {
+      const t = 0.32 + ((childIndex + 1) / (secondaryCount + 1)) * 0.45;
+      const childOrigin = origin.clone().lerp(end, t);
+      const phase = seed * 0.17 + customIndex * 2.41 + childIndex * 2.399;
+      const radial = new THREE.Vector3(Math.cos(phase), 0, Math.sin(phase));
+      const childDirection = direction.clone().multiplyScalar(0.58).add(radial.multiplyScalar(0.78));
+      childDirection.y += 0.16 + (childIndex % 2) * 0.08;
+      childDirection.normalize();
+      const childLength = length * THREE.MathUtils.lerp(0.38, 0.62, (childIndex % 5) / 4);
+      result.push({
+        index: proceduralCount + result.length,
+        custom: true,
+        customIndex,
+        secondary: true,
+        trunkT: primary.trunkT,
+        origin: childOrigin,
+        end: childOrigin.clone().add(childDirection.clone().multiplyScalar(childLength)),
+        direction: childDirection,
+        length: childLength,
+        thickness: thickness * 0.56,
+        localRadius: radius,
+        azimuth: Math.atan2(childDirection.z, childDirection.x),
+        elevation: Math.acos(THREE.MathUtils.clamp(childDirection.y, -1, 1)),
+        taper,
+      });
+    }
+  });
+  return result;
 }
 
 export function createProceduralBranchGeometry(
@@ -435,7 +557,7 @@ export function createProceduralBranchGeometry(
       localRadius * 0.08;
 
     const tipThickness =
-      thickness * 0.24;
+      thickness * THREE.MathUtils.lerp(0.46, 0.08, clamp01(Number(branch.taper ?? 50) / 100));
 
     for (
       let sideIndex = 0;

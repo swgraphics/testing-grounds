@@ -6,7 +6,19 @@ export default function InteractionIndicator() {
 
   if (!activeTool && !activeMode) return null;
 
-  const label = [activeTool, activeMode].filter(Boolean).join(" // ").toUpperCase();
+  const modeLabels = {
+    select: "SELECT",
+    edit: "EDIT",
+    place: "PLACE",
+    sculpt: "SCULPT",
+    grab: "GRAB",
+  };
+
+  const tool = String(activeTool || "INTERACT").toUpperCase();
+  const mode = modeLabels[activeMode] || String(activeMode || "").toUpperCase();
+  const isTreeInteraction = tool === "TREE" || useInteractionStore.getState().activeTarget?.startsWith?.("tree:");
+  const displayTool = isTreeInteraction ? "OBJECT" : tool;
+  const displayMode = isTreeInteraction ? "TREE" : mode;
 
   return (
     <div
@@ -15,7 +27,7 @@ export default function InteractionIndicator() {
       aria-live="polite"
     >
       <span className="tg-interaction-indicator-dot" />
-      <span>{label}</span>
+      <span>{displayTool} // {displayMode}</span>
     </div>
   );
 }

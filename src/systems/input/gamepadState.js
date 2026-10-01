@@ -10,10 +10,14 @@ export const gamepadState = {
   rightStickY: 0,
 
   jump: false,
+  aPressed: false,
   slide: false,
   sprint: false,
   crouch: false,
   worldTransform: false,
+  rightTrigger: false,
+  leftTrigger: false,
+  bPressed: false,
 };
 
 export function resetGamepadState() {
@@ -28,8 +32,12 @@ export function resetGamepadState() {
   gamepadState.rightStickY = 0;
 
   gamepadState.jump = false;
+  gamepadState.aPressed = false;
   gamepadState.slide = false;
   gamepadState.sprint = false;
   gamepadState.crouch = false;
   gamepadState.worldTransform = false;
+  gamepadState.rightTrigger = false;
+  gamepadState.leftTrigger = false;
+  gamepadState.bPressed = false;
 }

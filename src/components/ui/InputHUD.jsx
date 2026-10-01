@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import MeshMenu from "./MeshMenu";
 import { useEditorStore } from "../../systems/editor/editorStore";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 
@@ -54,10 +53,25 @@ function DevSectionHeader({
   isOpen,
   onToggle,
 }) {
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    const element = headerRef.current;
+    if (!element) return undefined;
+    const handleGamepadLock = () => {
+      toggleDevSectionLock(sectionName);
+      window.dispatchEvent(new CustomEvent("tg-dev-section-lock-ui", { detail: { sectionName } }));
+    };
+    element.addEventListener("tg-gamepad-section-lock", handleGamepadLock);
+    return () => element.removeEventListener("tg-gamepad-section-lock", handleGamepadLock);
+  }, [sectionName]);
+
   return (
     <button
+      ref={headerRef}
       type="button"
       className={`tg-dev-section-header ${isOpen ? "open" : ""}`}
+      data-dev-section-header={sectionName}
       onClick={() => onToggle(sectionName)}
       aria-expanded={isOpen}
     >
@@ -81,6 +95,7 @@ const TERRAIN_SLIDERS = [
 
   ["waterHeight", "Water Height", -20, 20, 0.5,],
   ["waterWaveStrength", "Wave Strength", 0, 100, 1,],
+  ["waterSubdivisions", "Water Subdivision", 16, 96, 1,],
   
   ["treeDensity", "Tree Density", 0, 100, 1],
   ["treeCoverage", "Tree Coverage", 0, 100, 1],
@@ -2168,7 +2183,6 @@ function handleSectionLockChange(event) {
 </div>
       </div>
 
-      <MeshMenu />
     </>
   );
   }
