@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { AREA_CONFIG } from "../../config/areaConfig";
+import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
+import { useWorldStore } from "../../systems/world/worldStore";
 
 const PIXELS_PER_DEGREE = 4;
 const MARKER_VISIBILITY_ANGLE = 105;
@@ -144,6 +145,8 @@ function CompassAreaMarker({
 
 export default function CompassRibbon() {
   const [heading, setHeading] = useState(0);
+  const guidesVisible = useWorldGuideStore((state) => state.visible);
+  const chunks = useWorldStore((state) => state.world.chunks);
 
   const [playerPosition, setPlayerPosition] =
     useState({
@@ -200,6 +203,8 @@ export default function CompassRibbon() {
       .padStart(3, "0");
   }, [heading]);
 
+  if (!guidesVisible) return null;
+
   return (
     <div
       className="tg-compass-ribbon"
@@ -216,10 +221,10 @@ export default function CompassRibbon() {
             />
           ))}
 
-          {AREA_CONFIG.map((area) => (
+          {Object.values(chunks).map((chunk) => (
             <CompassAreaMarker
-              key={area.id}
-              area={area}
+              key={chunk.id}
+              area={chunk}
               heading={heading}
               playerPosition={playerPosition}
             />

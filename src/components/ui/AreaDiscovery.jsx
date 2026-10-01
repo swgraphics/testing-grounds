@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { AREA_CONFIG } from "../../config/areaConfig";
+import { useWorldStore } from "../../systems/world/worldStore";
 
 const EXIT_BUFFER = 18;
 const DISPLAY_DURATION = 2600;
@@ -17,6 +18,7 @@ function horizontalDistance(position, areaPosition) {
 }
 
 export default function AreaDiscovery() {
+  const setCurrentChunk = useWorldStore((state) => state.setCurrentChunk);
   const [activeArea, setActiveArea] = useState(null);
   const [visible, setVisible] = useState(false);
 
@@ -97,6 +99,7 @@ export default function AreaDiscovery() {
 
       const nearestArea = nearbyAreas[0].area;
 
+      setCurrentChunk(nearestArea.id);
       enteredAreasRef.current.add(nearestArea.id);
       showArea(nearestArea);
     }
@@ -114,7 +117,7 @@ export default function AreaDiscovery() {
 
       clearTimers();
     };
-  }, []);
+  }, [setCurrentChunk]);
 
   if (!activeArea) {
     return null;

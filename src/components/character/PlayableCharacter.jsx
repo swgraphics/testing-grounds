@@ -79,7 +79,7 @@ function FBXAnimatedCharacter({ character, animationState }) {
 
     currentAction.reset().fadeIn(0.18);
 
-    if (animationState === "slide") {
+    if (animationState === "slide" || animationState === "attack") {
       currentAction.setLoop(THREE.LoopOnce, 1);
       currentAction.clampWhenFinished = true;
     } else {
@@ -106,22 +106,49 @@ function FBXAnimatedCharacter({ character, animationState }) {
   );
 }
 
-function EmbeddedAnimatedCharacter({ character, animationState }) {
+function StaticCharacter({ character }) {
+  const { scene } = useGLTF(character.modelPath);
+  useEffect(() => {
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        // Keep the authored Unit 01 material/UV layout intact.
+        // Variant atlas textures are not interchangeable with this rig's UVs.
+        child.material = child.material.clone();
+        child.material.needsUpdate = true;
+      }
+    });
+  }, [scene]);
+
+  return (
+    <group
+      scale={character.scale}
+      position={[0, character.height, 0]}
+      rotation={[character.rotation.x, character.rotation.y, character.rotation.z]}
+    >
+      <primitive object={scene} />
+    </group>
+  );
+}
+
+function EmbeddedAnimatedCharacter({ character, animationState, animationTrigger = 0 }) {
   const groupRef = useRef();
 
   const { scene, animations } = useGLTF(character.modelPath);
-
   useEffect(() => {
-  scene.traverse((child) => {
-    if (child.isMesh) {
-      child.castShadow = true;
-      child.receiveShadow = true;
-    }
-  });
-}, [scene]);
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        // Keep the authored Unit 01 material/UV layout intact.
+        // Variant atlas textures are not interchangeable with this rig's UVs.
+        child.material = child.material.clone();
+        child.material.needsUpdate = true;
+      }
+    });
+  }, [scene]);
 
-  console.log("Available animations:");
-  scene.animations.forEach((clip) => console.log(clip.name));
   const renamedAnimations = useMemo(() => {
     return animations.map((clip) => {
       const mappedName =
@@ -143,15 +170,34 @@ function EmbeddedAnimatedCharacter({ character, animationState }) {
 
     if (!currentAction) return;
 
-    currentAction.reset().fadeIn(0.18);
-    currentAction.setLoop(THREE.LoopRepeat, Infinity);
-    currentAction.clampWhenFinished = false;
+    currentAction.reset().fadeIn(0.12);
+
+    const oneShotStates = new Set([
+      "attack",
+      "attackCross",
+      "swordAttack",
+      "interact",
+      "pistolShoot",
+      "pistolReload",
+      "death",
+      "worldTransformEnter",
+      "worldTransformExit",
+    ]);
+
+    if (oneShotStates.has(animationState)) {
+      currentAction.setLoop(THREE.LoopOnce, 1);
+      currentAction.clampWhenFinished = true;
+    } else {
+      currentAction.setLoop(THREE.LoopRepeat, Infinity);
+      currentAction.clampWhenFinished = false;
+    }
+
     currentAction.play();
 
     return () => {
       currentAction.fadeOut(0.18);
     };
-  }, [actions, animationState]);
+  }, [actions, animationState, animationTrigger]);
 
   return (
     <group
@@ -165,13 +211,18 @@ function EmbeddedAnimatedCharacter({ character, animationState }) {
   );
 }
 
-export default function PlayableCharacter({ 
-  character, 
-  animationState = "idle", 
+export default function PlayableCharacter({
+  character,
+  animationState = "idle",
+  animationTrigger = 0,
   hidden = false,
 }) {
   if (hidden) {
     return null;
+  }
+
+  if (character.animationSource === "static") {
+    return <StaticCharacter character={character} />;
   }
 
   if (character.animationSource === "embedded") {
@@ -179,6 +230,7 @@ export default function PlayableCharacter({
       <EmbeddedAnimatedCharacter
         character={character}
         animationState={animationState}
+        animationTrigger={animationTrigger}
       />
     );
   }

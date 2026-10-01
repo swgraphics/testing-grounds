@@ -1,0 +1,56 @@
+const SHARED_CRASH_ANIMATION_MAP = {
+  idle: "Idle_Loop",
+  walk: "Walk_Loop",
+  run: "Sprint_Loop",
+  crouchWalk: "Crouch_Fwd_Loop",
+  jump: "Jump_Loop",
+  runJump: "Jump_Loop",
+  slide: "Roll",
+  attack: "Punch_Jab",
+  attackCross: "Punch_Cross",
+  swordAttack: "Sword_Attack",
+  interact: "Interact",
+  worldTransform: "Spell_Simple_Idle_Loop",
+  worldTransformEnter: "Spell_Simple_Enter",
+  worldTransformExit: "Spell_Simple_Exit",
+  worldTransformShoot: "Spell_Simple_Shoot",
+  swim: "Swim_Fwd_Loop",
+  death: "Death01",
+  pistolAim: "Pistol_Aim_Neutral",
+  pistolShoot: "Pistol_Shoot",
+  pistolReload: "Pistol_Reload",
+};
+
+export const CRASHER_ROSTER = [
+  { id: "bob001", number: 1, name: "Bob 001", danger: "STUCK IN WATER" },
+  { id: "doug002", number: 2, name: "Doug 002", danger: "STUCK IN THE GROUND" },
+  { id: "matt003", number: 3, name: "Matt 003", danger: "FLATTENED" },
+  { id: "seymour004", number: 4, name: "Seymour 004", danger: "BLINDED" },
+  { id: "frank005", number: 5, name: "Frank 005", danger: "ON FIRE" },
+  { id: "phil006", number: 6, name: "Phil 006", danger: "IN A HOLE" },
+  { id: "russel007", number: 7, name: "Russel 007", danger: "STUCK IN A TREE" },
+  { id: "skip008", number: 8, name: "Skip 008", danger: "WATER CROSSING" },
+  { id: "stu009", number: 9, name: "Stu 009", danger: "LAVA / BOILING WATER" },
+  { id: "dwyane010", number: 10, name: "Dwyane 010", danger: "PULLED UNDER IN A WHIRLPOOL" },
+  { id: "chuck011", number: 11, name: "Chuck 011", danger: "YEETED" },
+  { id: "jack012", number: 12, name: "Jack 012", danger: "STUCK UNDER A CAR" },
+  { id: "bernie013", number: 13, name: "Bernie 013", danger: "ON FIRE" },
+  { id: "cliff014", number: 14, name: "Cliff 014", danger: "HANGING FROM A LEDGE" },
+  { id: "neil015", number: 15, name: "Neil 015", danger: "LOST A LEG" },
+  { id: "dusty016", number: 16, name: "Dusty 016", danger: "SANDSTORM" },
+  { id: "claude017", number: 17, name: "Claude 017", danger: "ANIMAL ATTACK" },
+  { id: "crispin018", number: 18, name: "Crispin 018", danger: "FIRE" },
+];
+
+export const CRASH_TESTER_VARIANTS = [
+  1, 2, 3, 4, 5
+].map((number) => ({
+  id: `crashTester0${number}`,
+  number,
+  displayName: `Crash Tester 0${number}`,
+  modelPath: "/models/characters/crash-testers/Crash_Unit_01.glb",
+  animationSource: "embedded",
+  scale: 1.50,
+  height: -0.84,
+  animationMap: { ...SHARED_CRASH_ANIMATION_MAP },
+}));

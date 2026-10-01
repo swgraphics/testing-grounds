@@ -71,6 +71,9 @@
 }
 
 
+.tg-mesh-menu-actions .tg-mesh-place-button:disabled{opacity:.72;border-color:rgba(232,238,245,.14);background:rgba(5,6,8,.72);color:rgba(232,238,245,.42);cursor:not-allowed;box-shadow:none}
+.tg-mesh-menu-actions .tg-mesh-place-button.active{border-color:#2a8fff;background:rgba(42,143,255,.18);box-shadow:0 0 14px rgba(42,143,255,.24);color:var(--tg-white)}
+
 /* =======================================================
    Left Action Column
 ======================================================= */
@@ -174,6 +177,24 @@
 /* =======================================================
    Mesh Library Cards
 ======================================================= */
+
+.tg-mesh-card-shell {
+  position: relative;
+  min-width: 0;
+}
+
+.tg-mesh-card-shell .tg-mesh-card {
+  width: 100%;
+}
+
+.tg-mesh-card-shell .tg-mesh-card-rename-input {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 7px;
+  width: calc(100% - 16px);
+  z-index: 3;
+}
 
 .tg-mesh-card {
   min-width: 0;
@@ -807,3 +828,290 @@
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Pass 1.1: keep the Add Object window reachable at desktop heights. */
+.tg-mesh-menu {
+  max-height: min(42vh, 340px);
+  min-height: 0;
+}
+
+.tg-mesh-library {
+  min-height: 0;
+  max-height: min(34vh, 270px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.tg-mesh-library::-webkit-scrollbar {
+  width: 7px;
+}
+
+.tg-mesh-library::-webkit-scrollbar-track {
+  background: rgba(5, 6, 8, 0.72);
+}
+
+.tg-mesh-library::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--tg-crimson), var(--tg-maroon));
+  border-radius: 999px;
+}
+
+@media (max-width: 1000px) {
+  .tg-mesh-menu {
+    max-height: 52vh;
+  }
+
+  .tg-mesh-library {
+    max-height: 44vh;
+  }
+}
+
+@media (max-width: 700px) {
+  .tg-mesh-menu {
+    max-height: 62vh;
+    overflow: hidden;
+  }
+
+  .tg-mesh-library {
+    max-height: 51vh;
+  }
+}
+
+/* Pass 1.1: the editor window stays inside the viewport; only its parameter column scrolls. */
+.tg-mesh-edit-window {
+  width: min(900px, 90vw);
+  height: min(700px, calc(100vh - 36px));
+  min-height: 0;
+  max-height: calc(100vh - 36px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+}
+
+.tg-mesh-edit-preview {
+  min-height: 0;
+  height: 100%;
+}
+
+.tg-mesh-edit-controls {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.tg-mesh-edit-controls::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tg-mesh-edit-controls::-webkit-scrollbar-track {
+  background: rgba(5, 6, 8, 0.74);
+}
+
+.tg-mesh-edit-controls::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--tg-crimson), var(--tg-maroon));
+  border-radius: 999px;
+}
+
+@media (max-width: 1000px) {
+  .tg-mesh-edit-window {
+    width: min(94vw, 860px);
+  }
+}
+
+@media (max-width: 700px) {
+  .tg-mesh-edit-window {
+    width: 94vw;
+    height: 88vh;
+    max-height: 88vh;
+    grid-template-columns: 1fr;
+    overflow: hidden;
+  }
+
+  .tg-mesh-edit-preview {
+    height: 36vh;
+    min-height: 220px;
+  }
+
+  .tg-mesh-edit-controls {
+    height: auto;
+    min-height: 0;
+  }
+}
+
+.tg-mesh-library-label {
+  margin: 7px 0 5px;
+  color: rgba(232, 238, 245, 0.5);
+  font-family: var(--tg-font-copy);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+
+.tg-mesh-pagination {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.tg-mesh-pagination > span {
+  text-align: center;
+  color: rgba(232,238,245,0.45);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.tg-mesh-prev,
+.tg-mesh-next {
+  width: 34px;
+  height: 34px;
+}
+
+/* =======================================================
+   Scatter Population Manager
+======================================================= */
+.tg-mesh-scatter-panel {
+  width: 250px;
+  flex: 0 0 250px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-left: 1px solid rgba(205, 38, 38, 0.35);
+  border-right: 1px solid rgba(205, 38, 38, 0.35);
+  background: rgba(5, 6, 8, 0.48);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  box-sizing: border-box;
+}
+
+.tg-mesh-scatter-manager-title {
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.tg-mesh-scatter-manager-scroll {
+  min-height: 0;
+  max-height: 270px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-right: 3px;
+}
+
+.tg-scatter-population {
+  border: 1px solid rgba(205, 38, 38, 0.42);
+  background: rgba(8, 10, 14, 0.74);
+  padding: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tg-scatter-population.selected {
+  border-color: rgba(205, 38, 38, 0.78);
+}
+
+.tg-scatter-population.disabled {
+  opacity: 0.68;
+}
+
+.tg-scatter-population-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tg-white);
+  text-align: left;
+  font-family: var(--tg-font-display);
+  cursor: pointer;
+}
+
+.tg-scatter-population-header span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  letter-spacing: 0.055em;
+}
+
+.tg-scatter-population-header strong {
+  flex: 0 0 auto;
+  color: rgba(232, 238, 245, 0.48);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+}
+
+.tg-mesh-scatter-slider {
+  display: grid;
+  gap: 3px;
+  font-family: var(--tg-font-copy);
+  font-size: 10px;
+  color: rgba(232, 238, 245, 0.72);
+}
+
+.tg-mesh-scatter-slider span {
+  display: flex;
+  justify-content: space-between;
+  letter-spacing: 0.06em;
+}
+
+.tg-mesh-scatter-slider strong {
+  color: var(--tg-white);
+  font-weight: 500;
+}
+
+.tg-mesh-scatter-slider input {
+  width: 100%;
+  accent-color: var(--tg-crimson);
+}
+
+.tg-mesh-scatter-remove,
+.tg-mesh-scatter-enable,
+.tg-mesh-scatter-add-selected {
+  min-height: 27px;
+  border: 1px solid rgba(205, 38, 38, 0.72);
+  background: rgba(5, 6, 8, 0.72);
+  color: var(--tg-white);
+  font-family: var(--tg-font-display);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+}
+
+.tg-mesh-scatter-remove:hover,
+.tg-mesh-scatter-enable:hover,
+.tg-mesh-scatter-add-selected:hover {
+  background: linear-gradient(90deg, var(--tg-maroon), var(--tg-crimson));
+}
+
+.tg-mesh-scatter-add-selected {
+  margin-top: auto;
+}
+
+
+.tg-mesh-card-delete { position:absolute; top:5px; right:5px; z-index:4; width:22px; height:22px; border:1px solid rgba(205,38,38,.75); background:rgba(5,6,8,.92); color:rgba(232,238,245,.7); font-family:var(--tg-font-display); font-size:18px; line-height:18px; padding:0; cursor:pointer; }
+.tg-mesh-card-delete:hover { color:var(--tg-white); background:var(--tg-crimson); }
+.tg-mesh-delete-backdrop, .tg-leaf-editor-backdrop { position:fixed; inset:0; z-index:400; display:grid; place-items:center; background:rgba(0,0,0,.58); backdrop-filter:blur(5px); }
+.tg-mesh-delete-dialog { width:min(420px,90vw); padding:22px; background:rgba(8,10,14,.98); border:1px solid rgba(205,38,38,.75); box-shadow:0 0 28px rgba(0,0,0,.55); color:var(--tg-white); font-family:var(--tg-font-display); text-transform:uppercase; }
+.tg-mesh-delete-dialog p { margin:18px 0 8px; letter-spacing:.08em; }
+.tg-mesh-delete-dialog strong { color:var(--tg-white); letter-spacing:.08em; }
+.tg-mesh-delete-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:22px; }
+.tg-leaf-editor-window { width:min(560px,92vw); background:rgba(8,10,14,.98); border:1px solid rgba(205,38,38,.72); box-shadow:0 0 30px rgba(0,0,0,.55); padding:14px; color:var(--tg-white); }
+.tg-leaf-editor-canvas { width:100%; aspect-ratio:1; background:#111; border:1px solid rgba(205,38,38,.45); margin-top:10px; }
+.tg-leaf-editor-footer { display:flex; align-items:center; gap:12px; padding-top:12px; font-family:var(--tg-font-display); font-size:13px; letter-spacing:.06em; }
+.tg-leaf-editor-footer span { color:rgba(232,238,245,.6); flex:1; }
+.tg-leaf-editor-footer strong { color:var(--tg-white); }

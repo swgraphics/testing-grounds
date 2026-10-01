@@ -46,6 +46,7 @@ export const DEFAULT_TREE = {
     verticality: 50,
     randomness: 50,
     baseTrunk: 25,
+    overrides: {},
 
     secondary: {
       enabled: true,

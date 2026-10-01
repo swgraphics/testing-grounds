@@ -9,6 +9,8 @@ import { RigidBody } from "@react-three/rapier";
 
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
+import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
+import { useWorldStore } from "../../systems/world/worldStore";
 
 const TERRAIN_SIZE = 600;
 const TERRAIN_SEGMENTS = 120;
@@ -28,6 +30,75 @@ const GRID_SAMPLE_STEP = 5;
  * the solid terrain.
  */
 const GRID_OFFSET = 0.08;
+
+const BASE_TERRAIN_HALF_SIZE = TERRAIN_SIZE / 2;
+const CREATOR_CHUNK_SIZE = 100;
+const CREATOR_CHUNK_SEGMENTS = 20;
+
+function TerrainExtensionChunk({ chunk, terrainKey }) {
+  const centerX = Number(chunk?.position?.[0]);
+  const centerZ = Number(chunk?.position?.[2]);
+
+  const geometry = useMemo(() => {
+    if (![centerX, centerZ].every(Number.isFinite)) return null;
+
+    const geo = new THREE.PlaneGeometry(
+      CREATOR_CHUNK_SIZE,
+      CREATOR_CHUNK_SIZE,
+      CREATOR_CHUNK_SEGMENTS,
+      CREATOR_CHUNK_SEGMENTS
+    );
+    geo.rotateX(-Math.PI / 2);
+    const positions = geo.attributes.position;
+    const colors = [];
+    const vertexColor = new THREE.Color();
+
+    for (let i = 0; i < positions.count; i += 1) {
+      const localX = positions.getX(i);
+      const localZ = positions.getZ(i);
+      const worldX = centerX + localX;
+      const worldZ = centerZ + localZ;
+      const height = getTerrainHeightAt(worldX, worldZ);
+      positions.setY(i, height);
+
+      const normalizedHeight = THREE.MathUtils.clamp(height / TERRAIN_MAX_GRADIENT_HEIGHT, 0, 1);
+      const smoothedHeight = THREE.MathUtils.smoothstep(normalizedHeight, 0, 1);
+      vertexColor.lerpColors(TERRAIN_BASE_COLOR, TERRAIN_HIGH_COLOR, smoothedHeight);
+      colors.push(vertexColor.r, vertexColor.g, vertexColor.b);
+    }
+
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+    geo.computeBoundingBox();
+    geo.computeBoundingSphere();
+    return geo;
+  }, [centerX, centerZ, terrainKey]);
+
+  useEffect(() => () => geometry?.dispose(), [geometry]);
+
+  if (!geometry) return null;
+
+  return (
+    <RigidBody key={`${chunk.id}-${terrainKey}`} type="fixed" colliders="trimesh">
+      <mesh
+        geometry={geometry}
+        position={[centerX, 0, centerZ]}
+        receiveShadow
+      >
+        <meshStandardMaterial
+          vertexColors
+          flatShading
+          roughness={0.94}
+          metalness={0}
+          polygonOffset
+          polygonOffsetFactor={1}
+          polygonOffsetUnits={1}
+        />
+      </mesh>
+    </RigidBody>
+  );
+}
+
 
 const TERRAIN_BASE_COLOR = new THREE.Color(
   "#080b10"
@@ -179,6 +250,30 @@ function createTerrainGridGeometry({
 
 export default function GridTerrain() {
   const [, refresh] = useState(0);
+  const guidesVisible = useWorldGuideStore((state) => state.visible);
+  const chunks = useWorldStore((state) => state.world.chunks);
+  const terrainKey = [
+    terrainSettings.heightMultiplier,
+    terrainSettings.mountainHeight,
+    terrainSettings.cliffSharpness,
+    terrainSettings.rollingHills,
+    terrainSettings.ridgeStrength,
+    terrainSettings.plateauAmount,
+    terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
+    terrainSettings.terrainPreviewVersion,
+    terrainSettings.terrainVertexEditVersion,
+  ].join("-");
+
+  const extensionChunks = useMemo(() => Object.values(chunks ?? {}).filter((chunk) => {
+    const x = Number(chunk?.position?.[0]);
+    const z = Number(chunk?.position?.[2]);
+    if (![x, z].every(Number.isFinite)) return false;
+    return (x - CREATOR_CHUNK_SIZE / 2 >= BASE_TERRAIN_HALF_SIZE) ||
+      (x + CREATOR_CHUNK_SIZE / 2 <= -BASE_TERRAIN_HALF_SIZE) ||
+      (z - CREATOR_CHUNK_SIZE / 2 >= BASE_TERRAIN_HALF_SIZE) ||
+      (z + CREATOR_CHUNK_SIZE / 2 <= -BASE_TERRAIN_HALF_SIZE);
+  }), [chunks]);
 
   useEffect(() => {
     function handleTerrainChange() {
@@ -280,6 +375,9 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
+    terrainSettings.terrainPreviewVersion,
+    terrainSettings.terrainVertexEditVersion,
   ]);
 
   /*
@@ -302,6 +400,9 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
+    terrainSettings.terrainPreviewVersion,
+    terrainSettings.terrainVertexEditVersion,
   ]);
 
   /*
@@ -324,6 +425,9 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
+    terrainSettings.terrainPreviewVersion,
+    terrainSettings.terrainVertexEditVersion,
   ]);
 
   /*
@@ -346,6 +450,9 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
+    terrainSettings.terrainPreviewVersion,
+    terrainSettings.terrainVertexEditVersion,
   ]);
 
   /*
@@ -388,6 +495,9 @@ export default function GridTerrain() {
     terrainSettings.ridgeStrength,
     terrainSettings.plateauAmount,
     terrainSettings.geometryStrength,
+    terrainSettings.terrainEditVersion,
+    terrainSettings.terrainPreviewVersion,
+    terrainSettings.terrainVertexEditVersion,
   ].join("-");
 
   return (
@@ -413,44 +523,28 @@ export default function GridTerrain() {
         </mesh>
       </RigidBody>
 
-      {/* Minor 10-meter grid. */}
-      <lineSegments
-        geometry={minorGridGeometry}
-        frustumCulled={false}
-      >
-        <lineBasicMaterial
-          color={MINOR_GRID_COLOR}
-          transparent
-          opacity={0.14}
-          depthWrite={false}
-        />
-      </lineSegments>
+      {extensionChunks.map((chunk) => (
+        <TerrainExtensionChunk key={chunk.id} chunk={chunk} terrainKey={terrainKey} />
+      ))}
 
-      {/* Major 50-meter grid. */}
-      <lineSegments
-        geometry={majorGridGeometry}
-        frustumCulled={false}
-      >
-        <lineBasicMaterial
-          color={MAJOR_GRID_COLOR}
-          transparent
-          opacity={0.38}
-          depthWrite={false}
-        />
-      </lineSegments>
+      {guidesVisible && (
+        <>
+          {/* Minor 10-meter grid. */}
+          <lineSegments geometry={minorGridGeometry} frustumCulled={false}>
+            <lineBasicMaterial color={MINOR_GRID_COLOR} transparent opacity={0.14} depthWrite={false} />
+          </lineSegments>
 
-      {/* Sector 100-meter grid. */}
-      <lineSegments
-        geometry={sectorGridGeometry}
-        frustumCulled={false}
-      >
-        <lineBasicMaterial
-          color={SECTOR_GRID_COLOR}
-          transparent
-          opacity={0.68}
-          depthWrite={false}
-        />
-      </lineSegments>
+          {/* Major 50-meter grid. */}
+          <lineSegments geometry={majorGridGeometry} frustumCulled={false}>
+            <lineBasicMaterial color={MAJOR_GRID_COLOR} transparent opacity={0.38} depthWrite={false} />
+          </lineSegments>
+
+          {/* Sector 100-meter grid. */}
+          <lineSegments geometry={sectorGridGeometry} frustumCulled={false}>
+            <lineBasicMaterial color={SECTOR_GRID_COLOR} transparent opacity={0.68} depthWrite={false} />
+          </lineSegments>
+        </>
+      )}
     </>
   );
 }

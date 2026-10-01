@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { cloudSettings } from "./CloudSettings";
 import { createCloudMaterial } from "./CloudMaterial";
 import { getAtmospherePalette } from "../atmospherePalette";
+import { terrainSettings } from "../../terrain/terrainSettings";
 
 export default function CloudField() {
 
@@ -19,16 +20,6 @@ export default function CloudField() {
 useFrame((state) => {
     
     const palette = getAtmospherePalette();
-    console.log(
-    palette.cloudTopColor.getHexString(),
-    palette.cloudBottomColor.getHexString(),
-    palette.cloudEdgeColor.getHexString()
-);
-console.log(
-    palette.normalizedSunHeight,
-    palette.daylightAmount,
-    palette.sunsetAmount
-);
     material.uniforms.time.value =
         state.clock.elapsedTime;
     
@@ -62,21 +53,26 @@ console.log(
     material.uniforms.cloudRotation.value =
         cloudSettings.rotation;
     
-    material.uniforms.upperColor.value.copy(
-        palette.cloudTopColor
-);
-    material.uniforms.lowerColor.value.copy(
-        palette.cloudBottomColor
-);   
-    material.uniforms.edgeColor.value.copy(
-        palette.cloudEdgeColor
-);
-    meshRef.current.position.copy(
-    state.camera.position
-);
+    const upperColor = cloudSettings.usePalette
+        ? palette.cloudTopColor
+        : new THREE.Color(cloudSettings.upperColor);
+    const lowerColor = cloudSettings.usePalette
+        ? palette.cloudBottomColor
+        : new THREE.Color(cloudSettings.lowerColor);
+    const edgeColor = cloudSettings.usePalette
+        ? palette.cloudEdgeColor
+        : new THREE.Color(cloudSettings.edgeColor);
 
-// TEST: temporarily disable cloud height offset
-// meshRef.current.position.y += cloudSettings.height;
+    material.uniforms.upperColor.value.copy(upperColor);
+    material.uniforms.lowerColor.value.copy(lowerColor);
+    material.uniforms.edgeColor.value.copy(edgeColor);
+    meshRef.current.position.copy(
+      state.camera.position
+    );
+    meshRef.current.position.y += cloudSettings.height;
+    material.uniforms.speed.value =
+      cloudSettings.speed +
+      (Number(terrainSettings.windSpeed) || 0) / 100 * 0.9;
 
 });
     return (

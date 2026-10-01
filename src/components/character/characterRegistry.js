@@ -1,4 +1,26 @@
+import { CRASH_TESTER_VARIANTS } from "../../config/crashTesterConfig";
+
+function createCrashTesterCharacter(variant) {
+  return {
+    id: variant.id,
+    displayName: variant.displayName,
+    family: "crashTester",
+    generation: variant.number,
+    animationSource: variant.animationSource,
+    modelPath: variant.modelPath,
+    animationMap: variant.animationMap,
+    animationStatus: variant.animationSource === "embedded" ? "ready" : "awaiting-rigged-model",
+    scale: variant.scale ?? 1,
+    height: variant.height ?? 0,
+    rotation: { x: 0, y: 0, z: 0 },
+  };
+}
+
 export const characterRegistry = {
+  ...Object.fromEntries(
+    CRASH_TESTER_VARIANTS.map((variant) => [variant.id, createCrashTesterCharacter(variant)])
+  ),
+
   adventurer: {
   id: "adventurer",
   displayName: "Adventurer",
@@ -20,6 +42,10 @@ export const characterRegistry = {
       "/animations/adventurer/Running Slide.fbx",
     wallRun:
       "/animations/adventurer/Wall Run.fbx",
+    wallClimbStart:
+      "/animations/adventurer/Sprint To Wall Climb.fbx",
+    wallClimb:
+      "/animations/adventurer/Climbing Up Wall.fbx",
   },
 
   scale: 1,
@@ -59,4 +85,4 @@ export const characterRegistry = {
   },
 };
 
-export const activeCharacterId = "adventurer";
+export const activeCharacterId = "crashTester01";

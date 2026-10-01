@@ -1,0 +1,32 @@
+TESTING GROUNDS 1.4.0 OVERLAY PATCH
+
+This is an OVERLAY PATCH for the existing Testing Grounds repository.
+
+1. Close the Testing Grounds dev server.
+2. Make a backup/commit of your current 1.3.2 repository before extracting this patch.
+3. Extract the contents of this ZIP directly into:
+
+   C:\Users\Tavis\testing-grounds
+
+4. Allow Windows to merge folders and overwrite matching files.
+5. DO NOT extract into a new nested project folder.
+6. DO NOT replace or delete .git.
+7. DO NOT copy node_modules from the patch.
+8. The public Quaternius and Crash Tester assets are intentionally NOT included because they already exist in the 1.3.2 project.
+9. From the repository root run:
+
+   npm run build
+
+10. If the build succeeds, run:
+
+   git status
+
+11. Review the changed files.
+12. Finalize with your normal workflow:
+
+   git add .
+   git commit -m "Testing Grounds 1.4.0 overhaul"
+   git push
+
+IMPORTANT:
+This patch expects the existing 1.3.2 codebase. Do not delete working files that are not included in this overlay.

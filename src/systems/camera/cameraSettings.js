@@ -2,6 +2,18 @@ const CAMERA_STORAGE_KEY =
   "testing-grounds-camera-presets";
 
 export const defaultCameraSettings = {
+  crashTester01: {
+    height: 2.35,
+    distance: 5.2,
+    lookAtHeight: 1.55,
+    shoulderOffset: 0.65,
+    lookAheadDistance: 2.6,
+    pitchHeightStrength: 1.5,
+    smoothing: 0.08,
+    fov: 55,
+    fpvMoveSpeed: 15,
+  },
+
   adventurer: {
     height: 2.4,
     distance: 4.8,
@@ -34,6 +46,10 @@ function cloneProfile(profile) {
 }
 
 export const cameraSettings = {
+  crashTester01: cloneProfile(
+    defaultCameraSettings.crashTester01
+  ),
+
   adventurer: cloneProfile(
     defaultCameraSettings.adventurer
   ),

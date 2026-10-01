@@ -1,12 +1,14 @@
+import { useWorldStore } from "../../world/worldStore";
+
 export const cloudSettings = {
 
-  brightness: 0.75,
+  brightness: 1.25,
 
-  shadowStrength: 0.5,
+  shadowStrength: 0.50,
 
-  coverage: 0.55,
+  coverage: 0.57,
 
-  density: 0.90,
+  density: 0.80,
 
   softness: 0.60,
 
@@ -14,27 +16,36 @@ export const cloudSettings = {
 
   wispy: 0.50,
 
-  scale: 1.0,
+  scale: 0.90,
 
-  stretch: 2.0,
+  stretch: 0.50,
 
-  detail: 0.45,
+  detail: 1.95,
 
-  height: 130,
+  height: 40,
 
-  speed: 2.50,
+  speed: 2.25,
 
   windDirection: 0,
+  rotation: 0,
 
   upperColor: "#7a7474",
 
   lowerColor: "#242425",
   
-  edgeColor: "#fdf7fd"
+  edgeColor: "#fdf7fd",
+
+  usePalette: true
 
 };
 export function updateCloudSetting(key, value) {
+  cloudSettings[key] = value;
 
-    cloudSettings[key] = value;
-
+  const state = useWorldStore.getState();
+  state.updateAtmosphere({
+    clouds: {
+      ...state.world.atmosphere.clouds,
+      [key]: value,
+    },
+  });
 }
