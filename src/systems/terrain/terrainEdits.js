@@ -366,9 +366,12 @@ export function applyCanyonWallExpansion({
       const along = relX * tx + relZ * tz;
       if (along < -EDIT_GRID || along > length + EDIT_GRID) continue;
 
+      // The terrain gradient normal points toward the elevated side.
+      // Canyon Edge must affect that side only; using abs(across) here
+      // would create a symmetric ridge instead of a one-sided edge.
       const across = relX * nx + relZ * nz;
-      const distance = Math.abs(across);
-      if (distance > halfWidth) continue;
+      if (across < 0 || across > halfWidth) continue;
+      const distance = across;
 
       const acrossT = THREE.MathUtils.clamp(1 - distance / halfWidth, 0, 1);
       const sideFalloff = acrossT * acrossT * (3 - 2 * acrossT);

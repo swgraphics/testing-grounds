@@ -7,6 +7,7 @@ import { RigidBody } from "@react-three/rapier";
 import { Billboard, Text } from "@react-three/drei";
 
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
+import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
 
 const SIZE = 300;
 const MINOR_STEP = 10;
@@ -134,6 +135,7 @@ function SectorLabel({ children, x, z }) {
 }
 
 export default function GridFloor() {
+  const guidesVisible = useWorldGuideStore((state) => state.visible);
   /*
    * Forces labels to recalculate their terrain
    * height whenever terrain sliders change.
@@ -372,13 +374,12 @@ export default function GridFloor() {
        */}
       {/* <group>{lines}</group> */}
 
-      <group>
-        {distanceMarkers}
-      </group>
-
-      <group>
-        {coordinateLabels}
-      </group>
+      {guidesVisible && (
+        <>
+          <group>{distanceMarkers}</group>
+          <group>{coordinateLabels}</group>
+        </>
+      )}
     </>
   );
 }

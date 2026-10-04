@@ -1,4 +1,5 @@
 import { Text } from "@react-three/drei";
+import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
 
 function Marker({ title, position }) {
   return (
@@ -21,6 +22,9 @@ function Marker({ title, position }) {
 }
 
 export default function Helpers() {
+  const guidesVisible = useWorldGuideStore((state) => state.visible);
+  if (!guidesVisible) return null;
+
   return (
     <>
       <Marker title="SPAWN" position={[0, 0, 0]} />

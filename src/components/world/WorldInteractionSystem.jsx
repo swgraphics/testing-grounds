@@ -296,8 +296,6 @@ export default function WorldInteractionSystem() {
           setWaterPreviewPoints([[point.x, point.y + 0.16, point.z]]);
         }
       }
-      if (!paintingRef.current) return;
-
       if (state.activeTool === "CANYON_EDGE") {
         const selection = canyonSelectionRef.current;
         if (selection) {
@@ -308,9 +306,14 @@ export default function WorldInteractionSystem() {
           const hover = getCanyonSelection(point);
           if (hover) buildCanyonSelectionPreview(hover);
           else setCanyonPreviewPoints([]);
+        } else {
+          setCanyonPreviewPoints([]);
+          setCanyonExpansionPreviewPoints([]);
         }
         return;
       }
+
+      if (!paintingRef.current) return;
       if (state.activeTool === "HEIGHT") {
         const previousY = heightPointerLastYRef.current;
         heightPointerLastYRef.current = event.clientY;
