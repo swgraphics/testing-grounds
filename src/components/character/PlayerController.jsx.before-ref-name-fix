@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Ecctrl } from "ecctrl";
 import * as THREE from "three";
@@ -418,7 +418,6 @@ export default function PlayerController() {
   const lastTerrainHeightRef = useRef(null);
   const pendingTerrainHeightRef = useRef(null);
   const terrainStabilizationPendingRef = useRef(false);
-  const terrainPhysicsLockedRef = useRef(false);
   const sunTargetRef = useRef(false);
   const [animationState, setAnimationState] = useState("idle");
   const animationStateRef = useRef("idle");
@@ -494,103 +493,64 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  const terrainKeys = [
-    "terrainEditVersion",
-    "terrainVertexEditVersion",
-    "terrainPreviewVersion",
-    "heightMultiplier",
-    "mountainHeight",
-    "cliffSharpness",
-    "rollingHills",
-    "ridgeStrength",
-    "plateauAmount",
-    "geometryStrength",
-  ];
-
   function handleTerrainChange(event) {
     const key = event.detail?.key;
-    if (!terrainKeys.includes(key)) return;
+    if (![
+      "terrainEditVersion",
+      "terrainVertexEditVersion",
+      "terrainPreviewVersion",
+      "heightMultiplier",
+      "mountainHeight",
+      "cliffSharpness",
+      "rollingHills",
+      "ridgeStrength",
+      "plateauAmount",
+      "geometryStrength",
+    ].includes(key)) return;
 
-    const controller = controllerRef.current;
-    if (!controller?.body) return;
-
-    /*
-     * GridTerrain replaces its Rapier trimesh when terrain shape changes.
-     * Keep the player body out of the physics step during that replacement;
-     * otherwise one frame without the collider can make the player fall.
-     */
-    terrainPhysicsLockedRef.current = true;
-    controller.body.setEnabled(false);
-
+    // Capture the last terrain height sampled before this change.
     if (!terrainStabilizationPendingRef.current) {
       terrainStabilizationPendingRef.current = true;
-      pendingTerrainHeightRef.current = lastTerrainHeightRef.current;
+      terrainPendingHeightRef.current = lastTerrainHeightRef.current;
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          const previousHeight = terrainPendingHeightRef.current;
+          const controller = controllerRef.current;
+
+          terrainStabilizationPendingRef.current = false;
+          terrainPendingHeightRef.current = null;
+
+          if (
+            previousHeight == null ||
+            !controller?.body ||
+            !controller.currPos
+          ) return;
+
+          const position = controller.currPos;
+          const newTerrainHeight = getTerrainHeightAt(position.x, position.z);
+          const rise = newTerrainHeight - previousHeight;
+
+          // Only compensate for a real rise beneath the player.
+          // Preserve horizontal movement and vertical velocity.
+          if (rise > 0.05) {
+            controller.body.setTranslation(
+              {
+                x: position.x,
+                y: position.y + rise,
+                z: position.z,
+              },
+              true
+            );
+            controller.body.wakeUp();
+          }
+        });
+      });
     }
   }
 
-  function handleTerrainPhysicsRebuilt() {
-    if (!terrainPhysicsLockedRef.current) return;
-
-    window.requestAnimationFrame(() => {
-      const controller = controllerRef.current;
-      if (!controller?.body) return;
-
-      const position = controller.body.translation();
-      const previousHeight = pendingTerrainHeightRef.current;
-      const newTerrainHeight = getTerrainHeightAt(position.x, position.z);
-      const rise =
-        previousHeight == null
-          ? 0
-          : newTerrainHeight - previousHeight;
-
-      if (rise > 0.05) {
-        controller.body.setTranslation(
-          {
-            x: position.x,
-            y: position.y + rise,
-            z: position.z,
-          },
-          true
-        );
-      }
-
-      /*
-       * Clear any downward velocity accumulated before the lock. Horizontal
-       * velocity is preserved so terrain editing does not interrupt movement.
-       */
-      const velocity = controller.body.linvel();
-      controller.body.setLinvel(
-        { x: velocity.x, y: 0, z: velocity.z },
-        true
-      );
-      controller.body.wakeUp();
-      controller.body.setEnabled(true);
-
-      terrainPhysicsLockedRef.current = false;
-      terrainStabilizationPendingRef.current = false;
-      pendingTerrainHeightRef.current = null;
-    });
-  }
-
-  window.addEventListener(
-    "terrain-settings-changed",
-    handleTerrainChange
-  );
-  window.addEventListener(
-    "terrain-physics-rebuilt",
-    handleTerrainPhysicsRebuilt
-  );
-
-  return () => {
-    window.removeEventListener(
-      "terrain-settings-changed",
-      handleTerrainChange
-    );
-    window.removeEventListener(
-      "terrain-physics-rebuilt",
-      handleTerrainPhysicsRebuilt
-    );
-  };
+  window.addEventListener("terrain-settings-changed", handleTerrainChange);
+  return () => window.removeEventListener("terrain-settings-changed", handleTerrainChange);
 }, []);
 
 useEffect(() => {

@@ -5,7 +5,7 @@ import {
 } from "react";
 
 import * as THREE from "three";
-import { RigidBody } from "@react-three/rapier";
+import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
@@ -500,13 +500,33 @@ export default function GridTerrain() {
     terrainSettings.terrainVertexEditVersion,
   ].join("-");
 
+  /*
+   * The terrain collider is replaced whenever terrainPhysicsKey changes.
+   * Tell the player controller after the replacement has committed so it can
+   * release the temporary physics lock without racing the collider rebuild.
+   */
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      window.dispatchEvent(
+        new CustomEvent("terrain-physics-rebuilt", {
+          detail: { key: terrainPhysicsKey },
+        })
+      );
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [terrainPhysicsKey]);
+
   return (
     <>
-      <RigidBody
-        key={terrainPhysicsKey}
-        type="fixed"
-        colliders="trimesh"
-      >
+      <RigidBody type="fixed" colliders={false}>
+        <TrimeshCollider
+          key={terrainPhysicsKey}
+          args={[
+            terrainGeometry.attributes.position.array,
+            terrainGeometry.index.array,
+          ]}
+        />
         <mesh
           geometry={terrainGeometry}
           receiveShadow
