@@ -10,6 +10,7 @@ const WATER_SIZE = 900;
 const WATER_DEPTH = 100;
 const WATER_SURFACE_OFFSET = 0.04;
 const WATER_WIREFRAME_OFFSET = 0.045;
+const EMPTY_WATER_BODIES = [];
 
 function triangleWave(value) {
   return 1 - (2 / Math.PI) * Math.asin(Math.abs(Math.sin(value)));
@@ -31,6 +32,8 @@ export default function Water() {
   const waterSubdivisions = Math.round(Number(terrainSettings.waterSubdivisions) || 48);
   const waterHeight = terrainSettings.waterHeight ?? -4;
   const worldType = useWorldStore((state) => state.world.worldType);
+  const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
+  const waterBodies = useWorldStore((state) => state.world.chunks?.[currentChunkId]?.water?.bodies ?? EMPTY_WATER_BODIES);
   const [, refresh] = useState(0);
 
   useEffect(() => {
@@ -38,7 +41,8 @@ export default function Water() {
       refresh((value) => value + 1);
     }
     window.addEventListener("terrain-settings-changed", handleTerrainChange);
-    return () => window.removeEventListener("terrain-settings-changed", handleTerrainChange);
+    window.addEventListener("tg-water-bodies-changed", handleTerrainChange);
+    return () => { window.removeEventListener("terrain-settings-changed", handleTerrainChange); window.removeEventListener("tg-water-bodies-changed", handleTerrainChange); };
   }, []);
 
   const surfaceGeometry = useMemo(() => {
@@ -93,6 +97,18 @@ export default function Water() {
 
   return (
     <group>
+      {waterBodies.map((body) => (
+        <group key={body.id} position={[body.x, body.y, body.z]}>
+          <mesh rotation-x={-Math.PI / 2} receiveShadow>
+            <circleGeometry args={[Math.max(4, Number(body.diameter) / 2), Math.max(32, waterSubdivisions)]} />
+            <meshStandardMaterial color="#4e9ac2" emissive="#0d4c72" emissiveIntensity={0.18} transparent opacity={0.82} roughness={0.26} metalness={0.04} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
+          <mesh rotation-x={-Math.PI / 2} position-y={0.015}>
+            <ringGeometry args={[Math.max(4, Number(body.diameter) / 2) * 0.96, Math.max(4, Number(body.diameter) / 2), 48]} />
+            <meshBasicMaterial color="#b8d8e8" transparent opacity={0.3} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
+        </group>
+      ))}
       <group position={[0, waterHeight, 0]}>
         <mesh position={[0, -WATER_DEPTH / 2, 0]} receiveShadow>
           <boxGeometry args={[WATER_SIZE, WATER_DEPTH, WATER_SIZE]} />

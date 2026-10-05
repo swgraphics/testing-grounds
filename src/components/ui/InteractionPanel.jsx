@@ -11,7 +11,8 @@ const TOOLS = [
   { id: "terrain-flatten", label: "FLATTEN", description: "Flatten terrain" },
   { id: "terrain-slope", label: "SLOPE", description: "Shape a slope" },
   { id: "terrain-canyon-edge", label: "CANYON EDGE", description: "Extrude / expand a canyon edge" },
-  { id: "water-river", label: "DRAW WATER", description: "Reveal the water layer by lowering terrain" },
+  { id: "water-river", label: "DRAW RIVER", description: "Reveal the global water layer by lowering terrain" },
+  { id: "water-pond", label: "ADD WATER", description: "Create a pond or lake with a soft shoreline" },
   { id: "object", label: "OBJECT", description: "Select / move / rotate / scale" },
 ];
 
@@ -20,6 +21,7 @@ export default function InteractionPanel() {
   const activeTool = useInteractionStore((state) => state.activeTool);
   const activeMode = useInteractionStore((state) => state.activeMode);
   const guidesVisible = useWorldGuideStore((state) => state.visible);
+  const waterDiameter = useInteractionStore((state) => state.waterDiameter);
 
   useEffect(() => {
     document.body.classList.toggle("tg-tool-active", Boolean(activeTool && ["sculpt", "grab", "place", "edit"].includes(activeMode)));
@@ -70,6 +72,10 @@ export default function InteractionPanel() {
 
     if (tool === "water-river") {
       useInteractionStore.getState().activate({ target: "water", tool: "RIVER", mode: INTERACTION_MODES.GRAB });
+      return;
+    }
+    if (tool === "water-pond") {
+      useInteractionStore.getState().activate({ target: "water", tool: "POND", mode: INTERACTION_MODES.GRAB });
     }
   }
 
@@ -85,7 +91,7 @@ export default function InteractionPanel() {
 
       <div className="tg-interaction-panel-tools">
         {TOOLS.map((entry) => {
-          const expectedTool = entry.id === "object" ? "OBJECT" : entry.id === "sun" ? "SUN" : entry.id === "terrain-height" ? "HEIGHT" : entry.id === "terrain-canyon-edge" ? "CANYON_EDGE" : entry.id.startsWith("terrain-") ? entry.id.replace("terrain-", "").toUpperCase() : "RIVER";
+          const expectedTool = entry.id === "object" ? "OBJECT" : entry.id === "sun" ? "SUN" : entry.id === "terrain-height" ? "HEIGHT" : entry.id === "terrain-canyon-edge" ? "CANYON_EDGE" : entry.id === "water-pond" ? "POND" : entry.id.startsWith("terrain-") ? entry.id.replace("terrain-", "").toUpperCase() : "RIVER";
           const active = activeTool === expectedTool && Boolean(activeMode);
           return (
             <button
@@ -100,6 +106,21 @@ export default function InteractionPanel() {
           );
         })}
       </div>
+
+      {activeTool === "POND" && (
+        <label className="tg-interaction-panel-devtools" style={{ display: "block" }}>
+          POND DIAMETER: {waterDiameter}m
+          <input aria-label="Add Water diameter" type="range" min="8" max="120" step="4" value={waterDiameter} onChange={(event) => useInteractionStore.getState().setWaterDiameter(event.target.value)} style={{ width: "100%" }} />
+        </label>
+      )}
+
+      <button
+        type="button"
+        className="tg-interaction-panel-devtools"
+        onClick={() => window.dispatchEvent(new CustomEvent("tg-toggle-fpv-request"))}
+      >
+        FIRST-PERSON VIEW
+      </button>
 
       <button
         type="button"

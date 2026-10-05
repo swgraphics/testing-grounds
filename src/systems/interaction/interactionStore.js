@@ -15,6 +15,7 @@ const IDLE_STATE = {
   activeTool: null,
   activeMode: null,
   panelOpen: false,
+  waterDiameter: 24,
 };
 
 export const useInteractionStore = create((set) => ({
@@ -43,6 +44,8 @@ export const useInteractionStore = create((set) => ({
   clear() {
     set({ ...IDLE_STATE });
   },
+
+  setWaterDiameter(value) { set({ waterDiameter: Math.max(8, Math.min(120, Number(value) || 24)) }); },
 
   setTarget(target) {
     set({ activeTarget: target });

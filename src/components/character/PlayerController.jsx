@@ -617,6 +617,24 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
+  function handleCameraSettingsChange(event) {
+    if (!event.detail?.key || event.detail.key === "fpvMoveSpeed") refreshCameraSettings((value) => value + 1);
+  }
+  function handleFpvToggleRequest() {
+    const next = !devSettings.fpvMode;
+    devSettings.fpvMode = next;
+    setFpvMode(next);
+    window.dispatchEvent(new CustomEvent("dev-settings-changed", { detail: { key: "fpvMode", value: next } }));
+  }
+  window.addEventListener("camera-settings-changed", handleCameraSettingsChange);
+  window.addEventListener("tg-toggle-fpv-request", handleFpvToggleRequest);
+  return () => {
+    window.removeEventListener("camera-settings-changed", handleCameraSettingsChange);
+    window.removeEventListener("tg-toggle-fpv-request", handleFpvToggleRequest);
+  };
+}, []);
+
+useEffect(() => {
   function handleCharacterChange(event) {
     setCurrentCharacterId(
       event.detail.characterId

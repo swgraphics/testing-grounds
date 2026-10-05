@@ -11,6 +11,7 @@ import {
   beginTerrainHistory,
   commitTerrainHistory,
 } from "../../systems/terrain/terrainEdits";
+import { addWaterBody, beginWaterHistory, commitWaterHistory } from "../../systems/water/waterEdits";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 
 const raycaster = new THREE.Raycaster();
@@ -259,6 +260,27 @@ export default function WorldInteractionSystem() {
       return true;
     }
 
+    if (state.activeTool === "POND") {
+      const diameter = useInteractionStore.getState().waterDiameter || 24;
+      beginWaterHistory("ADD WATER");
+      // Gently form a basin beneath the water surface; the outer edge remains
+      // higher so the circular surface reads as a shoreline rather than a decal.
+      const radius = diameter / 2;
+      for (let ring = 0; ring < 3; ring += 1) {
+        const ringRadius = radius * (0.25 + ring * 0.28);
+        const count = Math.max(12, Math.ceil((Math.PI * 2 * ringRadius) / 5));
+        for (let i = 0; i < count; i += 1) {
+          const angle = (i / count) * Math.PI * 2;
+          applyTerrainBrush({ x: point.x + Math.cos(angle) * ringRadius, z: point.z + Math.sin(angle) * ringRadius, tool: "lower", radius: Math.max(4, radius * 0.42), strength: 0.16 + ring * 0.06 });
+        }
+      }
+      addWaterBody({ x: point.x, z: point.z, y: point.y - Math.max(0.8, diameter * 0.035), diameter, createdAt: Date.now() });
+      commitWaterHistory();
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
+    }
+
     if (state.activeTool === "RIVER") {
       beginTerrainHistory("DRAW WATER");
       paintingRef.current = true;
@@ -296,6 +318,8 @@ export default function WorldInteractionSystem() {
           setWaterPreviewPoints([[point.x, point.y + 0.16, point.z]]);
         }
       }
+      if (!paintingRef.current) return;
+
       if (state.activeTool === "CANYON_EDGE") {
         const selection = canyonSelectionRef.current;
         if (selection) {
@@ -306,14 +330,9 @@ export default function WorldInteractionSystem() {
           const hover = getCanyonSelection(point);
           if (hover) buildCanyonSelectionPreview(hover);
           else setCanyonPreviewPoints([]);
-        } else {
-          setCanyonPreviewPoints([]);
-          setCanyonExpansionPreviewPoints([]);
         }
         return;
       }
-
-      if (!paintingRef.current) return;
       if (state.activeTool === "HEIGHT") {
         const previousY = heightPointerLastYRef.current;
         heightPointerLastYRef.current = event.clientY;
@@ -405,6 +424,27 @@ export default function WorldInteractionSystem() {
       commitCanyonExpansion(canyonSelectionRef.current, endPoint);
       clearCanyonSelection();
       return;
+    }
+
+    if (state.activeTool === "POND") {
+      const diameter = useInteractionStore.getState().waterDiameter || 24;
+      beginWaterHistory("ADD WATER");
+      // Gently form a basin beneath the water surface; the outer edge remains
+      // higher so the circular surface reads as a shoreline rather than a decal.
+      const radius = diameter / 2;
+      for (let ring = 0; ring < 3; ring += 1) {
+        const ringRadius = radius * (0.25 + ring * 0.28);
+        const count = Math.max(12, Math.ceil((Math.PI * 2 * ringRadius) / 5));
+        for (let i = 0; i < count; i += 1) {
+          const angle = (i / count) * Math.PI * 2;
+          applyTerrainBrush({ x: point.x + Math.cos(angle) * ringRadius, z: point.z + Math.sin(angle) * ringRadius, tool: "lower", radius: Math.max(4, radius * 0.42), strength: 0.16 + ring * 0.06 });
+        }
+      }
+      addWaterBody({ x: point.x, z: point.z, y: point.y - Math.max(0.8, diameter * 0.035), diameter, createdAt: Date.now() });
+      commitWaterHistory();
+      event.preventDefault();
+      event.stopPropagation();
+      return true;
     }
 
     if (state.activeTool === "RIVER") {
