@@ -3,6 +3,7 @@ import { useEditorStore } from "../../systems/editor/editorStore";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 
 import { inputState } from "../../systems/input/inputState";
+import { UNIVERSAL_ANIMATION_LIBRARY } from "../../config/universalAnimationLibrary";
 import {
   runWithLoadingOverlay,
 } from "../../systems/ui/loadingOverlay";
@@ -550,6 +551,7 @@ export default function InputHUD() {
     y: 0,
   });
   const [sprintOn, setSprintOn] = useState(false);
+  const [animationLibraryOpen, setAnimationLibraryOpen] = useState(false);
 
   const [openDevSections, setOpenDevSections] = useState({
     character: false,
@@ -1022,6 +1024,18 @@ function handleSectionLockChange(event) {
 
       if (event.code === "KeyT") {
         window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: "swordAttack", duration: 900 } }));
+      }
+
+      const animationShortcuts = {
+        KeyF: ["attack", 620], KeyG: ["Dance_Loop", 5000], KeyV: ["pistolAim", 1200],
+        KeyB: ["pistolShoot", 650], KeyN: ["pistolReload", 1500], KeyJ: ["Sitting_Enter", 900],
+        KeyK: ["swim", 1200], KeyL: ["ClimbUp_1m", 1200], KeyH: ["Hit_Head", 850],
+        KeyY: ["Yes", 1800], KeyU: ["OverhandThrow", 1000], KeyI: ["Interact", 700],
+        KeyO: ["Chest_Open", 1300], KeyP: ["Consume", 1000],
+      };
+      const shortcut = animationShortcuts[event.code];
+      if (!event.repeat && shortcut && currentCharacterId.startsWith("crashTester")) {
+        window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: shortcut[0], duration: shortcut[1] } }));
       }
 
       updateStickFromKeyboard();
@@ -1923,6 +1937,55 @@ function handleSectionLockChange(event) {
     }}
   />
 </div>
+{currentCharacterId.startsWith("crashTester") && (
+  <div className="tg-animation-library-ui">
+    <button
+      type="button"
+      className="tg-animation-library-toggle"
+      aria-expanded={animationLibraryOpen}
+      onClick={() => setAnimationLibraryOpen((open) => !open)}
+    >
+      {animationLibraryOpen ? "CLOSE ACTIONS" : "ANIMATION ACTIONS"}
+    </button>
+    {animationLibraryOpen && (
+      <div className="tg-animation-library-panel" role="dialog" aria-label="Animation action library">
+        <div className="tg-animation-library-heading">UNIVERSAL ANIMATION LIBRARY</div>
+        <div className="tg-animation-library-hint">Choose an action to play on the active Crash Tester. Looping clips play for 4 seconds; one-shots return to normal movement.</div>
+        {[
+          ["movement", "MOVEMENT & TRAVERSAL"],
+          ["combat", "COMBAT & REACTIONS"],
+          ["interaction", "INTERACTIONS"],
+          ["emote", "IDLES & EMOTES"],
+        ].map(([category, label]) => {
+          const clips = UNIVERSAL_ANIMATION_LIBRARY.filter((clip) => clip.category === category);
+          if (!clips.length) return null;
+          return (
+            <section className="tg-animation-library-category" key={category}>
+              <div className="tg-animation-library-category-title">{label}</div>
+              <div className="tg-animation-library-grid">
+                {clips.map((clip) => (
+                  <button
+                    type="button"
+                    className="tg-animation-library-action"
+                    key={clip.id}
+                    title={`${clip.label} — ${clip.pack}`}
+                    onClick={() => {
+                      const looping = /Loop$/.test(clip.clipName) || clip.clipName === "Dance_Loop";
+                      const duration = looping ? 4000 : 1400;
+                      window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: clip.id, duration } }));
+                    }}
+                  >
+                    {clip.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    )}
+  </div>
+)}
 {/* DESKTOP ACTION BUTTONS */}
 <div className="tg-desktop-action-buttons">
   {/* A — Jump */}

@@ -5126,3 +5126,17 @@ canvas {
 /* 1.6.03.03 — Tree branch gesture controls remain compact and brand-consistent. */
 .tg-tree-interaction-panel .tg-tree-interaction-mode-row{display:flex;flex-wrap:wrap;gap:4px}
 .tg-tree-interaction-panel .tg-tree-interaction-mode-row .tg-tree-interaction-mode{flex:1 1 auto;min-width:72px;font-size:9px;padding:6px 7px}
+
+/* Animation Library Pass 2: shared desktop/touch action picker. */
+.tg-animation-library-ui{position:fixed;right:18px;top:76px;z-index:310;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:auto}
+.tg-animation-library-toggle{min-height:34px;padding:8px 12px;border:1px solid rgba(205,38,38,.75);background:rgba(5,7,10,.92);color:var(--tg-white);font-family:var(--tg-font-display);font-size:10px;letter-spacing:.09em;cursor:pointer}
+.tg-animation-library-toggle:hover{background:rgba(129,16,18,.8);border-color:var(--tg-crimson)}
+.tg-animation-library-panel{width:min(430px,calc(100vw - 28px));max-height:min(72vh,680px);overflow:auto;padding:12px;background:rgba(5,7,10,.96);border:1px solid rgba(232,238,245,.2);box-shadow:0 12px 36px rgba(0,0,0,.48);color:var(--tg-white);overscroll-behavior:contain}
+.tg-animation-library-heading{font-family:var(--tg-font-display);font-size:12px;letter-spacing:.1em;margin-bottom:6px}
+.tg-animation-library-hint{font-size:10px;line-height:1.45;color:rgba(232,238,245,.66);margin-bottom:12px}
+.tg-animation-library-category{margin-top:12px;padding-top:9px;border-top:1px solid rgba(232,238,245,.13)}
+.tg-animation-library-category-title{font-family:var(--tg-font-display);font-size:9px;letter-spacing:.1em;color:rgba(232,238,245,.72);margin-bottom:7px}
+.tg-animation-library-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.tg-animation-library-action{min-height:32px;padding:6px 8px;text-align:left;border:1px solid rgba(232,238,245,.16);background:rgba(255,255,255,.045);color:var(--tg-white);font-family:var(--tg-font-display);font-size:9px;letter-spacing:.025em;cursor:pointer}
+.tg-animation-library-action:hover,.tg-animation-library-action:focus-visible{outline:none;border-color:var(--tg-crimson);background:rgba(129,16,18,.32)}
+@media(max-width:620px){.tg-animation-library-ui{top:58px;right:8px}.tg-animation-library-panel{max-height:58vh;padding:9px}.tg-animation-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tg-animation-library-action{font-size:8px;min-height:30px}}

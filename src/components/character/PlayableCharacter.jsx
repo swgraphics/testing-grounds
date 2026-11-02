@@ -136,6 +136,8 @@ function EmbeddedAnimatedCharacter({ character, animationState, animationTrigger
   const groupRef = useRef();
 
   const { scene, animations } = useGLTF(character.modelPath);
+  const { animations: universalAnimations } = useGLTF("/assets/crash-testers/animations/Universal Animation Library/UAL1_Standard.glb");
+  const { animations: universalAnimations2 } = useGLTF("/assets/crash-testers/animations/Universal Animation Library 2/UAL2_Standard.glb");
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
@@ -150,18 +152,17 @@ function EmbeddedAnimatedCharacter({ character, animationState, animationTrigger
   }, [scene]);
 
   const renamedAnimations = useMemo(() => {
-    return animations.map((clip) => {
-      const mappedName =
-        Object.entries(character.animationMap || {}).find(
-          ([, originalClipName]) => originalClipName === clip.name
-        )?.[0] || clip.name;
-
+    const sourceClips = character.family === "crashTester" ? [...animations, ...universalAnimations, ...universalAnimations2] : animations;
+    const usedNames = new Set();
+    return sourceClips.flatMap((clip) => {
+      if (usedNames.has(clip.name)) return [];
+      usedNames.add(clip.name);
+      const mappedName = Object.entries(character.animationMap || {}).find(([, originalClipName]) => originalClipName === clip.name)?.[0] || clip.name;
       const clonedClip = clip.clone();
       clonedClip.name = mappedName;
-
-      return clonedClip;
+      return [clonedClip];
     });
-  }, [animations, character.animationMap]);
+  }, [animations, universalAnimations, universalAnimations2, character.animationMap, character.family]);
 
   const { actions } = useAnimations(renamedAnimations, groupRef);
 
@@ -172,19 +173,15 @@ function EmbeddedAnimatedCharacter({ character, animationState, animationTrigger
 
     currentAction.reset().fadeIn(0.12);
 
-    const oneShotStates = new Set([
-      "attack",
-      "attackCross",
-      "swordAttack",
-      "interact",
-      "pistolShoot",
-      "pistolReload",
-      "death",
-      "worldTransformEnter",
-      "worldTransformExit",
+    // The catalog's *_Loop clips repeat; other library actions are one-shots.
+    // Preserve the existing semantic locomotion states, which use aliased clip names.
+    const loopingStates = new Set([
+      "idle", "walk", "run", "crouchWalk", "jump", "runJump", "swim",
+      "pistolAim", "worldTransform", "pistolIdle", "zombieIdle",
     ]);
+    const shouldLoop = loopingStates.has(animationState) || animationState.endsWith("_Loop");
 
-    if (oneShotStates.has(animationState)) {
+    if (!shouldLoop) {
       currentAction.setLoop(THREE.LoopOnce, 1);
       currentAction.clampWhenFinished = true;
     } else {

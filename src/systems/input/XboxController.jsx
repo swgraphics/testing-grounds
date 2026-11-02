@@ -173,9 +173,11 @@ export default function XboxController() {
       return pressed;
     };
 
-    dispatchEdgeAction(7, "attack", 620);
-    dispatchEdgeAction(5, "attackCross", 700);
-    dispatchEdgeAction(4, "interact", 700);
+    dispatchEdgeAction(7, "attack", 620);       // RT: quick attack
+    dispatchEdgeAction(5, "attackCross", 700);  // RB: cross punch
+    dispatchEdgeAction(4, "interact", 700);     // LB: interact
+    dispatchEdgeAction(2, "swordAttack", 900);  // X: sword attack
+    dispatchEdgeAction(3, "Dance_Loop", 4000);  // Y: dance emote
     // Standard mapping: 6 = left trigger, 7 = right trigger.
     gamepadState.leftTrigger = buttonPressed(6);
     previousButtonsRef.current[6] = gamepadState.leftTrigger;
