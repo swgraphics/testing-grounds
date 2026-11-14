@@ -667,7 +667,7 @@ export default function MeshPlacementSystem() {
       hitObject = hitObject.parent;
     }
     event.stopPropagation();
-    event.preventDefault();
+    // R3F pointer handlers are passive; stopPropagation is the supported API.
     selectPlacedObject(id);
     const chunkId = useWorldStore.getState().world.currentChunkId;
     const object = useWorldStore.getState().world.chunks?.[chunkId]?.objects?.[id];
@@ -688,6 +688,10 @@ export default function MeshPlacementSystem() {
     if (!id) return;
     const point = findTerrainHit(raycaster.ray);
     if (!point) return;
+    const entry = placedMeshes.find((object) => object.id === id);
+    if (entry?.mesh?.modelType === "building-block") {
+      point.y = getTerrainAnchoredObjectY({ ...entry, position: point }) ?? point.y;
+    }
     setPlacedMeshes((current) => current.map((entry) => {
       if (entry.id !== id) return entry;
       if (entry.type === "scene") {

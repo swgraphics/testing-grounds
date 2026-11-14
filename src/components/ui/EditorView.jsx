@@ -201,7 +201,11 @@ export default function EditorView() {
                     if (name) useWorldStore.getState().renameChunk(chunk.id, name);
                     setRenamingAreaId(null);
                   }
-                  if (event.key === "Escape") setRenamingAreaId(null);
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setRenamingAreaId(null);
+                  }
                 }}
                 onBlur={() => {
                   const name = renameValue.trim();

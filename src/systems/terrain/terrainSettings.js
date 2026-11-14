@@ -196,7 +196,13 @@ if (typeof window !== "undefined") {
     loadChunkTerrainSettings(event.detail?.chunkId);
   });
 
-  window.addEventListener("tg-world-history-applied", () => {
+  window.addEventListener("tg-world-history-applied", (event) => {
+    const paths = event.detail?.paths;
+    // Object-only Undo/Redo must not trigger terrain-follow against stale render
+    // positions while placed objects are being rehydrated from the restored world.
+    if (Array.isArray(paths) && !paths.some(path =>
+      path[0] === "terrainVertexEdits" || (path[0] === "chunks" && path[2] === "terrain")
+    )) return;
     const world = useWorldStore.getState().world;
     const chunk = world.chunks?.[world.currentChunkId];
     const savedTerrain = chunk?.terrain ?? {};

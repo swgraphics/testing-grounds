@@ -1,6 +1,6 @@
 import { useWorldStore } from "../../world/worldStore";
 
-export const cloudSettings = {
+const DEFAULT_CLOUD_SETTINGS = {
 
   brightness: 1.25,
 
@@ -38,6 +38,21 @@ export const cloudSettings = {
   usePalette: true
 
 };
+
+export const cloudSettings = { ...DEFAULT_CLOUD_SETTINGS };
+
+// The renderer reads this object each frame. Restore it when saved world data
+// changes, including worlds with no cloud overrides, without replacing its identity.
+function restoreCloudSettings(world) {
+  Object.assign(cloudSettings, DEFAULT_CLOUD_SETTINGS, world.atmosphere?.clouds ?? {});
+}
+restoreCloudSettings(useWorldStore.getState().world);
+useWorldStore.subscribe((state, previous) => {
+  if (state.world.atmosphere?.clouds !== previous.world.atmosphere?.clouds) {
+    restoreCloudSettings(state.world);
+  }
+});
+
 export function updateCloudSetting(key, value) {
   cloudSettings[key] = value;
 

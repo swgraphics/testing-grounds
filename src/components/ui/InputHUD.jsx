@@ -119,7 +119,7 @@ const CLOUD_SLIDERS = [
     ["stretch",        "Cloud Stretch",     0.5, 6.0, 0.05],
     ["rotation",       "Cloud Rotation",    0.0, 6.283, 0.01],
 
-    ["fluffiness",     "Wispy → Thick",     0.2, 4.0, 0.05],
+    ["puffiness",      "Cloud Puffiness",   0.0, 1.0, 0.01],
     ["density",        "Light → Dense",     0.1, 2.0, 0.01],
     ["detail",         "Detail",            0.2, 3.0, 0.05],
 
@@ -250,16 +250,17 @@ function DevSlider({
 }) {
   const value = terrainSettings[settingKey];
   const sliderLocked = isDevSliderLocked(lockId);
-  const effectiveLocked = locked || sliderLocked;
+  const planned = settingKey === "windDirection";
+  const effectiveLocked = locked || sliderLocked || planned;
 
   return (
     <div className="tg-dev-slider-group">
       <div className="tg-dev-slider-heading">
-        <label className="tg-dev-slider-label">{label}</label>
+        <label className="tg-dev-slider-label">{label}{planned ? " (planned)" : ""}</label>
         <span className="tg-dev-slider-value">
           {Number(value).toFixed(step < 0.1 ? 2 : 1)}
         </span>
-        <SliderLockButton sliderId={lockId} onRefresh={onRefresh} />
+        {!planned && <SliderLockButton sliderId={lockId} onRefresh={onRefresh} />}
       </div>
       <input
         className="tg-dev-slider"
@@ -269,6 +270,7 @@ function DevSlider({
         step={step}
         value={value}
         disabled={effectiveLocked}
+        title={planned ? "Directional wind is planned; the current renderer uses wind strength and speed." : undefined}
         onChange={(event) => {
           updateTerrainSetting(settingKey, Number(event.target.value));
           onRefresh();

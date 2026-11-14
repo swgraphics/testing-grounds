@@ -852,6 +852,7 @@ export default function MeshMenu() {
   const [editOpen, setEditOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [uploadedMeshes, setUploadedMeshes] = useState([]);
+  const [uploadError, setUploadError] = useState("");
   const [editedMeshes, setEditedMeshes] = useState({});
   const [savedMeshes, setSavedMeshes] = useState(() => {
     try { return JSON.parse(localStorage.getItem("testingGroundsSavedObjects") || "[]"); } catch { return []; }
@@ -971,12 +972,20 @@ useEffect(() => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // The existing importer supports self-contained GLB, not OBJ/FBX or sidecar files.
+    if (!/\.glb$/i.test(file.name)) {
+      setUploadError("Choose a self-contained .glb file. OBJ, FBX and external glTF resources are not supported.");
+      event.target.value = "";
+      return;
+    }
+    setUploadError("");
+
     const id = `upload-${Date.now()}`;
     const mesh = createUploadedObject(file, id);
 
     setUploadedMeshes((current) => [mesh, ...current]);
     setSelectedId(id);
-    setMode("place");
+    setMode("select");
 
     window.dispatchEvent(
       new CustomEvent("tg-mesh-upload-request", {
@@ -1213,7 +1222,8 @@ function getDefaultCrimsonProfile() {
       <>
         <div className="tg-mesh-menu" data-input-context="panel">
         <h2 className="tg-hud-heading">{mode === "scatter" ? "SCATTER // POPULATIONS" : "OBJECTS // LIBRARY"}</h2>
-        <p className="tg-library-guidance">Choose an object, then place or edit it. Use UPLOAD MESH to choose a local file. Scatter changes apply to the world immediately; Save World persists them.</p>
+        <p className="tg-library-guidance">Choose an object, then place or edit it. Local GLB uploads are session-only previews; Save World does not retain local files. Built-in objects and scatter settings persist with Save World.</p>
+        {uploadError && <p role="alert">{uploadError}</p>}
 
     <button
       type="button"
@@ -1240,7 +1250,7 @@ function getDefaultCrimsonProfile() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".glb,.gltf,.obj,.fbx"
+            accept=".glb"
             hidden
             onChange={handleUpload}
           />
@@ -1352,7 +1362,7 @@ function getDefaultCrimsonProfile() {
                     onChange={(event) => setRenameValue(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") commitRename(mesh);
-                      if (event.key === "Escape") setRenamingId(null);
+                    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setRenamingId(null); }
                     }}
                     onBlur={() => commitRename(mesh)}
                     onClick={(event) => event.stopPropagation()}

@@ -61,6 +61,8 @@ export default function App() {
 
     function handleEscape(event) {
       if (event.key !== "Escape") return;
+      // Let inline rename fields cancel before a shell dismissal can blur/save them.
+      if (event.target?.matches?.('.tg-editor-area-rename-input,.tg-mesh-card-rename-input')) return;
       if (useNavigationStore.getState().compassOpen || useNavigationStore.getState().helpOpen) return;
       if (document.querySelector(".tg-terrain-export")) {
         const closeButton = document.querySelector('.tg-terrain-export [aria-label="Close terrain export"]');

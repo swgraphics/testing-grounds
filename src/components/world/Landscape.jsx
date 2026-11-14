@@ -1,7 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import * as THREE from "three";
 import {
   RigidBody,
   CylinderCollider,
@@ -436,7 +435,9 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
         />
       );
     });
-  }, [count, coverage, seedBase, profileSeed, profileId, currentChunkId, chunkX, chunkZ, baseDefinition, treeOverrides, terrainValues.heightMultiplier, terrainValues.mountainHeight, terrainValues.cliffSharpness, terrainValues.rollingHills, terrainValues.ridgeStrength, terrainValues.plateauAmount, terrainValues.geometryStrength]);
+  // getTerrainHeightAt reads module settings; keep these invalidation dependencies.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, coverage, seedBase, profileSeed, profileId, currentChunkId, chunkX, chunkZ, baseDefinition, treeOverrides, isDefaultCrimson, terrainValues.heightMultiplier, terrainValues.mountainHeight, terrainValues.cliffSharpness, terrainValues.rollingHills, terrainValues.ridgeStrength, terrainValues.plateauAmount, terrainValues.geometryStrength]);
 
   const windStrength = Number(terrainValues.windStrength) || 0;
   const windSpeed = Number(terrainValues.windSpeed) || 0;

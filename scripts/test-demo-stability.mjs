@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+import { createServer } from 'vite';
+
+const server = await createServer({ configFile: false, cacheDir: 'node_modules/.vite-tg-tests', optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, watch: null }, appType: 'custom' });
+const previousWindow = globalThis.window;
+const previousStorage = globalThis.localStorage;
+globalThis.window = new EventTarget();
+const storage = new Map();
+globalThis.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, String(value)), removeItem: key => storage.delete(key) };
+
+try {
+  const { useWorldStore: world } = await server.ssrLoadModule('/src/systems/world/worldStore.js');
+  const { cloudSettings, updateCloudSetting } = await server.ssrLoadModule('/src/systems/atmosphere/clouds/CloudSettings.js');
+  const { saveWorldSnapshot, loadWorldSnapshot } = await server.ssrLoadModule('/src/systems/world/worldPersistence.js');
+  const defaults = { ...cloudSettings };
+  const identity = cloudSettings;
+  updateCloudSetting('density', .31);
+  updateCloudSetting('usePalette', false);
+  updateCloudSetting('upperColor', '#123456');
+  saveWorldSnapshot();
+  updateCloudSetting('density', .87);
+  updateCloudSetting('upperColor', '#abcdef');
+  loadWorldSnapshot();
+  assert.equal(cloudSettings, identity, 'renderer object identity retained');
+  assert.equal(cloudSettings.density, .31);
+  assert.equal(cloudSettings.usePalette, false);
+  assert.equal(cloudSettings.upperColor, '#123456');
+  assert.equal(world.getState().world.atmosphere.clouds.upperColor, '#123456');
+  world.getState().replaceWorld({ ...world.getState().world, atmosphere: { clouds: { density: .42 } } });
+  assert.equal(cloudSettings.density, .42);
+  assert.equal(cloudSettings.upperColor, defaults.upperColor, 'partial legacy saves inherit defaults');
+  world.getState().initializeBlankWorld();
+  assert.deepEqual(cloudSettings, defaults, 'new blank world does not inherit prior cloud customization');
+  loadWorldSnapshot();
+  assert.equal(cloudSettings.upperColor, '#123456', 'new world did not overwrite saved overrides');
+  console.log('PASS live cloud restoration, saved colors, renderer identity, partial legacy saves and blank-world isolation');
+  const { terrainSettings } = await server.ssrLoadModule('/src/systems/terrain/terrainSettings.js');
+  const { beginHistoryTransaction, commitHistoryTransaction, useHistoryStore: history } = await server.ssrLoadModule('/src/systems/history/historyStore.js');
+  const chunkId = world.getState().world.currentChunkId;
+  world.getState().upsertObject({ id: 'qa-block', position: [0, 2, 0] });
+  const object = () => world.getState().world.chunks[chunkId].objects['qa-block'];
+  const snapshot = () => ({ chunks: { [chunkId]: { objects: { 'qa-block': { ...object() } } } } });
+  const metadata = { paths: [['chunks', chunkId, 'objects', 'qa-block']] };
+  beginHistoryTransaction('MOVE OBJECT', snapshot(), metadata);
+  world.getState().updateObject('qa-block', { position: [8, 2, 3] });
+  commitHistoryTransaction(snapshot(), metadata);
+  const version = terrainSettings.terrainEditVersion;
+  let terrainEvents = 0;
+  const count = () => { terrainEvents++; };
+  window.addEventListener('terrain-settings-changed', count);
+  history.getState().undo();
+  assert.deepEqual(object().position, [0, 2, 0]);
+  history.getState().redo();
+  assert.deepEqual(object().position, [8, 2, 3]);
+  assert.equal(terrainEvents, 0, 'object history does not re-anchor stale render positions');
+  assert.equal(terrainSettings.terrainEditVersion, version);
+  window.dispatchEvent(new CustomEvent('tg-world-history-applied', { detail: { paths: [['chunks', chunkId, 'terrain', 'terrainEdits']] } }));
+  assert.ok(terrainEvents > 0, 'terrain history still invalidates terrain');
+  window.removeEventListener('terrain-settings-changed', count);
+  console.log('PASS object Undo/Redo position and isolation from terrain invalidation; terrain history still refreshes');
+} finally {
+  globalThis.window = previousWindow;
+  globalThis.localStorage = previousStorage;
+  await server.close();
+}
