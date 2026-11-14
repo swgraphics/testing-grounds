@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useAnimations, useFBX, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { buildCharacterClips } from "./characterAnimations";
 
 function FBXAnimatedCharacter({ character, animationState }) {
   const groupRef = useRef();
@@ -138,31 +140,28 @@ function EmbeddedAnimatedCharacter({ character, animationState, animationTrigger
   const { scene, animations } = useGLTF(character.modelPath);
   const { animations: universalAnimations } = useGLTF("/assets/crash-testers/animations/Universal Animation Library/UAL1_Standard.glb");
   const { animations: universalAnimations2 } = useGLTF("/assets/crash-testers/animations/Universal Animation Library 2/UAL2_Standard.glb");
+  const modelScene = useMemo(() => character.family === "crashTester" ? cloneSkeleton(scene) : scene, [scene, character.family]);
   useEffect(() => {
-    scene.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        // Keep the authored Unit 01 material/UV layout intact.
-        // Variant atlas textures are not interchangeable with this rig's UVs.
+    modelScene.traverse((child) => {
+      if (!child.isMesh) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+      // GLTF-authored materials/textures are shared; reselection must not clone them.
+      if (character.family !== "crashTester") {
         child.material = child.material.clone();
         child.material.needsUpdate = true;
       }
     });
-  }, [scene]);
+    return () => {
+      if (character.family !== "crashTester") return;
+      const skeletons = new Set();
+      modelScene.traverse((child) => { if (child.isSkinnedMesh) skeletons.add(child.skeleton); });
+      skeletons.forEach((skeleton) => skeleton.dispose());
+    };
+  }, [modelScene, character.family]);
 
-  const renamedAnimations = useMemo(() => {
-    const sourceClips = character.family === "crashTester" ? [...animations, ...universalAnimations, ...universalAnimations2] : animations;
-    const usedNames = new Set();
-    return sourceClips.flatMap((clip) => {
-      if (usedNames.has(clip.name)) return [];
-      usedNames.add(clip.name);
-      const mappedName = Object.entries(character.animationMap || {}).find(([, originalClipName]) => originalClipName === clip.name)?.[0] || clip.name;
-      const clonedClip = clip.clone();
-      clonedClip.name = mappedName;
-      return [clonedClip];
-    });
-  }, [animations, universalAnimations, universalAnimations2, character.animationMap, character.family]);
+  const renamedAnimations = useMemo(() => buildCharacterClips(character, animations, universalAnimations, universalAnimations2),
+    [animations, universalAnimations, universalAnimations2, character]);
 
   const { actions } = useAnimations(renamedAnimations, groupRef);
 
@@ -199,11 +198,12 @@ function EmbeddedAnimatedCharacter({ character, animationState, animationTrigger
   return (
     <group
       ref={groupRef}
+      userData={{ tgCharacterId: character.id, tgAnimationState: animationState }}
       scale={character.scale}
       position={[0, character.height, 0]}
       rotation={[character.rotation.x, character.rotation.y, character.rotation.z]}
     >
-      <primitive object={scene} />
+      <primitive object={modelScene} />
     </group>
   );
 }
@@ -225,6 +225,7 @@ export default function PlayableCharacter({
   if (character.animationSource === "embedded") {
     return (
       <EmbeddedAnimatedCharacter
+        key={character.id}
         character={character}
         animationState={animationState}
         animationTrigger={animationTrigger}

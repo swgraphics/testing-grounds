@@ -1,3 +1,4 @@
+import TerrainExportPreview from '../components/world/TerrainExportPreview';
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import XboxController from "../systems/input/XboxController";
@@ -57,6 +58,7 @@ export default function TestingGrounds({ titleMode = false }) {
       <Lighting />
 
       <GridTerrain />
+      {!titleMode && <TerrainExportPreview />}
       <GridFloor />
       <Water />
 

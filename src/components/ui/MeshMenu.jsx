@@ -1,3 +1,4 @@
+import { returnToWorldView } from "../../systems/ui/navigationActions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CrimsonTreeModel from "../world/CrimsonTreeModel";
 import { Canvas } from "@react-three/fiber";
@@ -305,11 +306,11 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
   );
 
   const [leafFillColor, setLeafFillColor] = useState(
-    baseDefinition.leaves?.color ?? "#080808"
+    baseDefinition.leaves?.color ?? "#8BCF6A"
   );
 
   const [leafOutlineColor, setLeafOutlineColor] = useState(
-  baseDefinition.leaves?.outlineColor ?? "#fc0303"
+  baseDefinition.leaves?.outlineColor ?? "#3A8C0E"
   );
 
   const [leafGradientEnabled, setLeafGradientEnabled] = useState(
@@ -462,7 +463,8 @@ function MeshEditModal({ mesh, onSave, onCancel }) {
 
   const isCrimsonTree =
     mesh?.id === "crimson-tree" ||
-    mesh?.name === "CRIMSON TREE";
+    mesh?.modelType === "crimson-tree" ||
+    mesh?.name === "DEFAULT TREE";
   const isFireflies = mesh?.modelType === "fireflies" || mesh?.id === "fireflies";
 
   const renderSlider = (
@@ -855,6 +857,18 @@ export default function MeshMenu() {
     try { return JSON.parse(localStorage.getItem("testingGroundsSavedObjects") || "[]"); } catch { return []; }
   });
   const fileInputRef = useRef(null);
+  useEffect(() => {
+    function selectFromLibrary(event) {
+      const mesh = event.detail?.mesh;
+      if (!mesh?.id) return;
+      returnToWorldView();
+      setSelectedId(mesh.id); setMode("place"); setEditOpen(false); setMenuOpen(false);
+      useInteractionStore.getState().activate({ target: "object:" + mesh.id, tool: "OBJECT", mode: "place" });
+      window.dispatchEvent(new CustomEvent("tg-mesh-place-request", { detail: { mesh } }));
+    }
+    window.addEventListener("tg-mesh-library-select", selectFromLibrary);
+    return () => window.removeEventListener("tg-mesh-library-select", selectFromLibrary);
+  }, []);
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteCandidate, setDeleteCandidate] = useState(null);
@@ -896,10 +910,10 @@ export default function MeshMenu() {
     setPage((current) => Math.min(current, pageCount - 1));
   }, [pageCount]);
 useEffect(() => {
-  function handleMeshMenuOpen() {
+  function handleMeshMenuOpen(event) {
     setMenuOpen(true);
     setEditOpen(false);
-    setMode("select");
+    setMode(event?.detail?.mode === "scatter" ? "scatter" : "select");
   }
 
   window.addEventListener(
@@ -974,6 +988,8 @@ useEffect(() => {
   }
 
   function selectMesh(mesh) {
+    returnToWorldView();
+    setMenuOpen(false);
     setSelectedId(mesh.id);
     setMode("place");
     setEditOpen(false);
@@ -1048,20 +1064,10 @@ function confirmDelete() {
 }
 
 function closeMenu() {
-  useInteractionStore.getState().clear();
-
-  // Placement cancellation intentionally happens first because the mesh menu
-  // listens for that event and normally reopens itself after placement exits.
-  // The explicit close state comes last so the X button always wins.
-  window.dispatchEvent(
-    new CustomEvent("tg-mesh-cancel-placement")
-  );
-  window.dispatchEvent(
-    new CustomEvent("tg-mesh-menu-close")
-  );
-
+  // Visibility only: preserve the selected tool and any placement preview.
   setEditOpen(false);
   setMenuOpen(false);
+  window.dispatchEvent(new CustomEvent("tg-mesh-menu-close"));
 }
 
 function getDefaultCrimsonProfile() {
@@ -1069,7 +1075,7 @@ function getDefaultCrimsonProfile() {
   return {
     enabled: current?.enabled !== false,
     objectId: "crimson-tree",
-    name: "CRIMSON TREE",
+    name: "DEFAULT TREE",
     kind: "tree",
     source: "procedural",
     modelType: "crimson-tree",
@@ -1191,8 +1197,6 @@ function getDefaultCrimsonProfile() {
 
       if (editOpen) {
         setEditOpen(false);
-        useInteractionStore.getState().clear();
-        window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
         return;
       }
 
@@ -1207,7 +1211,9 @@ function getDefaultCrimsonProfile() {
   <>
     {menuOpen && (
       <>
-        <div className="tg-mesh-menu">
+        <div className="tg-mesh-menu" data-input-context="panel">
+        <h2 className="tg-hud-heading">{mode === "scatter" ? "SCATTER // POPULATIONS" : "OBJECTS // LIBRARY"}</h2>
+        <p className="tg-library-guidance">Choose an object, then place or edit it. Use UPLOAD MESH to choose a local file. Scatter changes apply to the world immediately; Save World persists them.</p>
 
     <button
       type="button"

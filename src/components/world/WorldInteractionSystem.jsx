@@ -1,3 +1,4 @@
+import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Line } from "@react-three/drei";
@@ -45,7 +46,7 @@ function findTerrainPoint(camera) {
 }
 
 function toolToTerrainOperation(tool) {
-  return ["SMOOTH", "FLATTEN", "SLOPE"].includes(tool) ? tool.toLowerCase() : null;
+  return ["RAISE", "LOWER", "SMOOTH", "FLATTEN", "SLOPE"].includes(tool) ? tool.toLowerCase() : null;
 }
 
 function controllerDirection(camera) {
@@ -297,7 +298,8 @@ export default function WorldInteractionSystem() {
 
   useEffect(() => {
     function onPointerDown(event) {
-      if (event.button !== 0) return;
+      if (event.target?.tagName === "CANVAS") document.activeElement?.blur?.();
+      if (event.button !== 0 || !gameplayInputAllowed()) return;
       const target = event.target;
       if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-interaction-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view")) return;
       beginPointerTool(useInteractionStore.getState(), event);

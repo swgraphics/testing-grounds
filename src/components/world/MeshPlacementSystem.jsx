@@ -658,7 +658,7 @@ export default function MeshPlacementSystem() {
   function beginObjectDrag(id, event) {
     if (placementMode) return;
 
-    // Crimson Tree has its own direct-interaction state. Do not let the
+    // Default Tree has its own direct-interaction state. Do not let the
     // generic Object drag handler steal the same click and switch the HUD
     // to OBJECT // EDIT/SELECT.
     let hitObject = event.object ?? event.eventObject ?? null;
@@ -786,7 +786,7 @@ export default function MeshPlacementSystem() {
   }, []);
 
   // --------------------------------------------------
-  // CRIMSON TREE DIRECT EDITING
+  // DEFAULT TREE DIRECT EDITING
   // --------------------------------------------------
 
   useEffect(() => {

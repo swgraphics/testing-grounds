@@ -3,7 +3,7 @@ import { NATURE_PACK_OBJECTS } from "./naturePackRegistry";
 export const BUILTIN_OBJECTS = Object.freeze([
   {
     id: "crimson-tree",
-    name: "CRIMSON TREE",
+    name: "DEFAULT TREE",
     kind: "tree",
     source: "procedural",
     modelType: "crimson-tree",

@@ -79,10 +79,12 @@ export default function CrimsonTreeInteractionSystem() {
     const q = new THREE.Quaternion();
     root.getWorldQuaternion(q);
     const normal = result.type === "branch" && result.branch?.direction
-      ? new THREE.Vector3(...result.branch.direction)
+      ? result.branch.direction.clone()
       : new THREE.Vector3(0, 1, 0);
     normal.applyQuaternion(q).normalize();
-    mesh.position.copy(result.hit.point);
+    const point = result.hit?.point ?? result.point;
+    if (!point) return;
+    mesh.position.copy(point);
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
     const scale = root.getWorldScale(new THREE.Vector3());
     mesh.scale.setScalar(
@@ -170,7 +172,7 @@ export default function CrimsonTreeInteractionSystem() {
         editModeRef.current = "trunk";
         definitionRef.current = result?.object?.userData?.tgTreeDefinition ?? definitionRef.current;
         useInteractionStore.getState().activate({ target: `tree:${treeId}`, tool: "TREE", mode: "edit" });
-        window.dispatchEvent(new CustomEvent("crimson-tree-edit-enter", { detail: { treeId, mode: "trunk", instanceScope: instanceScopeRef.current } }));
+        window.dispatchEvent(new CustomEvent("crimson-tree-edit-enter", { detail: { treeId, mode: "trunk", instanceScope: instanceScopeRef.current, treeDefinition: definitionRef.current } }));
         window.dispatchEvent(new CustomEvent("crimson-tree-instance-scope-changed", { detail: { scope: instanceScopeRef.current } }));
       }
     }
@@ -180,12 +182,13 @@ export default function CrimsonTreeInteractionSystem() {
     const enter = (treeId) => {
       if (!treeId) return;
       activeTreeIdRef.current = treeId;
+      definitionRef.current = targetRef.current?.object?.userData?.tgTreeDefinition ?? definitionRef.current;
       beginTreeHistory(treeId);
       instanceScopeRef.current = "single";
       branchScopeRef.current = "global";
       editModeRef.current = "trunk";
       useInteractionStore.getState().activate({ target: `tree:${treeId}`, tool: "TREE", mode: "edit" });
-      window.dispatchEvent(new CustomEvent("crimson-tree-edit-enter", { detail: { treeId, mode: "trunk", instanceScope: instanceScopeRef.current } }));
+      window.dispatchEvent(new CustomEvent("crimson-tree-edit-enter", { detail: { treeId, mode: "trunk", instanceScope: instanceScopeRef.current, treeDefinition: definitionRef.current } }));
       window.dispatchEvent(new CustomEvent("crimson-tree-instance-scope-changed", { detail: { scope: instanceScopeRef.current } }));
     };
     const exit = () => {

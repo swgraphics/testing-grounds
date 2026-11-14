@@ -1,3 +1,4 @@
+import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -86,7 +87,7 @@ export default function TerrainVertexEditor() {
     }
 
     function onPointerDown(event) {
-      if (event.button !== 0 || isUiTarget(event.target)) return;
+      if (!gameplayInputAllowed() || event.button !== 0 || isUiTarget(event.target)) return;
       const point = findTerrainPoint(camera);
       if (!point) return;
 

@@ -1,6 +1,8 @@
 # Decisions, Cautions, and Known Issues
 
 ## User-approved decisions
+
+- Task 08.01: World View is the primary editing surface; tool selection/settings and optional panel visibility are independent. Closing panels must preserve the active tool. B/Escape dismisses the compass to World View; Parent is a separate navigation action.
 - TG product direction distinguishes loading a World from loading a Project; a Project may include custom UI, menus, and game logic.
 - Terrain Export v1 is a user-defined terrain region, surface only, portable material, primarily GLB; source world unchanged; committed terrain sculpt/vertex edits included; preview effects excluded.
 - Research or discussion is not authorization to publish, deploy, push, or take financial action.

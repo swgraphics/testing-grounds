@@ -197,7 +197,7 @@ export function createProceduralCanopyData(
 
   /*
    * Smaller physical leaf scale. The Tree Editor's SIZE slider
-   * still controls the result, but the default Crimson Tree now
+   * still controls the result, but the default Default Tree now
    * uses compact foliage rather than oversized polygons.
    */
   const canopySize = lerp(

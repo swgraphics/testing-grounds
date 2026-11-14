@@ -119,3 +119,15 @@ export const CRASH_TESTER_VARIANTS = [
   height: -0.84,
   animationMap: { ...SHARED_CRASH_ANIMATION_MAP },
 }));
+
+// Separate rollout entry; the original five variants remain available unchanged.
+export const CRASH_TESTER_2 = {
+  id: "crashTester20",
+  number: 20,
+  displayName: "Crash Tester 2.0",
+  modelPath: "/models/characters/crash-testers/CrashTester_02_Quaternius.glb",
+  animationSource: "embedded",
+  scale: 1.50,
+  height: -0.80,
+  animationMap: { ...SHARED_CRASH_ANIMATION_MAP },
+};

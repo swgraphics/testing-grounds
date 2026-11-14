@@ -1,8 +1,13 @@
+import { WorkspaceToolbar, QuickTools, WorkspaceBottom, WorkspaceFooter } from "./WorkspaceTools";
+import { useNavigationStore } from "../../systems/ui/navigationStore";
+import { PanelControls, ActiveToolFeedback } from "./EditorPanelControls";
+import { returnToWorldView, openObjectLibrary } from "../../systems/ui/navigationActions";
+import TerrainExportPanel from './TerrainExportPanel';
+import { useTerrainExportStore } from '../../systems/terrain/terrainExportStore';
 import { useEffect, useState } from "react";
 import { useEditorStore } from "../../systems/editor/editorStore";
 import { useWorldStore } from "../../systems/world/worldStore";
 import { useHistoryStore } from "../../systems/history/historyStore";
-import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import {
   saveWorldSettings,
   loadWorldSettings,
@@ -23,24 +28,14 @@ const PANEL_LABELS = [
   ["objects", "WORLD // OBJECTS"],
 ];
 
-function openObjectMenu(panel = "object") {
-  useEditorStore.getState().setActivePanel(panel);
-  useEditorStore.getState().closeDevTools();
-  useInteractionStore.getState().activate({
-    target: "object-menu",
-    tool: "OBJECT",
-    mode: "select",
-  });
-  window.dispatchEvent(new CustomEvent("tg-mesh-menu-open"));
-}
-
 export default function EditorView() {
+  const exportOpen = useTerrainExportStore(state => state.open);
+  const panels = useEditorStore(state => state.panels);
   const isOpen = useEditorStore((state) => state.isOpen);
   const activePanel = useEditorStore((state) => state.activePanel);
   const viewportMode = useEditorStore((state) => state.viewportMode);
   const setActivePanel = useEditorStore((state) => state.setActivePanel);
   const setViewportMode = useEditorStore((state) => state.setViewportMode);
-  const close = useEditorStore((state) => state.close);
   const openDevToolsPanel = useEditorStore((state) => state.openDevToolsPanel);
   const closeDevTools = useEditorStore((state) => state.closeDevTools);
 
@@ -49,11 +44,8 @@ export default function EditorView() {
 
   const currentChunk = useWorldStore((state) => state.world.chunks[currentChunkId]);
   const chunks = useWorldStore((state) => state.world.chunks);
-  const worldType = useWorldStore((state) => state.world.worldType);
   const canUndo = useHistoryStore((state) => state.undoStack.length > 0);
   const canRedo = useHistoryStore((state) => state.redoStack.length > 0);
-  const activeTool = useInteractionStore((state) => state.activeTool);
-  const activeMode = useInteractionStore((state) => state.activeMode);
 
   const [renamingAreaId, setRenamingAreaId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
@@ -72,6 +64,11 @@ export default function EditorView() {
     window.addEventListener("player-position-changed", handlePlayerPosition);
     return () => window.removeEventListener("player-position-changed", handlePlayerPosition);
   }, []);
+
+  useEffect(() => {
+    for (const key of ["left","right","library","scatter"]) document.body.classList.toggle("tg-panel-" + key + "-open", panels[key]);
+    return () => { for (const key of ["left","right","library","scatter"]) document.body.classList.remove("tg-panel-" + key + "-open"); };
+  }, [panels]);
 
   useEffect(() => {
     document.body.classList.toggle("tg-editor-active", isOpen);
@@ -101,50 +98,6 @@ export default function EditorView() {
     return () => window.removeEventListener("tg-dev-panel-section", handleEditorSection);
   }, [isOpen, openDevToolsPanel]);
 
-  if (!isOpen) {
-    if (activeTool) {
-      const modeLabels = { select: "SELECT", edit: "EDIT", place: "PLACE", sculpt: "SCULPT", grab: "GRAB" };
-      const normalizedTool = String(activeTool).toUpperCase();
-      const activeTarget = useInteractionStore.getState().activeTarget;
-      const terrainTools = new Set(["HEIGHT", "RAISE", "LOWER", "SMOOTH", "FLATTEN", "SLOPE", "CANYON_EDGE"]);
-      const isTreeInteraction = normalizedTool === "TREE" || activeTarget?.startsWith?.("tree:");
-      const domain = isTreeInteraction ? "OBJECT" : terrainTools.has(normalizedTool) ? "TERRAIN" : normalizedTool === "RIVER" ? "WATER" : normalizedTool;
-      const label = isTreeInteraction
-        ? `${domain}//TREE`
-        : domain === "OBJECT"
-          ? `${domain}//${modeLabels[activeMode] || normalizedTool}`
-          : `${domain}//${normalizedTool}`;
-      return (
-        <button
-          type="button"
-          className="tg-interaction-state-tag"
-          onClick={() => {
-            if (activeMode === "place") {
-              window.dispatchEvent(new CustomEvent("tg-place-mode-exit"));
-              return;
-            }
-            useInteractionStore.getState().deactivate();
-          }}
-          aria-label={`Active interaction ${activeTool} ${modeLabels[activeMode] || ""}`}
-        >
-          <span className="tg-interaction-indicator-dot" />
-          [{label}]
-          {activeMode === "place" && <span className="tg-interaction-state-close">[X]</span>}
-        </button>
-      );
-    }
-
-    return (
-      <button
-        type="button"
-        className="tg-editor-open-button"
-        onClick={() => useEditorStore.getState().open()}
-      >
-        EDITOR
-      </button>
-    );
-  }
-
   function selectPanel(id) {
     setActivePanel(id);
 
@@ -155,29 +108,23 @@ export default function EditorView() {
 
     if (id === "control") {
       openDevToolsPanel();
-      useInteractionStore.getState().activate({
-        target: "terrain-control",
-        tool: "TERRAIN",
-        mode: "select",
-      });
+      useEditorStore.getState().setPanel("left", true);
       return;
     }
 
     if (id === "objects") {
-      openObjectMenu("object");
+      openObjectLibrary();
       return;
     }
 
     if (id === "map") {
       closeDevTools();
-      useInteractionStore.getState().clear();
-      setViewportMode("map");
+        setViewportMode("map");
       return;
     }
 
     closeDevTools();
     window.dispatchEvent(new CustomEvent("tg-mesh-menu-close"));
-    useInteractionStore.getState().clear();
   }
 
   function teleportToChunk(chunk) {
@@ -190,18 +137,14 @@ export default function EditorView() {
     );
   }
 
-  function closeEditor() {
-    closeDevTools();
-    window.dispatchEvent(new CustomEvent("tg-mesh-menu-close"));
-    useInteractionStore.getState().clear();
-    close();
-  }
+  function closeEditor() { returnToWorldView(); }
 
-  return (
-    <div className="tg-editor-view" aria-label="Testing Grounds Editor">
+  return (<>
+    <ActiveToolFeedback /><PanelControls />
+    {isOpen && <div className="tg-editor-view tg-workspace-v2" data-input-context="panel" aria-label="Testing Grounds Editor">
       <div className="tg-editor-header">
         <div className="tg-editor-brand">
-          <span>TESTING GROUNDS</span>
+          <img className="tg-brand-vector" src="/brand/TG-Logo wide.svg" alt="Testing Grounds" />
           <strong>// WORLD</strong>
         </div>
 
@@ -222,7 +165,8 @@ export default function EditorView() {
           >
             WORLD MAP
           </button>
-          <button type="button" className="tg-editor-close" onClick={closeEditor} aria-label="Close editor">
+          <button type="button" className="tg-editor-header-button" onClick={() => useNavigationStore.getState().openCompass()}>MAIN MENU</button>
+          <button type="button" className="tg-editor-close" onClick={closeEditor} aria-label="Close all panels">
             ×
           </button>
         </div>
@@ -232,6 +176,8 @@ export default function EditorView() {
         role="navigation"
         aria-label="Testing Grounds teleport and map controls"
       >
+        <span className="tg-editor-area-label">{currentChunk?.grid || "WORLD"} // {currentChunk?.name || "NO AREA"}</span>
+        <button className="tg-ui-button" onClick={openDevToolsPanel}>DEV // TOOLS</button>
         <span className="tg-editor-area-label">TELEPORT</span>
 
         {Object.values(chunks)
@@ -287,7 +233,9 @@ export default function EditorView() {
       </div>
 
       <div className="tg-editor-body">
-        <aside className="tg-editor-sidebar">
+        {panels.left && <aside className="tg-editor-sidebar">
+          <WorkspaceToolbar />
+          <details><summary className="tg-editor-panel-title">MORE WORKSPACES</summary>
           <div className="tg-editor-panel-title">
             WORLD // DEV TOOLS
           </div>
@@ -304,7 +252,8 @@ export default function EditorView() {
               {label}
             </button>
           ))}
-        </aside>
+          </details>
+        </aside>}
 
         <main className="tg-editor-main">
           <div
@@ -330,7 +279,9 @@ export default function EditorView() {
             )}
           </div>
 
+          <WorkspaceBottom />
           <div className="tg-editor-bottom-bar">
+            <button type="button" aria-expanded={exportOpen} onClick={() => useTerrainExportStore.getState().setOpen(!exportOpen)}>TERRAIN EXPORT</button>
             <button type="button" onClick={saveWorldSettings}>SAVE WORLD</button>
             <button type="button" onClick={loadWorldSettings}>LOAD WORLD</button>
             <button type="button" onClick={() => saveCurrentChunk()} disabled={!currentChunk}>SAVE CHUNK</button>
@@ -341,13 +292,17 @@ export default function EditorView() {
             <button type="button" onClick={() => updateDevSetting("fpvMode", !fpvMode)}>FPV: {fpvMode ? "ON" : "OFF"}</button>
           </div>
         </main>
+        {panels.right && <QuickTools />}
       </div>
+      <WorkspaceFooter />
+    </div>}
+      {exportOpen && <TerrainExportPanel />}
       {showChunkDialog && <ChunkCreationDialog
         initialGrid={chunkDialogGrid}
         initialMapPosition={chunkDialogMapPosition}
         playerPosition={playerPosition}
         onClose={() => { setShowChunkDialog(false); setChunkDialogGrid(""); setChunkDialogMapPosition(null); }}
       />}
-    </div>
+    </>
   );
 }

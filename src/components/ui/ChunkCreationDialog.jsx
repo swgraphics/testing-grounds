@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useWorldStore } from "../../systems/world/worldStore";
 import { columnToLetter, getGridCells, gridToWorldPosition } from "../../systems/world/worldGrid";
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
@@ -29,6 +29,11 @@ function getPlayerChunkTarget(position) {
 }
 
 export default function ChunkCreationDialog({ onClose, initialGrid = "", initialMapPosition = null, playerPosition = [0, 0, 0] }) {
+  useEffect(() => {
+    function escape(event) { if (event.key === "Escape") { event.preventDefault(); onClose(); } }
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [onClose]);
   const chunks = useWorldStore((state) => state.world.chunks);
   const createChunk = useWorldStore((state) => state.createChunk);
   const cells = useMemo(() => getGridCells(), []);
@@ -60,7 +65,7 @@ export default function ChunkCreationDialog({ onClose, initialGrid = "", initial
 
   return (
     <div className="tg-chunk-dialog-backdrop" role="presentation" onPointerDown={onClose}>
-      <form className="tg-chunk-dialog" onSubmit={handleCreate} onPointerDown={(event) => event.stopPropagation()}>
+      <form onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }} className="tg-chunk-dialog" onSubmit={handleCreate} onPointerDown={(event) => event.stopPropagation()}>
         <div className="tg-chunk-dialog-title">ADD WORLD CHUNK</div>
         <div className="tg-chunk-dialog-copy">{playerTarget ? "A new 100M terrain chunk will appear around the player at the current world edge." : "Choose the grid location first. World position is derived from the grid."}</div>
 

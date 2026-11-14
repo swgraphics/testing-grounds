@@ -36,6 +36,7 @@ export default function CrimsonTreeInteractionPanel() {
   useEffect(() => {
     function handleEnter(event) {
       setTreeId(event.detail?.treeId ?? null);
+      setDefinition(event.detail?.treeDefinition ?? null);
       setMode(event.detail?.mode ?? "trunk");
       setInstanceScope(event.detail?.instanceScope ?? "global");
     }
@@ -161,11 +162,11 @@ export default function CrimsonTreeInteractionPanel() {
   );
 
   return (
-    <aside className="tg-tree-interaction-panel" aria-label="Crimson Tree Interaction">
+    <aside className="tg-tree-interaction-panel" data-input-context="panel" aria-label="Default Tree Interaction">
       <div className="tg-tree-interaction-title-row">
         <div>
           <div className="tg-side-panel-title">TREE INTERACTION</div>
-          <div className="tg-tree-interaction-subtitle">CRIMSON TREE // TRUNK</div>
+          <div className="tg-tree-interaction-subtitle">DEFAULT TREE // TRUNK</div>
         </div>
         <button type="button" className="tg-tree-interaction-close" onClick={close} aria-label="Exit tree interaction">×</button>
       </div>

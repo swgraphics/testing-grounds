@@ -11,7 +11,7 @@ import {
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { useWorldStore } from "../../systems/world/worldStore";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
-import CrimsonTreeModel from "./CrimsonTreeModel";
+import ForestTreeModel from "./ForestTreeModel";
 import {
   createCrimsonTreeDefinition,
 } from "./treeGenerator";
@@ -117,199 +117,21 @@ function makeRockPoints() {
     }
   );
 }
-/*
- * Mature Tree Crown V1
- *
- * Creates one shared, faceted crown geometry.
- * The alternating narrow and wide rings produce
- * irregular branch layers instead of a simple cone.
- *
- * Because this geometry is created once and shared
- * by every tree, it is significantly lighter than
- * constructing many separate foliage meshes.
- */
-function createMatureTreeCrownGeometry() {
-  const sides = 7;
-
-  const rings = [
-    {
-      y: 0,
-      radius: 0.08,
-    },
-    {
-      y: -0.65,
-      radius: 0.82,
-    },
-    {
-      y: -1.05,
-      radius: 0.48,
-    },
-    {
-      y: -1.55,
-      radius: 1.22,
-    },
-    {
-      y: -1.95,
-      radius: 0.7,
-    },
-    {
-      y: -2.55,
-      radius: 1.55,
-    },
-    {
-      y: -3,
-      radius: 0.88,
-    },
-    {
-      y: -3.55,
-      radius: 1.42,
-    },
-    {
-      y: -4.05,
-      radius: 0.3,
-    },
-  ];
-
-  const positions = [];
-  const indices = [];
-
-  rings.forEach((ring, ringIndex) => {
-    for (
-      let sideIndex = 0;
-      sideIndex < sides;
-      sideIndex += 1
-    ) {
-      const angle =
-        (sideIndex / sides) *
-          Math.PI *
-          2 +
-        ringIndex * 0.19;
-
-      /*
-       * Deterministic irregularity prevents the
-       * crown from appearing perfectly circular.
-       */
-      const irregularity =
-        1 +
-        Math.sin(
-          sideIndex * 2.17 +
-            ringIndex * 1.43
-        ) *
-          0.12;
-
-      const radius =
-        ring.radius * irregularity;
-
-      positions.push(
-        Math.cos(angle) * radius,
-        ring.y,
-        Math.sin(angle) * radius
-      );
-    }
-  });
-
-  for (
-    let ringIndex = 0;
-    ringIndex < rings.length - 1;
-    ringIndex += 1
-  ) {
-    for (
-      let sideIndex = 0;
-      sideIndex < sides;
-      sideIndex += 1
-    ) {
-      const nextSide =
-        (sideIndex + 1) % sides;
-
-      const current =
-        ringIndex * sides + sideIndex;
-
-      const currentNext =
-        ringIndex * sides + nextSide;
-
-      const below =
-        (ringIndex + 1) * sides +
-        sideIndex;
-
-      const belowNext =
-        (ringIndex + 1) * sides +
-        nextSide;
-
-      indices.push(
-        current,
-        below,
-        currentNext
-      );
-
-      indices.push(
-        currentNext,
-        below,
-        belowNext
-      );
-    }
-  }
-
-  const geometry =
-    new THREE.BufferGeometry();
-
-  geometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(
-      positions,
-      3
-    )
-  );
-
-  geometry.setIndex(indices);
-
-  geometry.computeVertexNormals();
-  geometry.computeBoundingBox();
-  geometry.computeBoundingSphere();
-
-  return geometry;
-}
-
-const MATURE_TREE_CROWN_GEOMETRY =
-  createMatureTreeCrownGeometry();
-
-const MATURE_TREE_CROWN_EDGES =
-  new THREE.EdgesGeometry(
-    MATURE_TREE_CROWN_GEOMETRY,
-    18
-  );
 function CrimsonTree({
   position,
   scale = 1,
   rotation = 0,
   variant = 0,
   treeDefinition,
-  treeSeed,
   crownRef,
   treeRef,
   windPhase = 0,
   collisionEnabled = false,
   physicsKey,
   treeId = null,
-  editable = false,
-  proceduralAlways = false,
-  legacyCrown = false,
 }) {
-  const crownWidth =
-    0.88 + variant * 0.26;
-
-  const crownHeight =
-    0.92 +
-    (1 - variant) * 0.18;
-
-  /*
-   * Adds a small permanent irregularity to the
-   * trunk without separating it from the crown.
-   */
-  const trunkLean =
-    (variant - 0.5) * 0.045;
-
 const treeVisual = (
-  <CrimsonTreeModel
+  <ForestTreeModel
     scale={scale}
     rotation={rotation}
     variant={variant}
@@ -317,9 +139,6 @@ const treeVisual = (
     crownRef={crownRef}
     treeDefinition={treeDefinition}
     treeId={treeId}
-    legacyCrown={legacyCrown}
-    legacyCrownOnly={!editable && !proceduralAlways}
-    proceduralAlways={proceduralAlways}
   />
 );
 
@@ -392,8 +211,8 @@ function CrimsonFern({
           <planeGeometry args={[0.28, 2.2]} />
 
           <meshStandardMaterial
-            color="#16070a"
-            emissive="#cd2626"
+            color="#3A8C0E"
+            emissive="#3A8C0E"
             emissiveIntensity={0.18}
             roughness={0.9}
             side={2}
@@ -560,7 +379,7 @@ function makeProfileTreePoints(count, coverage, seedOffset, centerX = 0, centerZ
   });
 }
 
-function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, currentChunk, terrainValues, editableTreeId }) {
+function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, currentChunk, terrainValues }) {
   const crownRefs = useRef([]);
   const frameCounterRef = useRef(0);
 
@@ -582,7 +401,6 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
   const treeOverrides = profile?.treeOverrides ?? {};
 
   const trees = useMemo(() => {
-    crownRefs.current = [];
     const points = makeProfileTreePoints(
       count,
       coverage,
@@ -609,11 +427,7 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
           variant={point.variant}
           treeDefinition={treeDefinition}
           treeId={treeId}
-          editable={editableTreeId === treeId}
-          treeSeed={point.seed}
           windPhase={point.variant * Math.PI * 2}
-          legacyCrown={isDefaultCrimson}
-          proceduralAlways={Boolean(profile?.treeDefinition)}
           collisionEnabled={isDefaultCrimson && index < MAX_TREE_COLLIDERS}
           physicsKey={`tree-body-${profileId}-${index}-${seedBase}-${y.toFixed(3)}`}
           crownRef={(object) => {
@@ -622,7 +436,7 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
         />
       );
     });
-  }, [count, coverage, seedBase, profileSeed, profileId, currentChunkId, chunkX, chunkZ, baseDefinition, treeOverrides, editableTreeId, terrainValues.heightMultiplier, terrainValues.mountainHeight, terrainValues.cliffSharpness, terrainValues.rollingHills, terrainValues.ridgeStrength, terrainValues.plateauAmount, terrainValues.geometryStrength]);
+  }, [count, coverage, seedBase, profileSeed, profileId, currentChunkId, chunkX, chunkZ, baseDefinition, treeOverrides, terrainValues.heightMultiplier, terrainValues.mountainHeight, terrainValues.cliffSharpness, terrainValues.rollingHills, terrainValues.ridgeStrength, terrainValues.plateauAmount, terrainValues.geometryStrength]);
 
   const windStrength = Number(terrainValues.windStrength) || 0;
   const windSpeed = Number(terrainValues.windSpeed) || 0;
@@ -658,7 +472,6 @@ function TreeScatter() {
   const profiles = useWorldStore((state) => state.world.scatterProfiles ?? {});
   const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
   const currentChunk = useWorldStore((state) => state.world.chunks?.[state.world.currentChunkId]);
-  const [editableTreeId, setEditableTreeId] = useState(null);
 
   const terrainValues = {
     scatterSeed: useTerrainSetting("scatterSeed", 1),
@@ -689,25 +502,29 @@ function TreeScatter() {
       }
       if (!matchingProfileId) return;
 
-      setEditableTreeId(treeId);
       const world = useWorldStore.getState().world;
-      const profile = world.scatterProfiles?.[matchingProfileId] ?? {
+      const profile = {
         enabled: true,
         objectId: "crimson-tree",
-        name: "CRIMSON TREE",
+        name: "DEFAULT TREE",
         source: "procedural",
         modelType: "crimson-tree",
         density: treeDensityFallback,
         coverage: treeCoverageFallback,
         treeDefinition: createCrimsonTreeDefinition(),
         treeOverrides: {},
+        ...(world.scatterProfiles?.[matchingProfileId] ?? {}),
       };
       const baseDefinition = mergeScatterTreeDefinition(profile.treeDefinition ?? createCrimsonTreeDefinition(), {});
 
       if (scope === "single") {
-        const existing = mergeScatterTreeDefinition(baseDefinition, profile.treeOverrides?.[treeId] ?? {});
+        const index = Number(treeId.slice(treeId.lastIndexOf("-") + 1));
+        const point = makeProfileTreePoints(index + 1, profile.coverage ?? treeCoverageFallback,
+          10 + (Number(terrainSettings.scatterSeed) || 1) * 100 + Number(profile.seed ?? 1) * 7919 + matchingProfileId.length * 31)[index];
+        const existing = mergeScatterTreeDefinition({ ...baseDefinition, seed: point?.seed ?? baseDefinition.seed }, profile.treeOverrides?.[treeId] ?? {});
         const nextDefinition = mergeScatterTreeDefinition(existing, patch);
         useWorldStore.getState().upsertScatterProfile(matchingProfileId, {
+          ...profile,
           treeDefinition: profile.treeDefinition ?? createCrimsonTreeDefinition(),
           treeOverrides: {
             ...(profile.treeOverrides ?? {}),
@@ -724,20 +541,15 @@ function TreeScatter() {
         ])
       );
       useWorldStore.getState().upsertScatterProfile(matchingProfileId, {
+        ...profile,
         treeDefinition: mergeScatterTreeDefinition(baseDefinition, patch),
         treeOverrides: nextOverrides,
       });
     }
 
-    function handleTreeEditExit() {
-      setEditableTreeId(null);
-    }
-
     window.addEventListener("crimson-tree-edit-change", handleTreeEditChange);
-    window.addEventListener("crimson-tree-edit-exit", handleTreeEditExit);
     return () => {
       window.removeEventListener("crimson-tree-edit-change", handleTreeEditChange);
-      window.removeEventListener("crimson-tree-edit-exit", handleTreeEditExit);
     };
   }, [currentChunkId, treeDensityFallback, treeCoverageFallback]);
 
@@ -747,11 +559,12 @@ function TreeScatter() {
     if (defaultProfile?.enabled !== false) {
       entries.push([
         "crimson-tree",
-        defaultProfile ?? {
+        {
           enabled: true,
           density: treeDensityFallback,
           coverage: treeCoverageFallback,
           modelType: "crimson-tree",
+          ...defaultProfile,
         },
       ]);
     }
@@ -776,7 +589,6 @@ function TreeScatter() {
           currentChunkId={currentChunkId}
           currentChunk={currentChunk}
           terrainValues={terrainValues}
-          editableTreeId={editableTreeId}
         />
       ))}
     </>

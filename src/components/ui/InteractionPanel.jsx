@@ -30,8 +30,8 @@ export default function InteractionPanel() {
 
   useEffect(() => {
     function handleEscape(event) {
-      if (event.key !== "Escape") return;
-      useInteractionStore.getState().clear();
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (useInteractionStore.getState().panelOpen) useInteractionStore.getState().closePanel();
     }
     window.addEventListener("keydown", handleEscape, true);
     return () => window.removeEventListener("keydown", handleEscape, true);
@@ -40,7 +40,7 @@ export default function InteractionPanel() {
   if (!panelOpen) return null;
 
   function close() {
-    useInteractionStore.getState().clear();
+    useInteractionStore.getState().closePanel();
   }
 
   function selectTool(tool) {

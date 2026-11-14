@@ -1,3 +1,4 @@
+import { createGamepadOwnershipGate, getInputContext, clearGameplayInput } from "./inputOwnership";
 import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 
@@ -42,6 +43,7 @@ function findConnectedGamepad() {
 }
 
 export default function XboxController() {
+  const inputGate = useRef(createGamepadOwnershipGate());
   const loggedControllerRef = useRef("");
   const previousButtonsRef = useRef({});
 
@@ -91,8 +93,16 @@ export default function XboxController() {
     const gamepad = findConnectedGamepad();
 
     if (!gamepad) {
+      if (getInputContext() !== "world") clearGameplayInput();
       resetGamepadState();
       previousButtonsRef.current = {};
+      return;
+    }
+
+    const context = gamepad.buttons[9]?.pressed ? "compass" : getInputContext();
+    if (!inputGate.current(gamepad, context)) {
+      clearGameplayInput();
+      previousButtonsRef.current = Object.fromEntries(gamepad.buttons.map((button, index) => [index, button.pressed]));
       return;
     }
 

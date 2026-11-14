@@ -10,7 +10,7 @@ export function smoothStep(edge0, edge1, value) {
   return x * x * (3 - 2 * x);
 }
 
-export function getTerrainHeightAt(x, z) {
+export function getCommittedTerrainHeightAt(x, z) {
   const isBlankWorld = useWorldStore.getState().world.worldType === "blank";
   const distance = Math.sqrt(x * x + z * z);
   const flatSquareSize = 90;
@@ -73,7 +73,12 @@ export function getTerrainHeightAt(x, z) {
 
   height += getTerrainEditDelta(x, z);
   height += getTerrainVertexEditDelta(x, z);
-  height += getGeologyTerrainPreviewDelta(x, z);
+
 
   return height;
+}
+
+// Preserve preview behavior for rendering, collision and all existing callers.
+export function getTerrainHeightAt(x, z) {
+  return getCommittedTerrainHeightAt(x, z) + getGeologyTerrainPreviewDelta(x, z);
 }

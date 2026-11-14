@@ -1,6 +1,7 @@
+import { analogDirection, useNavigationStore } from "../../systems/ui/navigationStore";
+import { confirmCompass, returnToWorldView } from "../../systems/ui/navigationActions";
+import { getInputContext, isTextInput, clearGameplayInput } from "../../systems/input/inputOwnership";
 import { useEffect, useRef } from "react";
-import { useEditorStore } from "../../systems/editor/editorStore";
-import { useInteractionStore } from "../../systems/interaction/interactionStore";
 
 const FOCUSABLE_SELECTOR = [
   'button:not([disabled])',
@@ -10,10 +11,14 @@ const FOCUSABLE_SELECTOR = [
 ].join(",");
 
 const MENU_ROOTS = [
+  ".tg-help-dialog",
+  ".tg-chunk-dialog",
+  ".tg-terrain-export",
   ".tg-dev-full-menu.open",
   ".tg-dev-panel",
   ".tg-interaction-panel",
-  ".tg-editor-view",
+  ".tg-tree-interaction-panel",
+  ".tg-workspace-v2",
   ".tg-mesh-menu",
   ".tg-mesh-edit-backdrop",
   ".tg-title-screen",
@@ -48,7 +53,7 @@ function activeMenuRoot() {
 }
 
 function isMenuOpen() {
-  return Boolean(activeMenuRoot());
+  return getInputContext() !== "world";
 }
 
 function isTitleScreen() {
@@ -139,7 +144,7 @@ function moveRange(direction) {
   );
 
   if (next === current) return true;
-  active.value = String(next);
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(active, String(next));
   active.dispatchEvent(new Event("input", { bubbles: true }));
   active.dispatchEvent(new Event("change", { bubbles: true }));
   return true;
@@ -196,7 +201,7 @@ function moveSpatialFocus(direction) {
 
 function moveFocus(direction) {
   const menu = devMenu();
-  if (menu) {
+  if (menu && activeMenuRoot() === menu) {
     if ((direction === "left" || direction === "right") && moveRange(direction)) return true;
     return moveDevFocus(direction);
   }
@@ -259,20 +264,28 @@ export default function GamepadMenuNavigator() {
       const active = document.activeElement;
       const now = performance.now();
 
+      const nav = useNavigationStore.getState();
+      const confirm = edge("compass-a", Boolean(gamepad.buttons[0]?.pressed));
+      const back = edge("compass-b", Boolean(gamepad.buttons[1]?.pressed));
       if (edge("start", Boolean(gamepad.buttons[9]?.pressed))) {
-        if (title) {
-          window.dispatchEvent(new CustomEvent("tg-gamepad-start"));
-        } else {
-          useEditorStore.getState().openDevToolsMenu();
-          // The menu is rendered by React after the store update. Focus the
-          // first header after that render; the next D-pad press is then a
-          // normal navigation action, not a special open-menu action.
-          window.requestAnimationFrame(() => {
-            const menu = devMenu();
-            const header = menu?.querySelector("[data-dev-section-header]");
-            focusElement(header);
-          });
+        if (title) window.dispatchEvent(new CustomEvent("tg-gamepad-start"));
+        else if (!["modal","text"].includes(getInputContext())) { clearGameplayInput(); nav.openCompass(); }
+      }
+      if (useNavigationStore.getState().compassOpen) {
+        aHoldRef.current = { startedAt: 0, locked: false, consumed: true };
+        previousButtonsRef.current.rt = Boolean(gamepad.buttons[7]?.pressed);
+        const dpad = readDpad(gamepad);
+        for (const [key, direction] of Object.entries({ up:"north", right:"east", down:"south", left:"west" })) {
+          if (edge("dpad-"+key, dpad[key])) nav.navigate(direction);
         }
+        const direction = analogDirection(Number(gamepad.axes[0]) || 0, Number(gamepad.axes[1]) || 0, useNavigationStore.getState().selected);
+        if (direction) nav.select(direction);
+        if (back) returnToWorldView(); else if (confirm) confirmCompass();
+        return;
+      }
+      if (aHoldRef.current.consumed) {
+        if (gamepad.buttons[0]?.pressed) return;
+        aHoldRef.current = { startedAt: 0, locked: false };
       }
 
       // A = select/open. Hold A on a Dev Tools header = lock/unlock.
@@ -298,7 +311,7 @@ export default function GamepadMenuNavigator() {
 
       // B = back/close when a UI surface is open.
       if (edge("b", Boolean(gamepad.buttons[1]?.pressed)) && menuOpen) {
-        window.dispatchEvent(new KeyboardEvent("keydown", {
+        (document.activeElement || window).dispatchEvent(new KeyboardEvent("keydown", {
           key: "Escape",
           code: "Escape",
           bubbles: true,
@@ -315,6 +328,9 @@ export default function GamepadMenuNavigator() {
         // Keep D-pad navigation out of the world entirely unless a UI surface
         // is open. Quick shortcuts are intentionally removed until the UI
         // overhaul; D-pad is now reserved for navigation.
+        const dpad = readDpad(gamepad);
+        const workspace = document.querySelector(".tg-workspace-v2");
+        if (workspace && Object.values(dpad).some(Boolean)) focusFirst(workspace);
         previousButtonsRef.current["dpad-up"] = false;
         previousButtonsRef.current["dpad-down"] = false;
         previousButtonsRef.current["dpad-left"] = false;
@@ -332,7 +348,8 @@ export default function GamepadMenuNavigator() {
 
   useEffect(() => {
     function onKeyDown(event) {
-      if (event.target?.closest?.("input, textarea, select")) {
+      if (useNavigationStore.getState().compassOpen || event.defaultPrevented) return;
+      if (isTextInput(event.target)) {
         if (!event.target.matches?.('input[type="range"]')) return;
       }
 

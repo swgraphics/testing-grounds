@@ -1,3 +1,5 @@
+import { activeCharacterId } from "../character/characterRegistry";
+import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 import { useEffect, useRef, useState } from "react";
 import { useEditorStore } from "../../systems/editor/editorStore";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
@@ -511,6 +513,7 @@ function DevToolsPanel({ terrainLocked, onRefresh, onClose }) {
         {activeSection === "character" && (
           <>
             <div className="tg-dev-panel-module-title">CHARACTER</div>
+            <button type="button" className="tg-side-panel-button" onClick={() => window.dispatchEvent(new CustomEvent("change-character", { detail: { characterId: "crashTester20" } }))}>CRASH TESTER 2.0</button>
             {[1, 2, 3, 4, 5].map((number) => (
               <button key={number} type="button" className="tg-side-panel-button" onClick={() => window.dispatchEvent(new CustomEvent("change-character", { detail: { characterId: `crashTester0${number}` } }))}>
                 CRASH TESTER 0{number}
@@ -577,7 +580,7 @@ export default function InputHUD() {
 const [
   currentCharacterId,
   setCurrentCharacterId,
-] = useState("crashTester01");
+] = useState(activeCharacterId);
 
 const [cameraLocked, setCameraLocked] =
   useState(
@@ -853,6 +856,14 @@ function handleCameraPadPointerUp(event) {
   resetCameraPad();
 }
 
+useEffect(() => {
+  function openSection(event) {
+    const section = event.detail?.section;
+    if (section) setOpenDevSections(current => ({ ...current, [section]: true }));
+  }
+  window.addEventListener("tg-open-dev-section", openSection);
+  return () => window.removeEventListener("tg-open-dev-section", openSection);
+}, []);
 function toggleDevSection(sectionName) {
     setOpenDevSections((current) => ({
       ...current,
@@ -956,7 +967,7 @@ function handleSectionLockChange(event) {
 
   useEffect(() => {
     function handleMouseAttack(event) {
-      if (event.button !== 0) return;
+      if (event.button !== 0 || !gameplayInputAllowed()) return;
       if (!currentCharacterId.startsWith("crashTester")) return;
 
       const interactionMode = useInteractionStore.getState().activeMode;
@@ -978,6 +989,7 @@ function handleSectionLockChange(event) {
 
   useEffect(() => {
     function handleKeyDown(event) {
+      if (!gameplayInputAllowed() || event.repeat) return;
       if (event.code === "KeyW") {
         inputState.forward = true;
       }
@@ -1264,6 +1276,7 @@ function handleSectionLockChange(event) {
 
               {openDevSections.character && (
                 <div className="tg-dev-section-content">
+                  <button type="button" className={`tg-side-panel-button ${currentCharacterId === "crashTester20" ? "active" : ""}`} onClick={() => changeCharacter("crashTester20")}>CRASH TESTER 2.0</button>
                   <div className="tg-dev-placeholder">
                     CRASH TESTERS are now the default character family.
                   </div>
@@ -1415,7 +1428,7 @@ function handleSectionLockChange(event) {
         <div className="tg-dev-profile-label">
           ACTIVE PROFILE:{" "}
           {currentCharacterId.startsWith("crashTester")
-            ? currentCharacterId.replace("crashTester", "CRASH TESTER ").toUpperCase()
+            ? currentCharacterId === "crashTester20" ? "CRASH TESTER 2.0" : currentCharacterId.replace("crashTester", "CRASH TESTER ").toUpperCase()
             : currentCharacterId === "adventurer"
               ? "LEGACY HUMAN"
               : "VELOCIRAPTOR"}

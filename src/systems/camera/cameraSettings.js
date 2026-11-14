@@ -164,3 +164,5 @@ export function resetCameraPreset(characterId) {
 
   dispatchCameraChange(characterId);
 }
+// Same initial framing as the original; its saved camera profile stays intact.
+defaultCameraSettings.crashTester20 = { ...defaultCameraSettings.crashTester01 };

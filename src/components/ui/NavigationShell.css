@@ -1,0 +1,21 @@
+.tg-compass-activate{position:fixed;top:18px;right:20px;width:52px;height:52px;padding:4px;border:0;background:rgb(0 0 0 / .65);border-radius:50%;z-index:390;cursor:pointer}.tg-compass-activate img{width:100%;height:100%}
+.tg-compass-overlay{position:fixed;inset:8px;z-index:700;display:flex;flex-direction:column;border:1px solid var(--tg-border);background:rgb(0 0 0 / .72);backdrop-filter:blur(3px);color:var(--tg-foreground);overflow:auto;touch-action:pan-y}
+.tg-compass-header{display:flex;align-items:center;gap:8px;padding:12px 20px;border-bottom:1px solid var(--tg-border)}.tg-compass-header>img{width:220px;height:30px;margin-right:auto}
+.tg-compass-title{position:absolute;left:3%;top:90px;font:400 clamp(18px,2.5vw,38px) var(--tg-font-heading);color:var(--tg-orange);margin:0;max-width:25%;overflow-wrap:anywhere;text-shadow:var(--tg-glow)}
+.tg-compass-layout{position:relative;width:min(72vw,980px);height:min(70vh,700px);min-height:390px;align-self:center;margin:auto;flex:1}
+.tg-compass-ring{position:absolute;width:min(34vw,44vh);aspect-ratio:1;left:50%;top:50%;transform:translate(-50%,-50%);border:2px solid var(--tg-orange);border-radius:50%;box-shadow:var(--tg-glow)}
+.tg-compass-ring:before,.tg-compass-ring span{content:"";position:absolute;inset:4%;border:1px solid rgb(255 255 255 / .6);border-radius:50%}.tg-compass-ring span{inset:29%}.tg-compass-ring img{width:100%;height:100%}
+.tg-compass-destination{position:absolute;display:flex;align-items:center;gap:12px;border:1px solid transparent;padding:8px 12px;background:transparent;color:var(--tg-foreground);text-align:left;cursor:pointer;max-width:37%;z-index:1}
+.tg-compass-destination.north{top:2%;left:50%;transform:translateX(-50%);max-width:65%}.tg-compass-destination.south{bottom:2%;left:50%;transform:translateX(-50%);max-width:65%}.tg-compass-destination.west{left:0;top:50%;transform:translateY(-50%)}.tg-compass-destination.east{right:0;top:50%;transform:translateY(-50%)}
+.tg-compass-icon{display:grid;place-items:center;width:46px;height:46px;flex-shrink:0;border:2px solid var(--tg-orange);border-radius:50%;background:var(--tg-surface)}
+.tg-compass-destination small{display:block;font:400 12px var(--tg-font-heading);color:var(--tg-orange);margin-bottom:5px}
+.tg-compass-destination strong{display:block;font:400 clamp(13px,1.8vw,27px)/1.2 var(--tg-font-heading);letter-spacing:-.04em;overflow-wrap:anywhere}
+.tg-compass-destination.selected{background:rgb(var(--tg-orange-rgb) / .12);border-color:var(--tg-orange);box-shadow:var(--tg-glow-selected)}
+.tg-compass-quick{position:absolute;right:20px;top:26%;display:flex;flex-direction:column;gap:12px;width:105px}.tg-compass-quick h2{font:16px var(--tg-font-display);margin:0}.tg-compass-quick button{display:flex;align-items:center;flex-direction:column;gap:7px;font-size:13px;padding:10px 3px}
+.tg-compass-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 20px;font-size:10px;color:var(--tg-muted);border-top:1px solid var(--tg-border)}
+@media(max-width:950px){.tg-compass-quick{display:none}.tg-compass-layout{width:94%;min-height:400px}.tg-compass-title{top:80px;font-size:18px}.tg-compass-header{padding:10px;flex-wrap:wrap}.tg-compass-header>img{width:150px}.tg-compass-footer{flex-wrap:wrap;padding:8px}.tg-compass-footer>span{display:none}.tg-compass-ring{width:min(44vw,36vh)}.tg-compass-destination{gap:6px;padding:8px 4px}.tg-compass-icon{width:30px;height:30px}.tg-compass-icon img{width:19px;height:19px}.tg-compass-destination small{font-size:9px}}
+@media(max-height:600px){.tg-compass-layout{min-height:300px}.tg-compass-quick{display:none}.tg-compass-title{display:none}.tg-compass-destination strong{font-size:15px}}
+
+.tg-compass-top-actions{display:flex;gap:8px;margin-left:auto;flex-shrink:0}
+.tg-compass-top-actions .tg-ui-button{white-space:nowrap}
+@media(max-width:700px){.tg-compass-header{gap:5px;padding:8px}.tg-compass-header>img{width:125px}.tg-compass-header>.tg-ui-button{font-size:12px;padding:5px}.tg-compass-top-actions{gap:5px}.tg-compass-top-actions .tg-ui-button{font-size:13px;padding:6px 8px}.tg-compass-header>img{margin-right:auto}}

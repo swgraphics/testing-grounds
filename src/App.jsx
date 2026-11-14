@@ -1,3 +1,7 @@
+import NavigationShell from "./components/ui/NavigationShell";
+import { returnToWorldView } from "./systems/ui/navigationActions";
+import { useTerrainExportStore } from "./systems/terrain/terrainExportStore";
+import { useNavigationStore } from "./systems/ui/navigationStore";
 import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Physics } from "@react-three/rapier";
@@ -57,6 +61,29 @@ export default function App() {
 
     function handleEscape(event) {
       if (event.key !== "Escape") return;
+      if (useNavigationStore.getState().compassOpen || useNavigationStore.getState().helpOpen) return;
+      if (document.querySelector(".tg-terrain-export")) {
+        const closeButton = document.querySelector('.tg-terrain-export [aria-label="Close terrain export"]');
+        if (!closeButton?.disabled) useTerrainExportStore.getState().setOpen(false);
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
+      if (document.querySelector(".tg-chunk-dialog,.tg-mesh-edit-backdrop,.tg-mesh-menu")) return;
+      const editor = useEditorStore.getState();
+      if (editor.devToolsOpen || editor.devToolsPanelOpen) {
+        editor.closeDevTools(); document.activeElement?.blur?.();
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
+      if (useInteractionStore.getState().panelOpen) {
+        useInteractionStore.getState().closePanel();
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
+      if (editor.isOpen) {
+        const id = event.target?.closest?.('[id^="tg-panel-"]')?.id?.slice(9);
+        if (id && id in editor.panels) editor.setPanel(id, false);
+        else returnToWorldView();
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
+      if (event.target?.closest?.(".tg-terrain-export,.tg-chunk-dialog,.tg-mesh-edit-backdrop")) return;
       event.preventDefault();
       event.stopPropagation();
       setReturnToObjectMenu(false);
@@ -158,7 +185,7 @@ export default function App() {
 
   return (
     <>
-      <div className={`tg-canvas-shell ${editorOpen && !placeMode ? "editor-open" : ""}`}>
+      <div className={`tg-canvas-shell ${editorOpen ? "editor-open" : ""}`}>
         <Canvas
           shadows
           camera={{
@@ -181,23 +208,17 @@ export default function App() {
 
       {!showTitleScreen && !placeMode && (
         <>
-          <InputHUD />
           <CompassRibbon />
           {worldType !== "blank" && <AreaDiscovery />}
           <InteractionPanel />
           <CrimsonTreeInteractionPanel />
           <LeafVertexEditorWindow />
           <AdaptiveReticle />
-          <EditorView />
         </>
       )}
 
-      {!showTitleScreen && placeMode && (
-        <>
-          <EditorView />
-        </>
-      )}
-      {!showTitleScreen && <MeshMenu />}
+      {!showTitleScreen && <><InputHUD /><EditorView /><MeshMenu /></>}
+      {!showTitleScreen && <NavigationShell />}
       <GamepadMenuNavigator />
 
       {showTitleScreen && (
