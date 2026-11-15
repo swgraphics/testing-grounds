@@ -2,10 +2,10 @@ import { create } from "zustand";
 export const DIRECTIONS = ["north", "east", "south", "west"];
 export const COMPASS_MENUS = Object.freeze({
   world: [
-    { label: "TELEPORT", icon: "map-pin", menu: "teleport" },
-    { label: "TOOLS", icon: "tree-pine", menu: "tools" },
-    { label: "OBJECTS", icon: "box", menu: "objects" },
-    { label: "EDITOR", icon: "mountain", menu: "editor" },
+    { label: "WORLD // MAP", icon: "map-pin", action: "panel-north" },
+    { label: "DEV TOOLS", icon: "mountain", action: "panel-east" },
+    { label: "OBJECTS // LIBRARY", icon: "box", action: "panel-south" },
+    { label: "WORLD EDITOR", icon: "mountain", action: "panel-west" },
   ],
   objects: [
     { label: "PLACE", icon: "box", action: "objects" },
@@ -31,18 +31,6 @@ export const COMPASS_MENUS = Object.freeze({
     { label: "VERTEX EDIT", icon: "move", action: "brush-vertex" },
     { label: "LAKE", icon: "droplets", action: "lake" },
   ],
-  editor: [
-    { label: "FULL EDITOR", icon: "mountain", action: "workspace" },
-    { label: "PANELS", icon: "box", menu: "panels" },
-    { label: "TERRAIN EXPORT", icon: "upload", action: "export" },
-    { label: "AREA MAP", icon: "map-pin", action: "map" },
-  ],
-  panels: [
-    { label: "LEFT TOOLS", icon: "mountain", action: "panel-left" },
-    { label: "RIGHT QUICK TOOLS", icon: "sun", action: "panel-right" },
-    { label: "LIBRARY", icon: "box", action: "panel-library" },
-    { label: "SCATTER", icon: "tree-pine", action: "panel-scatter" },
-  ],
   teleport: [
     { label: "AREA MAP", icon: "map-pin", action: "map" },
     { label: "NEXT AREA", icon: "map-pin", action: "next-area" },
@@ -50,16 +38,20 @@ export const COMPASS_MENUS = Object.freeze({
     { label: "PREVIOUS AREA", icon: "map-pin", action: "previous-area" },
   ],
 });
-const AUXILIARY = ["world-view", "devtools", "parent"];
+const HEADER_ACTIONS = ["editor-view", "tools", "world-view"];
+const AUXILIARY = [...HEADER_ACTIONS, "parent"];
 export const useNavigationStore = create(set => ({
   compassOpen: false, menu: "world", trail: ["world"], selected: "north", lastDirection: null, workspace: "terrain", helpOpen: false,
+  placementOrigin: null,
+  setPlacementOrigin: placementOrigin => set({ placementOrigin }),
   openCompass: () => set({ compassOpen: true, menu: "world", trail: ["world"], selected: "north", lastDirection: null }),
   closeCompass: () => set({ compassOpen: false }),
   select: selected => { if ([...DIRECTIONS, ...AUXILIARY].includes(selected)) set(state => ({ selected, lastDirection: state.selected === selected ? state.lastDirection : null })); },
   navigate: direction => set(state => {
-    if (state.selected === "north" && direction === "north" && state.lastDirection === "north") return { selected: "world-view", lastDirection: null };
-    if (["world-view","devtools","parent"].includes(state.selected)) {
-      const selected = direction === "south" ? "north" : direction === "east" ? (state.selected === "parent" ? "world-view" : "devtools") : direction === "west" ? (state.selected === "world-view" && state.trail.length > 1 ? "parent" : "world-view") : state.selected;
+    if (state.selected === "north" && direction === "north" && state.lastDirection === "north") return { selected: "editor-view", lastDirection: null };
+    if (AUXILIARY.includes(state.selected)) {
+      const index = HEADER_ACTIONS.indexOf(state.selected);
+      const selected = direction === "south" ? "north" : direction === "east" ? HEADER_ACTIONS[Math.min(HEADER_ACTIONS.length - 1, index + 1)] : direction === "west" ? (index <= 0 && state.trail.length > 1 ? "parent" : HEADER_ACTIONS[Math.max(0, index - 1)]) : state.selected;
       return { selected, lastDirection: null };
     }
     return { selected: direction, lastDirection: direction };

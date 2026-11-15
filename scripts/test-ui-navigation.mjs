@@ -7,6 +7,7 @@ try {
  const {inputState}=await server.ssrLoadModule("/src/systems/input/inputState.js");
  const {gamepadState}=await server.ssrLoadModule("/src/systems/input/gamepadState.js");
  const store=nav.useNavigationStore;
+ assert.deepEqual(nav.COMPASS_MENUS.world.map(entry=>entry.action),["panel-north","panel-east","panel-south","panel-west"]);
  store.getState().openCompass();
  assert.equal(store.getState().menu,"world");assert.equal(store.getState().compassOpen,true);
  store.getState().enterMenu("objects");store.getState().select("east");

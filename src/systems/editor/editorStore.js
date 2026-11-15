@@ -1,29 +1,39 @@
 import { create } from "zustand";
 
-const CLOSED_PANELS = Object.freeze({ left: false, right: false, library: false, scatter: false });
-export const useEditorStore = create(set => ({
-  isOpen: false, panels: { ...CLOSED_PANELS }, activePanel: "editor",
-  devToolsOpen: false, devToolsPanelOpen: false, viewportMode: "world",
-  // Panel layout is transient UI state; these APIs never touch interaction tools.
-  open() { set({ isOpen: true, panels: { left: true, right: true, library: true, scatter: true } }); },
-  close() { set({ isOpen: false, panels: { ...CLOSED_PANELS }, devToolsOpen: false, devToolsPanelOpen: false, viewportMode: "world" }); },
-  toggle() { set(state => state.isOpen
-    ? { isOpen: false, panels: { ...CLOSED_PANELS }, viewportMode: "world" }
-    : { isOpen: true, panels: { left: true, right: true, library: true, scatter: true } }); },
-  setPanel(panel, open) {
-    if (!(panel in CLOSED_PANELS)) return;
-    set(state => { const panels = { ...state.panels, [panel]: Boolean(open) }; return { panels, isOpen: Object.values(panels).some(Boolean), viewportMode: Object.values(panels).some(Boolean) ? state.viewportMode : "world" }; });
+export const PANEL_DIRECTIONS = Object.freeze(["north", "south", "west", "east"]);
+const closedPanels = () => Object.fromEntries(PANEL_DIRECTIONS.map(direction => [direction, false]));
+export const panelIsVisible = (state, direction) => Boolean(state.visiblePanels[direction]);
+export const hasVisiblePanels = state => Object.values(state.visiblePanels).some(Boolean);
+export function panelLayoutStyle(visiblePanels) {
+  const anyVisible = Object.values(visiblePanels).some(Boolean);
+  return Object.fromEntries(PANEL_DIRECTIONS.map(direction => [
+    `--tg-${direction}-space`,
+    visiblePanels[direction] ? `var(--tg-${direction}-${["north", "south"].includes(direction) ? "height" : "width"})` : anyVisible ? "var(--tg-tab-size)" : "0px",
+  ]));
+}
+
+// Layout only. Tools, settings, history and world data keep their existing owners.
+export const useEditorStore = create((set, get) => ({
+  viewMode: "world",
+  visiblePanels: closedPanels(),
+  openAllPanels() { set({ viewMode: "editor", visiblePanels: Object.fromEntries(PANEL_DIRECTIONS.map(direction => [direction, true])) }); },
+  closeAllPanels() { set({ viewMode: "world", visiblePanels: closedPanels() }); },
+  open() { get().openAllPanels(); },
+  close() { get().closeAllPanels(); },
+  openPanel(direction) {
+    if (!PANEL_DIRECTIONS.includes(direction)) return;
+    set(state => ({ visiblePanels: { ...state.visiblePanels, [direction]: true } }));
   },
-  togglePanel(panel) {
-    if (!(panel in CLOSED_PANELS)) return;
-    set(state => { const panels = { ...state.panels, [panel]: !state.panels[panel] }; return { panels, isOpen: Object.values(panels).some(Boolean), viewportMode: Object.values(panels).some(Boolean) ? state.viewportMode : "world" }; });
+  closePanel(direction) {
+    if (!PANEL_DIRECTIONS.includes(direction)) return;
+    set(state => {
+      const visiblePanels = { ...state.visiblePanels, [direction]: false };
+      return { visiblePanels, viewMode: Object.values(visiblePanels).some(Boolean) ? state.viewMode : "world" };
+    });
   },
-  setActivePanel: activePanel => set({ activePanel }),
-  openDevToolsPanel: () => set({ devToolsPanelOpen: true, devToolsOpen: false }),
-  toggleDevToolsPanel: () => set(state => ({ devToolsPanelOpen: !state.devToolsPanelOpen, devToolsOpen: false })),
-  openDevToolsMenu: () => set({ devToolsOpen: true, devToolsPanelOpen: false }),
-  toggleDevTools: () => set(state => ({ devToolsOpen: !state.devToolsOpen, devToolsPanelOpen: false })),
-  closeDevTools: () => set({ devToolsOpen: false, devToolsPanelOpen: false }),
-  setDevToolsOpen: devToolsOpen => set({ devToolsOpen: Boolean(devToolsOpen), devToolsPanelOpen: false }),
-  setViewportMode: viewportMode => set({ viewportMode }),
+  togglePanel(direction) { if (get().visiblePanels[direction]) get().closePanel(direction); else get().openPanel(direction); },
+  // Existing callers now lead to the single canonical EAST panel.
+  openDevToolsMenu() { get().openPanel("east"); },
+  openDevToolsPanel() { get().openPanel("east"); },
+  closeDevTools() { get().closePanel("east"); },
 }));

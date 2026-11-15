@@ -1,30 +1,14 @@
 import { useEffect, useState } from "react";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
-
-function mergeTreeDefinition(definition, patch) {
-  return {
-    ...definition,
-    trunk: {
-      ...(definition?.trunk ?? {}),
-      ...(patch?.trunk ?? {}),
-    },
-    branches: {
-      ...(definition?.branches ?? {}),
-      ...(patch?.branches ?? {}),
-      overrides: { ...(definition?.branches?.overrides ?? {}), ...(patch?.branches?.overrides ?? {}) },
-      secondary: {
-        ...(definition?.branches?.secondary ?? {}),
-        ...(patch?.branches?.secondary ?? {}),
-      },
-    },
-    leaves: {
-      ...(definition?.leaves ?? {}),
-      ...(patch?.leaves ?? {}),
-    },
-  };
-}
+import { useWorldStore } from "../../systems/world/worldStore";
+import TreeProperties from "./TreeProperties";
+import ObjectTransformProperties from "./ObjectTransformProperties";
+import ObjectEditHistory from "./ObjectEditHistory";
+import { mergeTreeProperties } from "../../systems/objects/treeProperties";
+import { resolveObjectTarget, editObjectTarget } from "../../systems/objects/objectEditing";
 
 export default function CrimsonTreeInteractionPanel() {
+  const world = useWorldStore(state => state.world);
   const activeTool = useInteractionStore((state) => state.activeTool);
   const [treeId, setTreeId] = useState(null);
   const [definition, setDefinition] = useState(null);
@@ -44,7 +28,7 @@ export default function CrimsonTreeInteractionPanel() {
     function handleChange(event) {
       const patch = event.detail?.patch;
       if (!patch) return;
-      setDefinition((current) => mergeTreeDefinition(current ?? {}, patch));
+      setDefinition((current) => mergeTreeProperties(current ?? {}, patch));
     }
 
     function handleTarget(event) {
@@ -105,62 +89,14 @@ export default function CrimsonTreeInteractionPanel() {
 
   if (activeTool !== "TREE" || !treeId) return null;
 
-  const height = Number(definition?.trunk?.height ?? 50);
-  const taper = Number(definition?.trunk?.taper ?? 50);
-  const bend = Number(definition?.trunk?.bend ?? 50);
-  const radius = Number(definition?.trunk?.radius ?? 50);
-  const branch = definition?.branches ?? {};
-  const secondary = branch.secondary ?? {};
-  const branchFields = [
-    ["BRANCH COUNT", "branch.count", branch.count ?? 50],
-    ["BRANCH ANGLE", "branch.angle", branch.angle ?? 50],
-    ["BRANCH LENGTH", "branch.length", branch.length ?? 50],
-    ["BRANCH THICKNESS", "branch.thickness", branch.thickness ?? 50],
-    ["BRANCH FREQUENCY", "branch.frequency", branch.frequency ?? 50],
-    ["BRANCH VERTICALITY", "branch.verticality", branch.verticality ?? 50],
-    ["BRANCH RANDOMNESS", "branch.randomness", branch.randomness ?? 50],
-    ["BRANCH TAPER", "branch.taper", branch.taper ?? 50],
-    ["SECONDARY BRANCHES", "secondary.count", secondary.count ?? 50],
-    ["SECONDARY LENGTH", "secondary.length", secondary.length ?? 50],
-    ["SECONDARY THICKNESS", "secondary.thickness", secondary.thickness ?? 50],
-    ["SECONDARY RANDOMNESS", "secondary.randomness", secondary.randomness ?? 50],
-  ];
-
-  function update(key, value) {
-    const numeric = Number(value);
-    let patch;
-    if (key.startsWith("secondary.")) {
-      patch = { branches: { secondary: { [key.split(".")[1]]: numeric } } };
-    } else if (key.startsWith("branch.")) {
-      patch = { branches: { [key.split(".")[1]]: numeric } };
-    } else if (["height", "taper", "bend", "radius"].includes(key)) {
-      patch = { trunk: { [key]: numeric } };
-    } else if (key === "leafSize" || key === "leafDensity") {
-      patch = { leaves: { [key === "leafSize" ? "size" : "density"]: numeric } };
-    } else {
-      patch = { branches: { [key]: numeric } };
-    }
-    setDefinition((current) => mergeTreeDefinition(current ?? {}, patch));
-    window.dispatchEvent(new CustomEvent("crimson-tree-edit-change", { detail: { treeId, scope: instanceScope, patch } }));
+  const target = { id: treeId, chunkId: world.currentChunkId, scope: instanceScope, definition };
+  const object = resolveObjectTarget(target, world);
+  const effectiveDefinition = object?.treeDefinition ?? definition;
+  function close() { window.dispatchEvent(new CustomEvent("crimson-tree-edit-exit-request")); }
+  function changeTree(patch) {
+    setDefinition(current => mergeTreeProperties(current ?? {}, patch));
+    editObjectTarget(target, { treeDefinition: patch });
   }
-
-  function close() {
-    window.dispatchEvent(new CustomEvent("crimson-tree-edit-exit-request"));
-  }
-
-  const slider = (label, value, key) => (
-    <label className="tg-tree-interaction-slider" key={key}>
-      <span>{label}<strong>{Math.round(value)}</strong></span>
-      <input
-        type="range"
-        min="0"
-        max="100"
-        value={value}
-        onChange={(event) => update(key, event.target.value)}
-      />
-    </label>
-  );
-
   return (
     <aside className="tg-tree-interaction-panel" data-input-context="panel" aria-label="Default Tree Interaction">
       <div className="tg-tree-interaction-title-row">
@@ -187,11 +123,6 @@ export default function CrimsonTreeInteractionPanel() {
         <button type="button" className={`tg-tree-interaction-mode ${mode === "leaves" ? "active" : ""}`} onClick={() => { setMode("leaves"); window.dispatchEvent(new CustomEvent("crimson-tree-edit-mode-request", { detail: { mode: "leaves" } })); }}>LEAVES</button>
       </div>
 
-      {slider("TRUNK HEIGHT", height, "height")}
-      {slider("TRUNK TAPER", taper, "taper")}
-      {slider("TRUNK BEND", bend, "bend")}
-      {slider("TRUNK WIDTH", radius, "radius")}
-
       {mode === "branch" && (
         <>
           <div className="tg-tree-interaction-section">BRANCH CONTROL</div>
@@ -205,20 +136,15 @@ export default function CrimsonTreeInteractionPanel() {
               <button key={key} type="button" className={`tg-tree-interaction-mode ${gestureMode === key ? "active" : ""}`} onClick={() => window.dispatchEvent(new CustomEvent("crimson-tree-branch-gesture-request", { detail: { mode: key } }))}>{label}</button>
             ))}
           </div>
-          {branchFields.map(([label, key, value]) => slider(label, Number(value), key))}
+
           <div className="tg-tree-interaction-hint">DRAG = GESTURE · SHIFT = THICKNESS · CTRL = FREQUENCY · ALT = TAPER · G = SINGLE/ALL</div>
         </>
       )}
 
-      {mode === "leaves" && (
-        <>
-          <div className="tg-tree-interaction-section">LEAF CONTROL</div>
-          {slider("LEAF SIZE", Number(definition?.leaves?.size ?? 50), "leafSize")}
-          {slider("LEAF DENSITY", Number(definition?.leaves?.density ?? 50), "leafDensity")}
-          <button type="button" className="tg-tree-interaction-mode" onClick={() => window.dispatchEvent(new CustomEvent("crimson-tree-leaf-vertex-open", { detail: { treeId, definition, instanceScope } }))}>LEAF VERTEX EDIT</button>
-        </>
-      )}
-
+      <TreeProperties definition={effectiveDefinition} onChange={changeTree} seedEditable={!(object?.profileId && instanceScope === "global")} onVertexEdit={() => window.dispatchEvent(new CustomEvent("crimson-tree-leaf-vertex-open", { detail: { treeId, definition: effectiveDefinition, instanceScope } }))} />
+      {object?.position && <ObjectTransformProperties object={object} onChange={patch => editObjectTarget(target, patch)} />}
+      <ObjectEditHistory />
+      <button className="tg-tree-interaction-mode" onClick={() => window.dispatchEvent(new CustomEvent("tg-object-focus-edit", { detail: target }))}>EDIT OBJECT IN SOUTH</button>
       <div className="tg-tree-interaction-hint">{mode === "trunk" ? "UP / DOWN = HEIGHT  ·  LEFT / RIGHT = BEND" : mode === "leaves" ? "SELECT LEAF VERTEX EDIT FOR DIRECT SHAPE CONTROL" : "BRANCH MODE = DIRECT PROCEDURAL EXTRUSION"}</div>
     </aside>
   );

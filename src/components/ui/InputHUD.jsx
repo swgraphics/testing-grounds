@@ -1,11 +1,10 @@
+import { createPortal } from "react-dom";
 import { activeCharacterId } from "../character/characterRegistry";
 import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 import { useEffect, useRef, useState } from "react";
-import { useEditorStore } from "../../systems/editor/editorStore";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 
 import { inputState } from "../../systems/input/inputState";
-import { UNIVERSAL_ANIMATION_LIBRARY } from "../../config/universalAnimationLibrary";
 import {
   runWithLoadingOverlay,
 } from "../../systems/ui/loadingOverlay";
@@ -440,111 +439,8 @@ function DevSectionLockButton({
   );
 }
 
-function DevToolsPanel({ terrainLocked, onRefresh, onClose }) {
-  const [activeSection, setActiveSection] = useState("terrain");
-  const sections = ["character", "terrain", "camera", "physics", "atmosphere", "world", "materials"];
-
-  function selectSection(section) {
-    setActiveSection(section);
-    window.dispatchEvent(new CustomEvent("tg-dev-panel-section", { detail: { section } }));
-  }
-
-  return (
-    <aside className="tg-dev-panel" aria-label="Dev Tools Panel">
-      <div className="tg-dev-panel-title-row">
-        <div className="tg-side-panel-title">DEV TOOLS</div>
-        <button type="button" className="tg-side-panel-close" onClick={onClose} aria-label="Close Dev Tools Panel">×</button>
-      </div>
-
-      <div className="tg-dev-panel-section-grid">
-        {sections.map((section) => (
-          <button
-            key={section}
-            type="button"
-            className={`tg-dev-panel-section-button ${activeSection === section ? "active" : ""}`}
-            onClick={() => selectSection(section)}
-          >
-            {section.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
-      <div className="tg-dev-panel-module">
-        {activeSection === "terrain" && (
-          <>
-            <div className="tg-dev-panel-module-title">TERRAIN</div>
-            <DevSectionLockButton sectionName="terrain" locked={terrainLocked} onRefresh={onRefresh} />
-            <div className={`tg-dev-section-lockable ${terrainLocked ? "locked" : ""}`}>
-              {TERRAIN_SLIDERS.map(([key, label, min, max, step]) => (
-                <DevSlider key={key} settingKey={key} label={label} min={min} max={max} step={step} locked={terrainLocked} onRefresh={onRefresh} />
-              ))}
-              <button type="button" disabled={terrainLocked} className="tg-side-panel-button" onClick={() => { reshuffleScatter(); onRefresh(); }}>
-                RESHUFFLE SCATTER
-              </button>
-            </div>
-          </>
-        )}
-
-        {activeSection === "atmosphere" && (
-          <>
-            <div className="tg-dev-panel-module-title">ATMOSPHERE</div>
-            <div className="tg-dev-button-row tg-dev-mode-row">
-              {["normal", "rainbow", "aurora"].map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`tg-dev-speed-button ${terrainSettings.atmosphereMode === mode ? "active" : ""}`}
-                  onClick={() => {
-                    const nextMode = terrainSettings.atmosphereMode === mode && mode !== "normal" ? "normal" : mode;
-                    updateTerrainSetting("atmosphereMode", nextMode);
-                    updateTerrainSetting("rainbowEnabled", nextMode === "rainbow");
-                    updateTerrainSetting("auroraEnabled", nextMode === "aurora");
-                    updateTerrainSetting("rainbowIntensity", nextMode === "rainbow" ? Math.max(terrainSettings.rainbowIntensity, 65) : terrainSettings.rainbowIntensity);
-                    updateTerrainSetting("auroraIntensity", nextMode === "aurora" ? Math.max(terrainSettings.auroraIntensity, 70) : terrainSettings.auroraIntensity);
-                    onRefresh();
-                  }}
-                >{mode.toUpperCase()}</button>
-              ))}
-            </div>
-            {ATMOSPHERE_NUMERIC_SLIDERS.map(([key, label, min, max, step]) => (
-              <DevSlider key={key} settingKey={key} label={label} min={min} max={max} step={step} locked={false} onRefresh={onRefresh} lockId={`atmosphere.${key}`} />
-            ))}
-          </>
-        )}
-
-        {activeSection === "character" && (
-          <>
-            <div className="tg-dev-panel-module-title">CHARACTER</div>
-            <button type="button" className="tg-side-panel-button" onClick={() => window.dispatchEvent(new CustomEvent("change-character", { detail: { characterId: "crashTester20" } }))}>CRASH TESTER 2.0</button>
-            {[1, 2, 3, 4, 5].map((number) => (
-              <button key={number} type="button" className="tg-side-panel-button" onClick={() => window.dispatchEvent(new CustomEvent("change-character", { detail: { characterId: `crashTester0${number}` } }))}>
-                CRASH TESTER 0{number}
-              </button>
-            ))}
-          </>
-        )}
-
-        {activeSection !== "terrain" && activeSection !== "atmosphere" && activeSection !== "character" && (
-          <>
-            <div className="tg-dev-panel-module-title">{activeSection.toUpperCase()}</div>
-            <div className="tg-dev-panel-hint">SECTION AVAILABLE IN FULL DEV TOOLS</div>
-          </>
-        )}
-      </div>
-
-      <button type="button" className="tg-side-panel-button tg-dev-open-full-button" onClick={() => useEditorStore.getState().openDevToolsMenu()}>
-        OPEN FULL DEV TOOLS
-      </button>
-    </aside>
-  );
-}
-export default function InputHUD() {
+export default function InputHUD({ devToolsHost }) {
   const [, forceUpdate] = useState(0);
-  const editorOpen = useEditorStore((state) => state.isOpen);
-  const devToolsOpen = useEditorStore((state) => state.devToolsOpen);
-  const devToolsPanelOpen = useEditorStore((state) => state.devToolsPanelOpen);
-  const interactionPanelOpen = useInteractionStore((state) => state.panelOpen);
-  const closeDevTools = useEditorStore((state) => state.closeDevTools);
 
   const [stickPosition, setStickPosition] = useState({
     x: 0,
@@ -556,7 +452,6 @@ export default function InputHUD() {
     y: 0,
   });
   const [sprintOn, setSprintOn] = useState(false);
-  const [animationLibraryOpen, setAnimationLibraryOpen] = useState(false);
 
   const [openDevSections, setOpenDevSections] = useState({
     character: false,
@@ -621,22 +516,6 @@ const cameraPadRef = useRef({
   startX: 0,
   startY: 0,
 });
-
-  function handleDevToolsClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (devToolsOpen || devToolsPanelOpen) {
-      closeDevTools();
-    }
-
-    const interaction = useInteractionStore.getState();
-    if (interaction.panelOpen) {
-      interaction.clear();
-    } else {
-      interaction.openPanel();
-    }
-  }
 
   function refresh() {
     forceUpdate((value) => value + 1);
@@ -978,7 +857,7 @@ function handleSectionLockChange(event) {
       }
 
       const target = event.target;
-      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-dev-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-placed-object, .tg-editor-view")) {
+      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-dev-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-placed-object, .tg-editor-view, [data-input-context='panel']")) {
         return;
       }
 
@@ -1225,48 +1104,7 @@ function handleSectionLockChange(event) {
 
   return (
     <>
-      <button
-        type="button"
-        className={`tg-dev-toggle tg-dev-compass-toggle ${
-          devToolsOpen || devToolsPanelOpen || interactionPanelOpen ? "active" : ""
-        }`}
-        onClick={handleDevToolsClick}
-        aria-label="Open Interaction Panel"
-      >
-        <img
-          src="/images/TG_ICON.svg"
-          alt="Testing Grounds Interaction"
-          className="tg-dev-toggle-icon"
-        />
-      </button>
-
-      {devToolsPanelOpen && !devToolsOpen && (
-        <DevToolsPanel
-          terrainLocked={terrainLocked}
-          onRefresh={refresh}
-          onClose={closeDevTools}
-        />
-      )}
-
-      <div
-        className={`tg-side-panel tg-dev-full-menu ${
-          devToolsOpen ? "open" : ""
-        } ${editorOpen ? "editor-embedded" : ""}`}
-      >
-        {devToolsOpen && (
-          <>
-            <div className="tg-side-panel-title-row">
-              <div className="tg-side-panel-title">DEV TOOLS</div>
-              <button
-                type="button"
-                className="tg-side-panel-close"
-                onClick={closeDevTools}
-                aria-label="Close Dev Tools"
-              >
-                ×
-              </button>
-            </div>
-
+      {devToolsHost && createPortal(<div className="tg-dev-full-menu open" data-input-context="panel">
             {/* CHARACTER */}
             <div className="tg-dev-section">
               <DevSectionHeader
@@ -1892,9 +1730,7 @@ function handleSectionLockChange(event) {
               )}
             </div>
 
-          </>
-        )}
-      </div>
+      </div>, devToolsHost)}
 
       {/* DESKTOP JOYSTICK HUD */}
 <div
@@ -1952,55 +1788,6 @@ function handleSectionLockChange(event) {
     }}
   />
 </div>
-{currentCharacterId.startsWith("crashTester") && (
-  <div className="tg-animation-library-ui">
-    <button
-      type="button"
-      className="tg-animation-library-toggle"
-      aria-expanded={animationLibraryOpen}
-      onClick={() => setAnimationLibraryOpen((open) => !open)}
-    >
-      {animationLibraryOpen ? "CLOSE ACTIONS" : "ANIMATION ACTIONS"}
-    </button>
-    {animationLibraryOpen && (
-      <div className="tg-animation-library-panel" role="dialog" aria-label="Animation action library">
-        <div className="tg-animation-library-heading">UNIVERSAL ANIMATION LIBRARY</div>
-        <div className="tg-animation-library-hint">Choose an action to play on the active Crash Tester. Looping clips play for 4 seconds; one-shots return to normal movement.</div>
-        {[
-          ["movement", "MOVEMENT & TRAVERSAL"],
-          ["combat", "COMBAT & REACTIONS"],
-          ["interaction", "INTERACTIONS"],
-          ["emote", "IDLES & EMOTES"],
-        ].map(([category, label]) => {
-          const clips = UNIVERSAL_ANIMATION_LIBRARY.filter((clip) => clip.category === category);
-          if (!clips.length) return null;
-          return (
-            <section className="tg-animation-library-category" key={category}>
-              <div className="tg-animation-library-category-title">{label}</div>
-              <div className="tg-animation-library-grid">
-                {clips.map((clip) => (
-                  <button
-                    type="button"
-                    className="tg-animation-library-action"
-                    key={clip.id}
-                    title={`${clip.label} — ${clip.pack}`}
-                    onClick={() => {
-                      const looping = /Loop$/.test(clip.clipName) || clip.clipName === "Dance_Loop";
-                      const duration = looping ? 4000 : 1400;
-                      window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: clip.id, duration } }));
-                    }}
-                  >
-                    {clip.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
-    )}
-  </div>
-)}
 {/* DESKTOP ACTION BUTTONS */}
 <div className="tg-desktop-action-buttons">
   {/* A — Jump */}

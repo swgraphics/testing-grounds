@@ -1,5 +1,6 @@
 import NavigationShell from "./components/ui/NavigationShell";
-import { returnToWorldView } from "./systems/ui/navigationActions";
+import { returnToWorldView, backFromObjectPlacement } from "./systems/ui/navigationActions";
+import { clearGameplayInput } from "./systems/input/inputOwnership";
 import { useTerrainExportStore } from "./systems/terrain/terrainExportStore";
 import { useNavigationStore } from "./systems/ui/navigationStore";
 import { useEffect, useState } from "react";
@@ -10,7 +11,6 @@ import LoadingOverlay from "./components/ui/LoadingOverlay";
 import TestingGrounds from "./scenes/TestingGrounds";
 import InputHUD from "./components/ui/InputHUD";
 import TitleScreen from "./components/ui/TitleScreen";
-import CompassRibbon from "./components/ui/CompassRibbon";
 import EditorView from "./components/ui/EditorView";
 import InteractionPanel from "./components/ui/InteractionPanel";
 import CrimsonTreeInteractionPanel from "./components/ui/CrimsonTreeInteractionPanel";
@@ -18,7 +18,7 @@ import AdaptiveReticle from "./components/ui/AdaptiveReticle";
 import GamepadMenuNavigator from "./components/ui/GamepadMenuNavigator";
 import LeafVertexEditorWindow from "./components/ui/LeafVertexEditorWindow";
 import MeshMenu from "./components/ui/MeshMenu";
-import { useEditorStore } from "./systems/editor/editorStore";
+import { useEditorStore, panelLayoutStyle } from "./systems/editor/editorStore";
 import { useInteractionStore } from "./systems/interaction/interactionStore";
 import { AREA_CONFIG } from "./config/areaConfig";
 import { useWorldStore } from "./systems/world/worldStore";
@@ -41,10 +41,12 @@ import {
 export default function App() {
   const [showTitleScreen, setShowTitleScreen] = useState(true);
   const initializeWorld = useWorldStore((state) => state.initializeWorld);
-  const editorOpen = useEditorStore((state) => state.isOpen);
+  const visiblePanels = useEditorStore(state => state.visiblePanels);
+  const panelsOpen = Object.values(visiblePanels).some(Boolean);
+  const [devToolsHost, setDevToolsHost] = useState(null);
+  const [libraryHost, setLibraryHost] = useState(null);
   const worldType = useWorldStore((state) => state.world.worldType);
   const placeMode = useInteractionStore((state) => state.activeMode === "place");
-  const [returnToObjectMenu, setReturnToObjectMenu] = useState(false);
 
   useEffect(() => {
     initializeWorld(AREA_CONFIG);
@@ -53,14 +55,19 @@ export default function App() {
 
   useEffect(() => {
     function handlePlacementExitRequest(event) {
-      if (useInteractionStore.getState().activeMode !== "place") return;
-      event.preventDefault?.();
-      setReturnToObjectMenu(true);
-      window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
+      if (backFromObjectPlacement()) event.preventDefault?.();
+    }
+    function handlePlacementStart(event) {
+      if (event.detail?.mesh) useNavigationStore.getState().setPlacementOrigin(event.detail.origin === "south" ? "south" : null);
     }
 
     function handleEscape(event) {
       if (event.key !== "Escape") return;
+      const panelMenu = event.target?.closest?.(".tg-panel-visibility[open]");
+      if (panelMenu) {
+        panelMenu.open = false; panelMenu.querySelector("summary")?.focus();
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
       // Let inline rename fields cancel before a shell dismissal can blur/save them.
       if (event.target?.matches?.('.tg-editor-area-rename-input,.tg-mesh-card-rename-input')) return;
       if (useNavigationStore.getState().compassOpen || useNavigationStore.getState().helpOpen) return;
@@ -69,26 +76,22 @@ export default function App() {
         if (!closeButton?.disabled) useTerrainExportStore.getState().setOpen(false);
         event.preventDefault(); event.stopImmediatePropagation(); return;
       }
-      if (document.querySelector(".tg-chunk-dialog,.tg-mesh-edit-backdrop,.tg-mesh-menu")) return;
+      if (document.querySelector(".tg-chunk-dialog,.tg-mesh-edit-backdrop")) return;
+      if (backFromObjectPlacement()) { event.preventDefault(); event.stopImmediatePropagation(); return; }
       const editor = useEditorStore.getState();
-      if (editor.devToolsOpen || editor.devToolsPanelOpen) {
-        editor.closeDevTools(); document.activeElement?.blur?.();
-        event.preventDefault(); event.stopImmediatePropagation(); return;
-      }
       if (useInteractionStore.getState().panelOpen) {
         useInteractionStore.getState().closePanel();
         event.preventDefault(); event.stopImmediatePropagation(); return;
       }
-      if (editor.isOpen) {
-        const id = event.target?.closest?.('[id^="tg-panel-"]')?.id?.slice(9);
-        if (id && id in editor.panels) editor.setPanel(id, false);
+      if (Object.values(editor.visiblePanels).some(Boolean)) {
+        const direction = event.target?.closest?.("[data-directional-panel]")?.dataset.directionalPanel;
+        if (direction) { editor.closePanel(direction); clearGameplayInput(); document.activeElement?.blur?.(); }
         else returnToWorldView();
         event.preventDefault(); event.stopImmediatePropagation(); return;
       }
       if (event.target?.closest?.(".tg-terrain-export,.tg-chunk-dialog,.tg-mesh-edit-backdrop")) return;
       event.preventDefault();
       event.stopPropagation();
-      setReturnToObjectMenu(false);
       window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
       window.dispatchEvent(new CustomEvent("tg-mesh-menu-close"));
       useInteractionStore.getState().clear();
@@ -97,21 +100,14 @@ export default function App() {
     }
 
     window.addEventListener("tg-place-mode-exit", handlePlacementExitRequest);
+    window.addEventListener("tg-mesh-place-request", handlePlacementStart);
     window.addEventListener("keydown", handleEscape, true);
     return () => {
       window.removeEventListener("tg-place-mode-exit", handlePlacementExitRequest);
+      window.removeEventListener("tg-mesh-place-request", handlePlacementStart);
       window.removeEventListener("keydown", handleEscape, true);
     };
   }, []);
-
-  useEffect(() => {
-    if (placeMode || !returnToObjectMenu || showTitleScreen) return;
-
-    setReturnToObjectMenu(false);
-    window.requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent("tg-mesh-menu-open"));
-    });
-  }, [placeMode, returnToObjectMenu, showTitleScreen]);
 
   const [loadingVisible, setLoadingVisible] = useState(false);
   const [loadingMessage, setLoadingMessage] =
@@ -187,7 +183,7 @@ export default function App() {
 
   return (
     <>
-      <div className={`tg-canvas-shell ${editorOpen ? "editor-open" : ""}`}>
+      <div style={panelLayoutStyle(visiblePanels)} className={`tg-canvas-shell ${panelsOpen ? "editor-open" : ""}`}>
         <Canvas
           shadows
           camera={{
@@ -210,7 +206,6 @@ export default function App() {
 
       {!showTitleScreen && !placeMode && (
         <>
-          <CompassRibbon />
           {worldType !== "blank" && <AreaDiscovery />}
           <InteractionPanel />
           <CrimsonTreeInteractionPanel />
@@ -219,7 +214,7 @@ export default function App() {
         </>
       )}
 
-      {!showTitleScreen && <><InputHUD /><EditorView /><MeshMenu /></>}
+      {!showTitleScreen && <><InputHUD devToolsHost={devToolsHost} /><EditorView onDevToolsHost={setDevToolsHost} onLibraryHost={setLibraryHost} /><MeshMenu host={libraryHost} /></>}
       {!showTitleScreen && <NavigationShell />}
       <GamepadMenuNavigator />
 

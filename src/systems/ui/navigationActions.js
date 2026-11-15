@@ -6,10 +6,13 @@ import { useWorldStore } from "../world/worldStore";
 import { useTerrainExportStore } from "../terrain/terrainExportStore";
 
 const emit = (name, detail) => window.dispatchEvent(new CustomEvent(name, { detail }));
-export function focusPanel() {
+export function focusPanel(direction) {
   window.requestAnimationFrame(() => {
-    const root = ['.tg-terrain-export','.tg-mesh-menu','.tg-dev-full-menu.open','.tg-dev-panel','.tg-workspace-v2'].map(selector => document.querySelector(selector)).find(Boolean);
-    root?.querySelector('button:not([disabled]),input:not([disabled]),select:not([disabled])')?.focus();
+    const root = document.querySelector(".tg-terrain-export") || document.querySelector(direction ? "#tg-panel-" + direction + ":not([hidden])" : "[data-directional-panel]:not([hidden])");
+    const controls = [...(root?.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),summary') ?? [])];
+    const preferred = direction === "north" ? root?.querySelector('[data-action="world-view"]') : null;
+    const control = preferred?.getClientRects().length ? preferred : controls.find(element => element.getClientRects().length > 0);
+    control?.focus();
   });
 }
 export function returnToWorldView() {
@@ -21,29 +24,39 @@ export function returnToWorldView() {
   // Hide interfaces only: never cancel placement, clear tools, or reset settings.
   emit("tg-mesh-menu-close");
   clearGameplayInput();
-  document.querySelector(".tg-panel-switcher")?.removeAttribute("open");
   document.activeElement?.blur?.();
 }
 export function openWorkspace(workspace = "terrain") {
   useNavigationStore.getState().setWorkspace(workspace);
   useEditorStore.getState().open();
-  useEditorStore.getState().setViewportMode(workspace === "map" ? "map" : "world");
 }
 export function activateWorldTool(tool, mode = "sculpt") {
+  useNavigationStore.getState().setPlacementOrigin(null);
   useInteractionStore.getState().activate({ target: tool === "SUN" ? "sun" : ["RIVER","POND"].includes(tool) ? "water" : "terrain", tool, mode });
   document.activeElement?.blur?.();
 }
 export function openObjectLibrary(mode = "place") {
   useNavigationStore.getState().setWorkspace(mode === "scatter" ? "scatter" : "objects");
-  useEditorStore.getState().setPanel(mode === "scatter" ? "scatter" : "library", true);
-  emit("tg-mesh-menu-open", { mode });
-  focusPanel();
+  useEditorStore.getState().openPanel("south");
+  emit("tg-mesh-menu-open", { mode, restore: mode === "return" });
+  if (mode !== "return") focusPanel("south");
+}
+export function backFromObjectPlacement() {
+  const interaction = useInteractionStore.getState();
+  if (interaction.activeTool !== "OBJECT" || interaction.activeMode !== "place") return false;
+  const origin = useNavigationStore.getState().placementOrigin;
+  useNavigationStore.getState().setPlacementOrigin(null);
+  clearGameplayInput();
+  emit("tg-mesh-cancel-placement");
+  useInteractionStore.getState().deactivate();
+  if (origin === "south") openObjectLibrary("return");
+  else document.activeElement?.blur?.();
+  return true;
 }
 export function openIndependentDevTools(section) {
-  returnToWorldView();
   useEditorStore.getState().openDevToolsMenu();
   if (section) emit("tg-open-dev-section", { section });
-  focusPanel();
+  focusPanel("east");
 }
 export function runNavigationAction(action) {
   useNavigationStore.getState().closeCompass();
@@ -57,8 +70,12 @@ export function runNavigationAction(action) {
     return;
   }
   if (action.startsWith("panel-")) {
-    useEditorStore.getState().togglePanel(action.slice(6));
-    focusPanel();
+    const direction = action.slice(6);
+    useEditorStore.getState().togglePanel(direction);
+    useTerrainExportStore.getState().setOpen(false);
+    useInteractionStore.getState().closePanel();
+    if (useEditorStore.getState().visiblePanels[direction]) focusPanel(direction);
+    else document.activeElement?.blur?.();
     return;
   }
   if (["next-area","previous-area","current-area"].includes(action)) {
@@ -76,12 +93,14 @@ export function runNavigationAction(action) {
     return;
   }
   if (action === "export") { useTerrainExportStore.getState().setOpen(true); focusPanel(); return; }
-  if (action === "workspace" || action === "map") { openWorkspace(action === "map" ? "map" : "terrain"); focusPanel(); }
+  if (action === "workspace" || action === "editor-view") { openWorkspace(); focusPanel("north"); }
+  if (action === "map") { useEditorStore.getState().openPanel("north"); focusPanel("north"); }
 }
 export function confirmCompass() {
   const state = useNavigationStore.getState();
   if (state.selected === "parent") { state.back(); return; }
-  if (["world-view","devtools"].includes(state.selected)) { runNavigationAction(state.selected); return; }
+  if (state.selected === "tools") { state.enterMenu("tools"); return; }
+  if (["world-view","editor-view"].includes(state.selected)) { runNavigationAction(state.selected); return; }
   const destination = COMPASS_MENUS[state.menu][DIRECTIONS.indexOf(state.selected)];
   if (!destination) return;
   if (destination.menu) state.enterMenu(destination.menu);

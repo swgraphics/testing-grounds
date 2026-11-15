@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const artifact = path.resolve("task-09-browser.local");
+const artifact = path.resolve(process.env.TG_FOREST_ARTIFACT || "task-09-browser.local");
 const net = await import("node:net");
 const port = await new Promise(resolve => { const listener=net.createServer(); listener.listen(0,"127.0.0.1",()=>{ const chosen=listener.address().port;listener.close(()=>resolve(chosen)); }); });
 await fs.mkdir(artifact, { recursive: true });
@@ -26,6 +26,7 @@ try {
  let id=0; const pending = new Map();
  socket.onmessage=event=>{
   const value=JSON.parse(event.data);
+  if(value.method==="Runtime.consoleAPICalled" && value.params.type==="error") errors.push(value.params.args.map(arg=>arg.value??arg.description??"").join(" "));
   if(value.id){const entry=pending.get(value.id);if(entry){pending.delete(value.id);value.error?entry.reject(value.error):entry.resolve(value.result)}}
   if(value.method==="Runtime.exceptionThrown") errors.push(value.params.exceptionDetails.exception?.description || value.params.exceptionDetails.text);
   if(value.method==="Log.entryAdded" && value.params.entry.level==="error") errors.push(value.params.entry.text);
@@ -52,8 +53,10 @@ try {
  await cdp("Page.addScriptToEvaluateOnNewDocument",{source:"window.__titleFrames=0;window.addEventListener('camera-heading-changed',()=>window.__titleFrames++)"});
  await cdp("Page.navigate",{url:process.env.TG_TEST_URL || "http://127.0.0.1:5181/"});
  try { await waitFor("!!document.querySelector('.tg-title-v3')","title screen"); } catch { await cdp("Page.reload",{ignoreCache:true}); await waitFor("!!document.querySelector('.tg-title-v3')","title screen retry"); }
+ await waitFor("window.__titleFrames>=5","live title");
  await click(".tg-title-actions button");
  await waitFor("!!document.querySelector('.tg-compass-activate') && !document.querySelector('.tg-loading-overlay')","world");
+ await evaluate("window.__worldFrames=0;window.addEventListener('camera-heading-changed',()=>window.__worldFrames++)");await waitFor("window.__worldFrames>=5","live world");
  await evaluate(`(async()=>{const source=await(await fetch('/src/App.jsx')).text();const url=source.match(/from\\s+[\\x22\\x27]([^\\x22\\x27]*deps\\/@react-three_fiber[^\\x22\\x27]*)[\\x22\\x27]/)?.[1];window.__fiber=await import(url);window.__root=window.__fiber._roots.get(document.querySelector('canvas')).store;window.__world=await import('/src/systems/world/worldStore.js');window.__tool=await import('/src/systems/interaction/interactionStore.js');window.__state=window.__root.getState();window.__scene=window.__state.scene;window.__THREE=await import('/node_modules/.vite/deps/three.js');window.__pose={position:[0,35,65],target:[0,5,0]};window.__root.getState().internal.subscribers.push({ref:{current:()=>{const c=window.__state.camera;c.position.set(...window.__pose.position);c.lookAt(...window.__pose.target);c.updateMatrixWorld()}},priority:0,store:window.__root});})()`);
  const snapshot=()=>evaluate(`(()=>{const a=[];window.__scene.traverse(o=>{if(o.userData.tgCrimsonTreeTrunk)a.push({id:o.userData.tgCrimsonTreeId,uuid:o.uuid,geometry:o.geometry.uuid,definition:o.userData.tgTreeDefinition,position:o.getWorldPosition(new window.__THREE.Vector3()).toArray()})});return {trees:a,position:window.__state.camera.position.toArray()}})()`);
  const measure=async(label)=>{
@@ -97,7 +100,7 @@ try {
   report.uiSlider='PASS native keyboard changes the real trunk slider';
   for(const [tab,label,section,field] of [['BRANCHES','BRANCH LENGTH','branches','length'],['LEAVES','LEAF SIZE','leaves','size']]){
    await evaluate(`[...document.querySelectorAll('.tg-tree-interaction-mode')].find(b=>b.textContent===${JSON.stringify(tab)}).click()`);
-   const old=await evaluate(`(()=>{const input=[...document.querySelectorAll('.tg-tree-interaction-slider')].find(l=>l.textContent.startsWith(${JSON.stringify(label)})).querySelector('input');input.focus();return Number(input.value)})()`);
+   const old=await evaluate(`(()=>{const input=[...document.querySelectorAll('.tg-tree-interaction-slider')].find(l=>l.textContent.startsWith(${JSON.stringify(label)})).querySelector('input');if(input.closest('details'))input.closest('details').open=true;input.focus();return Number(input.value)})()`);
    await key('ArrowRight');const state=await snapshot();assert.equal(state.trees.find(t=>t.id===target.id).definition[section][field],old+1);
   }
   await evaluate("document.activeElement?.blur()");report.uiSlider='PASS native keyboard changes real trunk, branch, and leaf sliders';
@@ -116,6 +119,8 @@ try {
   await evaluate('window.__persist.saveWorldSnapshot();window.__persist.loadWorldSnapshot()');await pause(800);
   const final=await snapshot();assert.equal(final.trees.length,144);for(const other of loaded.trees.slice(0,4)){const d=final.trees.find(t=>t.id===other.id).definition;assert.equal(d.leaves.outlineColor,'#fc0303');assert.equal(d.leaves.gradientColor,'#224466')}
   report.multipleTrees='PASS native selection of four trees; explicit legacy-red and gradients survive save/load';
+  report.liveGradients=await evaluate("(()=>{const result=[];window.__scene.traverse(root=>{if(!root.userData.tgForestTree)return;root.traverse(mesh=>{const colors=mesh.geometry?.attributes?.color;if(mesh.material?.vertexColors&&colors){let varied=false;for(let i=3;i<Math.min(colors.array.length,3000);i++)if(Math.abs(colors.array[i]-colors.array[i%3])>.0001){varied=true;break}result.push({id:root.userData.tgForestTree,colors:colors.count,varied})}})});return result})()");
+  assert.ok(report.liveGradients.length>=4&&report.liveGradients.every(g=>g.colors>0&&g.varied),'saved gradients reach nonuniform live vertex colors');
   await evaluate(`window.dispatchEvent(new CustomEvent('crimson-tree-edit-exit-request'));window.__incomplete={...window.__world.useWorldStore.getState().world.scatterProfiles['crimson-tree']};delete window.__incomplete.density;delete window.__incomplete.coverage;window.__world.useWorldStore.setState(s=>({world:{...s.world,scatterProfiles:{...s.world.scatterProfiles,'crimson-tree':window.__incomplete}}}))`);await pause(600);assert.equal((await snapshot()).trees.length,144,'old incomplete profile inherits terrain density');
   await evaluate("window.__world.useWorldStore.getState().upsertScatterProfile('crimson-tree',{density:0})");await pause(500);assert.equal((await snapshot()).trees.length,0,'explicit zero density preserved');
   await evaluate("window.__world.useWorldStore.getState().upsertScatterProfile('crimson-tree',{density:16})");await pause(800);assert.equal((await snapshot()).trees.length,144,'forest restores after density change');
@@ -124,6 +129,7 @@ try {
   report.errors=[...new Set(errors)];assert.deepEqual(report.errors,[],'no browser runtime errors');
   console.log('PASS forest identity, neighbor geometry, palette, edits, persistence and repeat resource checks');
  }
+ report.httpFailures=[...failures];assert.deepEqual(failures,[],"no failed forest asset requests");
  await fs.writeFile(path.join(artifact,phase+".json"),JSON.stringify(report,null,2));
  console.log('report',phase,'initial',report.initial.trees.length,'edited',report.edited.trees.length,'errors',[...new Set(errors)].slice(0,5));
 } catch(error){console.error(error,[...new Set(errors)].slice(0,8));await captureFailure().catch(()=>{});process.exitCode=1;}finally{socket?.close();chrome.kill();}

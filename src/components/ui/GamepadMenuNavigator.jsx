@@ -1,3 +1,4 @@
+import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import { analogDirection, useNavigationStore } from "../../systems/ui/navigationStore";
 import { confirmCompass, returnToWorldView } from "../../systems/ui/navigationActions";
 import { getInputContext, isTextInput, clearGameplayInput } from "../../systems/input/inputOwnership";
@@ -7,6 +8,7 @@ const FOCUSABLE_SELECTOR = [
   'button:not([disabled])',
   'input:not([disabled])',
   'select:not([disabled])',
+  'summary',
   '[tabindex="0"]',
 ].join(",");
 
@@ -19,6 +21,7 @@ const MENU_ROOTS = [
   ".tg-interaction-panel",
   ".tg-tree-interaction-panel",
   ".tg-workspace-v2",
+  ".tg-directional-layout",
   ".tg-mesh-menu",
   ".tg-mesh-edit-backdrop",
   ".tg-title-screen",
@@ -283,6 +286,14 @@ export default function GamepadMenuNavigator() {
         if (back) returnToWorldView(); else if (confirm) confirmCompass();
         return;
       }
+      // Contextual Back also works while placement owns the world input.
+      if (back && (menuOpen || useInteractionStore.getState().activeMode === "place")) {
+        (document.activeElement || window).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+        previousButtonsRef.current.rt = Boolean(gamepad.buttons[7]?.pressed);
+        aHoldRef.current = { startedAt: 0, locked: false, consumed: true };
+        clearGameplayInput();
+        return;
+      }
       if (aHoldRef.current.consumed) {
         if (gamepad.buttons[0]?.pressed) return;
         aHoldRef.current = { startedAt: 0, locked: false };
@@ -309,15 +320,6 @@ export default function GamepadMenuNavigator() {
         aHoldRef.current = { startedAt: 0, locked: false };
       }
 
-      // B = back/close when a UI surface is open.
-      if (edge("b", Boolean(gamepad.buttons[1]?.pressed)) && menuOpen) {
-        (document.activeElement || window).dispatchEvent(new KeyboardEvent("keydown", {
-          key: "Escape",
-          code: "Escape",
-          bubbles: true,
-        }));
-      }
-
       if (menuOpen) {
         const dpad = readDpad(gamepad);
         if (edge("dpad-up", dpad.up)) moveFocus("up");
@@ -329,7 +331,7 @@ export default function GamepadMenuNavigator() {
         // is open. Quick shortcuts are intentionally removed until the UI
         // overhaul; D-pad is now reserved for navigation.
         const dpad = readDpad(gamepad);
-        const workspace = document.querySelector(".tg-workspace-v2");
+        const workspace = document.querySelector(".tg-directional-layout");
         if (workspace && Object.values(dpad).some(Boolean)) focusFirst(workspace);
         previousButtonsRef.current["dpad-up"] = false;
         previousButtonsRef.current["dpad-down"] = false;

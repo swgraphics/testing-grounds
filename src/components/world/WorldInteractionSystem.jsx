@@ -301,7 +301,7 @@ export default function WorldInteractionSystem() {
       if (event.target?.tagName === "CANVAS") document.activeElement?.blur?.();
       if (event.button !== 0 || !gameplayInputAllowed()) return;
       const target = event.target;
-      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-interaction-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view")) return;
+      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-interaction-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view, [data-input-context='panel']")) return;
       beginPointerTool(useInteractionStore.getState(), event);
     }
 

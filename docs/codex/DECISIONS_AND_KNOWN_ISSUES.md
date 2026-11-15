@@ -2,6 +2,7 @@
 
 ## User-approved decisions
 
+- UI/UX Revision 01, Pass 01.1 supersedes Pass 01's exclusive panel counts: World View starts with none open, Editor View starts with all four, and either starting layout permits any independent combination. Collapsing the last panel returns to clean World View with no edge tabs. Panel visibility preserves tools and settings. Escape/B during Library-origin object placement returns directly to the Library; other placement origins retain cancellation without assuming the Library.
 - Task 08.01: World View is the primary editing surface; tool selection/settings and optional panel visibility are independent. Closing panels must preserve the active tool. B/Escape dismisses the compass to World View; Parent is a separate navigation action.
 - TG product direction distinguishes loading a World from loading a Project; a Project may include custom UI, menus, and game logic.
 - Terrain Export v1 is a user-defined terrain region, surface only, portable material, primarily GLB; source world unchanged; committed terrain sculpt/vertex edits included; preview effects excluded.

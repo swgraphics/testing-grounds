@@ -1,4 +1,3 @@
-// Task 08.01 supersedes the old submenu-back and editor-required workflows.
-// Combined suite retains title, navigation, sculpting, placement, persistence,
-// export, movement/camera and responsive checks.
+// Shared four-panel suite: title, both layouts, direct tools, controller input,
+// terrain/history, placement, persistence, export and responsive pointer checks.
 import "./browser-world-first-tools.mjs";

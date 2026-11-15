@@ -1,3 +1,4 @@
+import { mergeTreeProperties } from "../../systems/objects/treeProperties";
 // MeshPlacementSystem.jsx
 
 import {
@@ -655,6 +656,14 @@ export default function MeshPlacementSystem() {
     });
   }
 
+  // Focused South editing selects the same world target used by existing R/[ / ] controls.
+  useEffect(() => useInteractionStore.subscribe(state => {
+    if (state.activeTool !== "OBJECT" || state.activeMode !== "select") return;
+    const id = state.activeTarget?.startsWith("object:") ? state.activeTarget.slice(7) : null;
+    const world = useWorldStore.getState().world;
+    if (id && world.chunks?.[world.currentChunkId]?.objects?.[id]) selectedPlacedIdRef.current = id;
+  }), []);
+
   function beginObjectDrag(id, event) {
     if (placementMode) return;
 
@@ -799,31 +808,13 @@ export default function MeshPlacementSystem() {
       const patch = event.detail?.patch;
       if (!treeId || !patch) return;
 
-      setPlacedMeshes((current) => current.map((entry) => {
-        if (entry.id !== treeId || entry.type !== "procedural" || entry.mesh?.modelType !== "crimson-tree") {
-          return entry;
-        }
-
-        // Always merge against the full Crimson baseline. A saved/scattered
-        // tree may carry only a partial definition; replacing that with a
-        // trunk-only patch would make branches/leaves disappear.
-        const currentDefinition = createCrimsonTreeDefinition(entry.mesh.treeDefinition ?? {});
-        const nextDefinition = createCrimsonTreeDefinition({
-          ...currentDefinition,
-          trunk: { ...(currentDefinition.trunk ?? {}), ...(patch.trunk ?? {}) },
-          branches: {
-            ...(currentDefinition.branches ?? {}),
-            ...(patch.branches ?? {}),
-            overrides: { ...(currentDefinition.branches?.overrides ?? {}), ...(patch.branches?.overrides ?? {}) },
-            secondary: { ...(currentDefinition.branches?.secondary ?? {}), ...(patch.branches?.secondary ?? {}) },
-          },
-          leaves: { ...(currentDefinition.leaves ?? {}), ...(patch.leaves ?? {}) },
-        });
-
-        const nextMesh = { ...entry.mesh, treeDefinition: nextDefinition };
-        useWorldStore.getState().updateObject(entry.id, { treeDefinition: nextDefinition });
-        return { ...entry, mesh: nextMesh };
-      }));
+      const world = useWorldStore.getState().world;
+      const object = world.chunks?.[world.currentChunkId]?.objects?.[treeId];
+      if (!object || object.modelType !== "crimson-tree") return;
+      const nextDefinition = event.detail.applied ? object.treeDefinition : mergeTreeProperties(createCrimsonTreeDefinition(object.treeDefinition ?? {}), patch);
+      // Store mutation belongs to the event, never a React state updater.
+      if (!event.detail.applied) useWorldStore.getState().updateObject(treeId, { treeDefinition: nextDefinition });
+      setPlacedMeshes(current => current.map(entry => entry.id === treeId ? { ...entry, mesh: { ...entry.mesh, treeDefinition: nextDefinition } } : entry));
     }
 
     window.addEventListener("crimson-tree-edit-change", handleTreeEditChange);
@@ -850,9 +841,8 @@ export default function MeshPlacementSystem() {
         "geometryStrength",
       ].includes(key)) return;
 
-      setPlacedMeshes((current) => {
         let changed = false;
-        const next = current.map((entry) => {
+        const next = placedMeshes.map((entry) => {
           const nextY = getTerrainAnchoredObjectY(entry);
           if (nextY == null) return entry;
           const currentY = entry.type === "scene"
@@ -876,13 +866,12 @@ export default function MeshPlacementSystem() {
           });
           return { ...entry, position };
         });
-        return changed ? next : current;
-      });
+        if (changed) setPlacedMeshes(next);
     }
 
     window.addEventListener("terrain-settings-changed", handleTerrainChange);
     return () => window.removeEventListener("terrain-settings-changed", handleTerrainChange);
-  }, []);
+  }, [placedMeshes]);
 
   // --------------------------------------------------
   // POINTER / ESC / RIGHT-CLICK CONTROLS
