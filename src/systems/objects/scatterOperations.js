@@ -18,6 +18,7 @@ export function addObjectToScatter(mesh) {
   const paths = [["scatterProfiles", mesh.id]];
   const started = beginHistoryTransaction("ADD TO SCATTER", getHistoryPathSnapshot(paths), { paths });
   const profile = {
+    ...(store.world.terrainSurface ? {chunkId:mesh.id==="crimson-tree" ? store.world.terrainSurface.baseChunkId : current.chunkId ?? store.world.currentChunkId} : {}),
     enabled: true, objectId: mesh.id, name: mesh.name, kind: mesh.kind, source: mesh.source,
     modelType: mesh.modelType, modelPath: mesh.modelPath, geologyType: mesh.geologyType,
     treeDefinition: current.treeDefinition ?? mesh.treeDefinition ?? (mesh.modelType === "crimson-tree" ? createCrimsonTreeDefinition() : undefined),

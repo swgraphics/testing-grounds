@@ -1,3 +1,6 @@
+import { useWorldStore } from "../../systems/world/worldStore";
+import { getTerrainRegions } from "../../systems/world/terrainRegions";
+import { columnToLetter } from "../../systems/world/worldGrid";
 import {
   useEffect,
   useState,
@@ -135,6 +138,8 @@ function SectorLabel({ children, x, z }) {
 }
 
 export default function GridFloor() {
+  const world=useWorldStore(state=>state.world);
+  const expanded=Boolean(world.terrainSurface);
   const guidesVisible = useWorldGuideStore((state) => state.visible);
   /*
    * Forces labels to recalculate their terrain
@@ -305,7 +310,7 @@ export default function GridFloor() {
    * The old A1–H8 layout extended beyond the
    * terrain onto the larger flat floor.
    */
-  const letters = "ABCDEF";
+
 
   let rowIndex = 0;
 
@@ -324,14 +329,14 @@ export default function GridFloor() {
       coordinateLabels.push(
         <SectorLabel
           key={
-            `cell-${letters[rowIndex]}` +
+            `cell-${rowIndex}` +
             `${columnIndex}`
           }
           x={x}
           z={z}
         >
-          {letters[rowIndex]}
-          {columnIndex}
+          {columnToLetter(columnIndex-1)}
+          {rowIndex+1}
         </SectorLabel>
       );
 
@@ -345,10 +350,11 @@ export default function GridFloor() {
     <>
       <RigidBody
         type="fixed"
-        colliders="cuboid"
+        colliders={expanded?false:"cuboid"}
       >
         <mesh
           receiveShadow
+          visible={!expanded}
           position={[0, -0.03, 0]}
         >
           <boxGeometry
@@ -378,6 +384,7 @@ export default function GridFloor() {
         <>
           <group>{distanceMarkers}</group>
           <group>{coordinateLabels}</group>
+          {getTerrainRegions(world).slice(1).map(region=>{const chunk=world.chunks[region.id];return <SectorLabel key={region.id} x={chunk.position[0]} z={chunk.position[2]}>{chunk.grid}</SectorLabel>})}
         </>
       )}
     </>

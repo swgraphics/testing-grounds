@@ -1,5 +1,5 @@
 import NavigationShell from "./components/ui/NavigationShell";
-import { returnToWorldView, backFromObjectPlacement } from "./systems/ui/navigationActions";
+import { returnToWorldView, backFromObjectPlacement, focusPanel } from "./systems/ui/navigationActions";
 import { clearGameplayInput } from "./systems/input/inputOwnership";
 import { useTerrainExportStore } from "./systems/terrain/terrainExportStore";
 import { useNavigationStore } from "./systems/ui/navigationStore";
@@ -15,6 +15,7 @@ import EditorView from "./components/ui/EditorView";
 import InteractionPanel from "./components/ui/InteractionPanel";
 import CrimsonTreeInteractionPanel from "./components/ui/CrimsonTreeInteractionPanel";
 import AdaptiveReticle from "./components/ui/AdaptiveReticle";
+import { endAdjustment } from "./systems/ui/controlAdjustment";
 import GamepadMenuNavigator from "./components/ui/GamepadMenuNavigator";
 import LeafVertexEditorWindow from "./components/ui/LeafVertexEditorWindow";
 import MeshMenu from "./components/ui/MeshMenu";
@@ -42,10 +43,13 @@ export default function App() {
   const [showTitleScreen, setShowTitleScreen] = useState(true);
   const initializeWorld = useWorldStore((state) => state.initializeWorld);
   const visiblePanels = useEditorStore(state => state.visiblePanels);
+  const worldMapSize = useEditorStore(state => state.worldMapSize);
+  const viewMode = useEditorStore(state => state.viewMode);
   const panelsOpen = Object.values(visiblePanels).some(Boolean);
   const [devToolsHost, setDevToolsHost] = useState(null);
   const [libraryHost, setLibraryHost] = useState(null);
   const worldType = useWorldStore((state) => state.world.worldType);
+  const spatialTerrain = useWorldStore((state) => Boolean(state.world.terrainSurface));
   const placeMode = useInteractionStore((state) => state.activeMode === "place");
 
   useEffect(() => {
@@ -63,6 +67,16 @@ export default function App() {
 
     function handleEscape(event) {
       if (event.key !== "Escape") return;
+      if (useNavigationStore.getState().compassOpen || useNavigationStore.getState().helpOpen) return;
+      if (endAdjustment()) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+      if (document.querySelector('.tg-leaf-editor-window')) {
+        window.dispatchEvent(new CustomEvent('tg-leaf-editor-close'));
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
+      if (!document.querySelector('.tg-mesh-edit-backdrop') && document.querySelector('.tg-tree-interaction-panel')) {
+        window.dispatchEvent(new CustomEvent('crimson-tree-edit-exit-request'));
+        event.preventDefault(); event.stopImmediatePropagation(); return;
+      }
       const panelMenu = event.target?.closest?.(".tg-panel-visibility[open]");
       if (panelMenu) {
         panelMenu.open = false; panelMenu.querySelector("summary")?.focus();
@@ -85,7 +99,11 @@ export default function App() {
       }
       if (Object.values(editor.visiblePanels).some(Boolean)) {
         const direction = event.target?.closest?.("[data-directional-panel]")?.dataset.directionalPanel;
-        if (direction) { editor.closePanel(direction); clearGameplayInput(); document.activeElement?.blur?.(); }
+        if (direction) {
+          editor.closePanel(direction); clearGameplayInput(); document.activeElement?.blur?.();
+          const next = Object.keys(editor.visiblePanels).find(key => key !== direction && editor.visiblePanels[key]);
+          if (next) focusPanel(next);
+        }
         else returnToWorldView();
         event.preventDefault(); event.stopImmediatePropagation(); return;
       }
@@ -99,10 +117,18 @@ export default function App() {
       useEditorStore.getState().close();
     }
 
+    function onWorldPointerDown(event) {
+      if (event.target?.tagName !== 'CANVAS' || !useNavigationStore.getState().compassOpen) return;
+      useNavigationStore.getState().closeCompass();
+      clearGameplayInput(); document.activeElement?.blur?.();
+      window.requestAnimationFrame(() => { if (!useNavigationStore.getState().compassOpen) document.activeElement?.blur?.(); });
+    }
+    window.addEventListener('pointerdown', onWorldPointerDown, true);
     window.addEventListener("tg-place-mode-exit", handlePlacementExitRequest);
     window.addEventListener("tg-mesh-place-request", handlePlacementStart);
     window.addEventListener("keydown", handleEscape, true);
     return () => {
+      window.removeEventListener('pointerdown', onWorldPointerDown, true);
       window.removeEventListener("tg-place-mode-exit", handlePlacementExitRequest);
       window.removeEventListener("tg-mesh-place-request", handlePlacementStart);
       window.removeEventListener("keydown", handleEscape, true);
@@ -183,7 +209,7 @@ export default function App() {
 
   return (
     <>
-      <div style={panelLayoutStyle(visiblePanels)} className={`tg-canvas-shell ${panelsOpen ? "editor-open" : ""}`}>
+      <div style={panelLayoutStyle(visiblePanels, worldMapSize)} data-view-mode={viewMode} className={`tg-canvas-shell ${panelsOpen && viewMode === "editor" ? "editor-open" : "world-overlay"}`}>
         <Canvas
           shadows
           camera={{
@@ -206,7 +232,7 @@ export default function App() {
 
       {!showTitleScreen && !placeMode && (
         <>
-          {worldType !== "blank" && <AreaDiscovery />}
+          {(worldType !== "blank" || spatialTerrain) && <AreaDiscovery />}
           <InteractionPanel />
           <CrimsonTreeInteractionPanel />
           <LeafVertexEditorWindow />

@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
-import { activeCharacterId } from "../character/characterRegistry";
+import "./HudRefinements.css";
+import { characterRegistry, activeCharacterId } from "../character/characterRegistry";
 import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 import { useEffect, useRef, useState } from "react";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
@@ -517,6 +518,18 @@ const cameraPadRef = useRef({
   startY: 0,
 });
 
+  useEffect(() => {
+    let active = null;
+    const stop = () => { active?.removeAttribute('data-slider-active'); active = null; };
+    const start = event => {
+      if (!event.target?.matches?.('.tg-dev-slider:not(:disabled)')) return;
+      if (event.type === 'keydown' && !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key)) return;
+      stop(); active = event.target; active.setAttribute('data-slider-active', 'true');
+    };
+    document.addEventListener('pointerdown', start, true); window.addEventListener('keydown', start, true);
+    window.addEventListener('pointerup', stop); window.addEventListener('pointercancel', stop); window.addEventListener('keyup', stop); window.addEventListener('blur', stop);
+    return () => { stop(); document.removeEventListener('pointerdown', start, true); window.removeEventListener('keydown', start, true); window.removeEventListener('pointerup', stop); window.removeEventListener('pointercancel', stop); window.removeEventListener('keyup', stop); window.removeEventListener('blur', stop); };
+  }, []);
   function refresh() {
     forceUpdate((value) => value + 1);
   }
@@ -818,6 +831,13 @@ function handleSectionLockChange(event) {
     handleCharacterChange
   );
 
+  function handleDevSettingsChange(event) {
+    const { key, value } = event.detail ?? {};
+    if (key === 'fpvMode') setFpvMode(Boolean(value));
+    if (key === 'speedMultiplier') setSpeedMultiplier(Number(value) || 1);
+    if (key === 'invertCameraY') setInvertCameraY(Boolean(value));
+  }
+  window.addEventListener('dev-settings-changed', handleDevSettingsChange);
   window.addEventListener(
     "camera-settings-changed",
     handleCameraSettingsChange
@@ -834,6 +854,7 @@ function handleSectionLockChange(event) {
       handleCharacterChange
     );
 
+    window.removeEventListener('dev-settings-changed', handleDevSettingsChange);
     window.removeEventListener(
       "camera-settings-changed",
       handleCameraSettingsChange
@@ -1102,6 +1123,10 @@ function handleSectionLockChange(event) {
     }, duration);
   }
 
+  function cycleCharacter(delta) {
+    const ids = Object.keys(characterRegistry);
+    changeCharacter(ids[(ids.indexOf(currentCharacterId) + delta + ids.length) % ids.length]);
+  }
   return (
     <>
       {devToolsHost && createPortal(<div className="tg-dev-full-menu open" data-input-context="panel">
@@ -1116,73 +1141,11 @@ function handleSectionLockChange(event) {
 
               {openDevSections.character && (
                 <div className="tg-dev-section-content">
-                  <button type="button" className={`tg-side-panel-button ${currentCharacterId === "crashTester20" ? "active" : ""}`} onClick={() => changeCharacter("crashTester20")}>CRASH TESTER 2.0</button>
-                  <div className="tg-dev-placeholder">
-                    CRASH TESTERS are now the default character family.
+                  <div className="tg-character-selector" role="group" aria-label="Character selection">
+                    <button type="button" className="tg-ui-button" aria-label="Previous character" onClick={() => cycleCharacter(-1)}>&lt;</button>
+                    <output data-character-id={currentCharacterId} aria-live="polite">{characterRegistry[currentCharacterId]?.displayName ?? currentCharacterId}</output>
+                    <button type="button" className="tg-ui-button" aria-label="Next character" onClick={() => cycleCharacter(1)}>&gt;</button>
                   </div>
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester01" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester01");
-                    }}
-                  >
-                    CRASH TESTER 01
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester02" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester02");
-                    }}
-                  >
-                    CRASH TESTER 02
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester03" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester03");
-                    }}
-                  >
-                    CRASH TESTER 03
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester04" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester04");
-                    }}
-                  >
-                    CRASH TESTER 04
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester05" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester05");
-                    }}
-                  >
-                    CRASH TESTER 05
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "adventurer" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("adventurer");
-                    }}
-                  >
-                    LEGACY HUMAN
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "velociraptor" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("velociraptor");
-                    }}
-                  >
-                    RAPTOR
-                  </button>
-
                   <button className="tg-side-panel-button disabled" disabled>
                     UPLOAD
                   </button>
@@ -1425,7 +1388,7 @@ function handleSectionLockChange(event) {
             <button
               key={multiplier}
               type="button"
-              disabled={physicsLocked}
+              disabled={physicsLocked || fpvMode}
               className={`tg-dev-speed-button ${
                 speedMultiplier === multiplier
                   ? "active"
@@ -1449,8 +1412,7 @@ function handleSectionLockChange(event) {
       </div>
 
       <div className="tg-dev-placeholder">
-          Debug speed increases movement velocity and
-  acceleration. Animation speed remains stable.
+          Speed presets affect third-person movement. FPV uses FPV Move Speed in Camera. Animation speed remains stable.
       </div>
     </div>
   </div>

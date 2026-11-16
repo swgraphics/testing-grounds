@@ -1,3 +1,4 @@
+import { clearGameplayInput } from '../../systems/input/inputOwnership';
 import { createPortal } from "react-dom";
 import AnimationActions from "./AnimationActions";
 import { addObjectToScatter, scatterEligibility } from "../../systems/objects/scatterOperations";
@@ -286,6 +287,12 @@ function LeafVertexEditor({ vertices, onSave, onCancel }) {
 }
 
 function MeshEditModal({ mesh, live, onChange, onSave, onCancel }) {
+  useEffect(()=>{
+    if(!live)return;
+    const finish=()=>{if(useInteractionStore.getState().gestureOwner==='object-editor')useInteractionStore.getState().setGestureOwner(null)};
+    for(const event of ['pointerup','pointercancel','blur'])window.addEventListener(event,finish,true);
+    return()=>{for(const event of ['pointerup','pointercancel','blur'])window.removeEventListener(event,finish,true);finish()};
+  },[live]);
   const [draft, setDraft] = useState(() => createCrimsonTreeDefinition(mesh.treeDefinition ?? {}));
   const [fireflyDraft, setFireflyDraft] = useState(mesh.editSettings ?? { density: 40, speed: 30, flicker: 65, color: "#d9ff8a" });
   const [rotation, setRotation] = useState(0);
@@ -305,7 +312,9 @@ function MeshEditModal({ mesh, live, onChange, onSave, onCancel }) {
     const editSettings = { ...fireflySettings, [key]: value };
     if (live) onChange({ editSettings }); else setFireflyDraft(editSettings);
   }
-  return <div className="tg-mesh-edit-backdrop tg-object-editor-backdrop" role="dialog" aria-modal="true" aria-label="Edit Object" data-input-context="panel">
+  return <div className="tg-mesh-edit-backdrop tg-object-editor-backdrop" role="dialog" aria-modal={!live} data-world-object-editor={live?true:undefined} aria-label="Edit Object" data-input-context="panel" onPointerDownCapture={()=>{if(live){useInteractionStore.getState().setGestureOwner('object-editor');clearGameplayInput()}}} onPointerUpCapture={event=>{
+    if(live&&event.target.matches('input[type="range"],input[type="number"]')&&!event.target.hasAttribute('data-gamepad-adjusting'))window.requestAnimationFrame(()=>event.target.blur());
+  }}>
     <div className="tg-mesh-edit-window tg-focused-object-editor">
       <div className="tg-mesh-edit-preview">
         <div className="tg-mesh-edit-preview-title">{mesh.name || "OBJECT"}</div>
@@ -442,7 +451,8 @@ useEffect(() => {
         if (galleryRef.current) galleryRef.current.scrollLeft = libraryPosition.current.galleryScrollLeft;
       });
     } else {
-      const nextMode = event?.detail?.mode === "scatter" ? "scatter" : "select";
+      const requested = event?.detail?.mode;
+      const nextMode = requested === 'edit' ? 'selected' : ['scatter','animation'].includes(requested) ? requested : 'select';
       setMode(nextMode);
       libraryPosition.current.mode = nextMode;
     }

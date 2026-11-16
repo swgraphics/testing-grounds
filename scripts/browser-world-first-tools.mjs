@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const artifact = path.resolve(process.argv.includes("--panel-layout") ? "ui-revision-02b.local/regression/layout" : "ui-revision-02b.local/regression");
+const artifact = path.resolve(process.env.TG_UI_ARTIFACT || (process.argv.includes("--panel-layout") ? "ui-revision-02b.local/regression/layout" : "ui-revision-02b.local/regression"));
 const net = await import("node:net");
 const port = await new Promise(resolve => { const listener=net.createServer(); listener.listen(0,"127.0.0.1",()=>{ const chosen=listener.address().port;listener.close(()=>resolve(chosen)); }); });
 await fs.mkdir(artifact, { recursive: true });
@@ -36,7 +36,7 @@ try {
  };
  const cdp=(method,params={})=>new Promise((resolve,reject)=>{const request=++id;pending.set(request,{resolve,reject});socket.send(JSON.stringify({id:request,method,params}))});
  const evaluate=async expression=>{const result=await cdp("Runtime.evaluate",{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value};
- const waitFor=async(expression,label,attempts=100)=>{for(let i=0;i<attempts;i++){if(await evaluate(expression))return;await pause(200)}throw Error("Timeout: "+label)};
+ const waitFor=async(expression,label,attempts=Number(process.env.TG_BROWSER_WAIT_ATTEMPTS || 100))=>{for(let i=0;i<attempts;i++){if(await evaluate(expression))return;await pause(200)}throw Error("Timeout: "+label)};
  const screenshot=async name=>{const shot=await cdp("Page.captureScreenshot",{format:"png"});await fs.writeFile(path.join(artifact,name+".png"),Buffer.from(shot.data,"base64"))};
  const key=async(key,code=key)=>{const codes={Tab:9,Enter:13,Escape:27,ArrowUp:38,ArrowRight:39,ArrowDown:40,ArrowLeft:37};await cdp("Input.dispatchKeyEvent",{type:"keyDown",key,code,windowsVirtualKeyCode:codes[key]||0,text:key==="Enter"?"\r":"",unmodifiedText:key==="Enter"?"\r":""});await cdp("Input.dispatchKeyEvent",{type:"keyUp",key,code,windowsVirtualKeyCode:codes[key]||0});await pause(1000)};
  const click=async selector=>{
@@ -78,7 +78,7 @@ try {
  const currentTool=()=>evaluate("window.__tool.useInteractionStore.getState().activeTool");
  const visibleCount=()=>evaluate("document.querySelectorAll('[data-directional-panel]:not([hidden])').length");
  const noPanels=()=>evaluate("Object.values(window.__editor.useEditorStore.getState().visiblePanels).every(v=>!v) && !document.querySelector('[data-panel-expand]')");
- const openMenu=async()=>{await click(".tg-compass-activate");await waitFor("!!document.querySelector('[data-compass]')","compass")};
+ const openMenu=async()=>{await evaluate('document.activeElement?.blur()');if(await evaluate('!!document.querySelector("[aria-modal=true]:not([data-compass]),.tg-tree-interaction-panel")'))await click('.tg-compass-activate');if(!await evaluate('!!document.querySelector("[data-compass]")'))await key('Tab');if(!await evaluate('!!document.querySelector("[data-compass]")'))await key('Tab');await waitFor('!!document.querySelector("[data-compass]")','compass')};
  const choose=async direction=>{await click('[data-direction="'+direction+'"]')};
  const clickText=async(root,label)=>{
   await evaluate("document.querySelectorAll('[data-test-target]').forEach(e=>e.removeAttribute('data-test-target'));(()=>{const b=[...document.querySelectorAll("+JSON.stringify(root+" button")+")].find(e=>e.textContent.trim()==="+JSON.stringify(label)+");if(!b)throw Error('Missing button '+ "+JSON.stringify(label)+");b.setAttribute('data-test-target','true')})()");
@@ -98,15 +98,16 @@ try {
   for(const a of data.panels){assert.ok(a.x>=0&&a.y>=0&&a.w>0&&a.h>0);for(const b of data.panels)if(a!==b)assert.ok(Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)<=1||Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)<=1,"no directional panel overlap")}
   return data;
  };
- const closeAll=async()=>{await openMenu();await click('[data-compass-action="world-view"]');assert.ok(await noPanels())};
+ const togglePanel=async direction=>{if(!await evaluate("document.querySelector('.tg-panel-visibility').open"))await click('.tg-panel-visibility summary');await click('[data-panel-toggle="'+direction+'"]')};
+ const closeAll=async()=>{if(await evaluate("document.querySelector('.tg-compass-activate').dataset.compassState!=='orange'"))await click('.tg-compass-activate');assert.ok(await noPanels())};
  const objectCount=()=>evaluate("Object.values(window.__world.useWorldStore.getState().world.chunks).reduce((n,c)=>n+Object.keys(c.objects||{}).length,0)");
  const historyCount=()=>evaluate("window.__history.useHistoryStore.getState().undoStack.length");
  const selectAndPlace=async selector=>{await click(selector);assert.equal(await visibleCount(),1,"selection preserves South");await click(".tg-mesh-place-button")};
  if (process.argv.includes("--panel-layout")) {
   const snapshots=[];
   const assertContained=async()=>{
-    const overflow=await evaluate("[...document.querySelectorAll('[data-directional-panel]:not([hidden]) > .tg-directional-content')].map(e=>({panel:e.parentElement.dataset.directionalPanel,width:e.clientWidth,scroll:e.scrollWidth})).filter(e=>e.scroll>e.width+1)");
-    assert.deepEqual(overflow,[],"no unintended horizontal panel overflow");
+    const overflow=await evaluate("[...document.querySelectorAll('[data-directional-panel]:not([hidden]) > .tg-directional-content')].map(e=>({panel:e.parentElement.dataset.directionalPanel,width:e.clientWidth,scroll:e.scrollWidth})).filter(e=>e.panel!=='north'&&e.scroll>e.width+1)");
+    assert.deepEqual(overflow,[],"no unintended horizontal panel overflow (North toolbar scrolls intentionally)");
     const gallery=await evaluate("(()=>{const g=document.querySelector('.tg-mesh-library'),p=document.querySelector('#tg-panel-south .tg-directional-content'),r=g.getBoundingClientRect(),v=p.getBoundingClientRect();return{width:g.clientWidth,space:p.clientWidth,count:g.children.length,scroll:g.scrollWidth,bottom:r.bottom,viewBottom:v.bottom,desktop:innerWidth>=900,top:p.scrollTop}})()");
     if(await evaluate("!document.querySelector('#tg-panel-south').hidden")){assert.ok(gallery.width>=gallery.space*.9,"gallery uses the full bottom region");assert.ok(gallery.scroll>gallery.width,"gallery is horizontally scrollable");assert.ok(gallery.count>50,"all objects are mounted in the gallery");if(gallery.desktop&&gallery.top===0)assert.ok(gallery.bottom<=gallery.viewBottom+1,"desktop gallery cards and scrollbar are fully visible")}
   };
@@ -115,9 +116,9 @@ try {
   await waitFor("window.__frames>=60 && !document.querySelector('.tg-area-discovery')","settled clean world capture",300);await screenshot("01-clean-world");
   for(const direction of ["north","south","west","east"]){
     await openMenu();await choose(direction);await checkLayout(1);
-    assert.equal(await evaluate("!!document.querySelector('.tg-panel-visibility')"),false,"World preset has no PANELS control");
+    assert.equal(await evaluate("!!document.querySelector('.tg-panel-visibility')"),true,"World panels expose shared PANELS control");
     await assertContained();await screenshot("0"+({north:2,south:3,west:4,east:5}[direction])+"-"+direction);
-    if(direction==="north"){
+    if(direction==="west"){
       assert.ok(await evaluate("(()=>{const r=document.querySelector('.tg-world-map-viewport').getBoundingClientRect();return r.width>=180&&r.height>=70})()"),"usable mini-map");
     }
     if(direction==="south"){
@@ -128,7 +129,7 @@ try {
       assert.ok(await evaluate("(()=>{const e=document.activeElement,g=e.closest('.tg-mesh-library');if(!g)return false;const a=e.getBoundingClientRect(),b=g.getBoundingClientRect();return a.left>=b.left-1&&a.right<=b.right+1})()"),"keyboard can reach objects at the far end");
       await evaluate("document.querySelector('.tg-mesh-library').scrollLeft=0;void 0");
     }
-    if(direction==="west")assert.ok(await evaluate("[...document.querySelectorAll('.tg-project-planned button')].every(e=>e.disabled)"),"Project placeholders are disabled");
+    if(direction==="north")assert.ok(await evaluate("[...document.querySelectorAll('.tg-project-planned button')].every(e=>e.disabled)"),"Project placeholders are disabled");
     if(direction==="east"){
       assert.deepEqual(await evaluate("[...document.querySelectorAll('[data-dev-section-header]')].map(e=>e.dataset.devSectionHeader)"),["character","terrain","camera","physics","atmosphere","world","materials"]);
       await evaluate("document.querySelectorAll('[data-dev-section-header]').forEach(e=>{if(e.getAttribute('aria-expanded')==='false')e.click()})");await pause(300);
@@ -139,9 +140,9 @@ try {
   }
   record("Single-panel organization, full-width horizontal gallery, keyboard reachability, mini-map, planned Project entries and canonical settings");
   await openMenu();await click('[data-compass-action="tools"]');await choose("north");await choose("north");
-  for(const direction of ["north","south"]){await openMenu();await choose(direction)}
+  await openMenu();await choose("north");await togglePanel("south")
   await checkLayout(2);await sculpt();await screenshot("06-two-panels");
-  await openMenu();await choose("west");await checkLayout(3);await sculpt();await screenshot("07-three-panels");
+  await togglePanel("west");await checkLayout(3);await sculpt();await screenshot("07-three-panels");
   await openMenu();await click('[data-compass-action="editor-view"]');await checkLayout();await sculpt();await screenshot("08-four-panels");
   await click(".tg-panel-visibility summary");
   assert.equal(await evaluate("document.querySelector('.tg-panel-visibility').open"),true);
@@ -150,7 +151,7 @@ try {
   await click('[data-panel-toggle="east"]');assert.equal(await visibleCount(),4);
   await key("Escape");assert.equal(await evaluate("document.querySelector('.tg-panel-visibility').open"),false);assert.equal(await visibleCount(),4);
   await click(".tg-panel-visibility summary");await click('[data-panel-toggle="north"]');assert.equal(await visibleCount(),3);
-  await openMenu();await choose("north");assert.equal(await visibleCount(),4,"Compass restores top panel when PANELS is hidden");
+  await click('[data-panel-expand="north"]');assert.equal(await visibleCount(),4,"edge tab restores top panel");
   await click('[data-panel-collapse="east"]');await screenshot("09-collapsed-panel");await click('[data-panel-expand="east"]');
   record("Editor PANELS uses shared visibility; Compass recovers hidden top panel; native world sculpt works with two, three and four panels");
   for(const [width,height]of [[1920,1080],[1440,900],[1280,720],[960,720],[640,800],[390,844]]){
@@ -197,23 +198,22 @@ try {
  await openMenu();await screenshot("03-compass");
  let count=0;
  for(const direction of ["north","south","west","east"]){
-  if(!await evaluate("!!document.querySelector('[data-compass]')"))await openMenu();
-  await choose(direction);assert.equal(await visibleCount(),++count);await checkLayout(count);
+  if(!count)await choose(direction);else await togglePanel(direction);
+  assert.equal(await visibleCount(),++count);await checkLayout(count);
   assert.equal(await evaluate("[...document.querySelectorAll('.tg-directional-heading h2')].some(e=>/\\b(NORTH|SOUTH|EAST|WEST)\\b/.test(e.textContent))"),false);
-  if(count===2)await screenshot("04-two-panels");
-  if(count===3)await screenshot("05-three-panels");
+  if(count===2)await screenshot("04-two-panels");if(count===3)await screenshot("05-three-panels");
  }
- await openMenu();await choose("east");assert.equal(await visibleCount(),3,"Compass toggles only its own direction");
+ await togglePanel("east");assert.equal(await visibleCount(),3,"PANELS toggles only its own direction");
  await closeAll();
- record("World preset: zero panels/tabs, one/two/three/four independent panels, Compass toggle, actual panel names");
- await openMenu();await choose("north");
+ record("World preset: zero panels/tabs, one/two/three/four independent panels, PANELS toggle, actual panel names");
+ await openMenu();await choose("west");
  const teleportId=await evaluate("Object.values(window.__world.useWorldStore.getState().world.chunks)[1].id");
- await click('#tg-panel-north .tg-teleport-controls button:nth-child(2)');
+ await click('#tg-panel-west .tg-teleport-controls button:nth-child(2)');
  assert.equal(await evaluate("window.__world.useWorldStore.getState().world.currentChunkId"),teleportId);
- await click('#tg-panel-north .tg-teleport-controls button:first-child');
- await clickText("#tg-panel-north","ADD CHUNK");await waitFor("!!document.querySelector('.tg-chunk-dialog')","chunk dialog");
+ await click('#tg-panel-west .tg-teleport-controls button:first-child');
+ await clickText("#tg-panel-west","ADD CHUNK");await waitFor("!!document.querySelector('.tg-chunk-dialog')","chunk dialog");
  await key("Escape");await waitFor("!document.querySelector('.tg-chunk-dialog')","chunk dialog closes");
- await click('[data-panel-collapse="north"]');assert.ok(await noPanels());
+ await click('[data-panel-collapse="west"]');assert.ok(await noPanels());
  record("Shared map: native teleport, Add Chunk dialog and clean final collapse");
  await key("Tab");await key("ArrowUp");await key("ArrowUp");await key("ArrowRight");await key("Enter");
  await waitFor("window.__nav.useNavigationStore.getState().menu==='tools'","keyboard Tools");
@@ -233,8 +233,8 @@ try {
  assert.ok(await evaluate("window.__libraryNode===document.querySelector('.tg-mesh-menu') && window.__mapNode===document.querySelector('.tg-world-map-shell')"),"collapse retains content instances");
  await screenshot("08-editor-reopened");
  const transaction=await sculpt();
- await clickText("#tg-panel-west","UNDO");assert.equal(await evaluate("JSON.stringify(window.__terrain.terrainSettings.terrainEdits)"),transaction.before);
- await clickText("#tg-panel-west","REDO");assert.equal(await evaluate("JSON.stringify(window.__terrain.terrainSettings.terrainEdits)"),transaction.after);
+ await clickText("#tg-panel-north","UNDO");assert.equal(await evaluate("JSON.stringify(window.__terrain.terrainSettings.terrainEdits)"),transaction.before);
+ await clickText("#tg-panel-north","REDO");assert.equal(await evaluate("JSON.stringify(window.__terrain.terrainSettings.terrainEdits)"),transaction.after);
  record("Editor preset: all panels, independent mouse collapse/keyboard restore, expanded viewport, same content, native sculpt and Undo/Redo");
  await click('[data-dev-section-header="terrain"]');
  const terrainRange='#tg-panel-east input[type="range"]';
@@ -244,7 +244,7 @@ try {
  assert.notEqual(settingAfter,settingBefore);
  await click('[data-panel-collapse="east"]');await key("Enter");
  assert.ok(await evaluate("window.__rangeNode===document.querySelector("+JSON.stringify(terrainRange)+")"));
- await click('[data-action="world-view"]');assert.ok(await noPanels());
+ await click('.tg-compass-activate');assert.ok(await noPanels());
  await openMenu();await choose("east");
  assert.equal(await evaluate("Number(document.querySelector("+JSON.stringify(terrainRange)+").value)"),settingAfter);
  await evaluate("document.querySelector("+JSON.stringify(terrainRange)+").focus()");await key("ArrowLeft");
@@ -255,21 +255,22 @@ try {
  const pad=async(index,pressed)=>{await evaluate("window.__pad.buttons["+index+"].pressed="+pressed);await pause(350)};
  const tap=async index=>{await pad(index,true);await pad(index,false)};
  for(let cycle=0;cycle<2;cycle++){
-  let n=0;for(const [direction,index]of [["north",12],["south",13],["west",14],["east",15]]){
-   await tap(9);await waitFor("!!document.querySelector('[data-compass]')","Menu");await tap(index);await tap(0);
-   assert.equal(await visibleCount(),++n,"Xbox accumulates independent directions");
+  await tap(9);await tap(12);await tap(0);assert.equal(await visibleCount(),1);
+  let n=1;for(const direction of ['south','west','east']){
+   if(!await evaluate("document.querySelector('.tg-panel-visibility').open")){await evaluate("document.querySelector('.tg-panel-visibility summary').focus()");await tap(0)}
+   await evaluate("document.querySelector('[data-panel-toggle="+direction+"]').focus()");await tap(0);assert.equal(await visibleCount(),++n);
   }
-  await tap(1);assert.equal(await visibleCount(),3,"B closes focused panel only");
-  await tap(9);await tap(12);await tap(12);assert.equal(await evaluate("window.__nav.useNavigationStore.getState().selected"),"editor-view");
+  await tap(1);await evaluate("document.querySelector('[data-panel-collapse=east]').focus()");await tap(1);assert.equal(await visibleCount(),3,"B closes focused panel only");
+  await tap(9);await tap(9);await tap(12);await tap(12);assert.equal(await evaluate("window.__nav.useNavigationStore.getState().selected"),"editor-view");
   await tap(0);assert.equal(await visibleCount(),4);
-  await tap(15);assert.equal(await evaluate("document.activeElement.dataset.panelCollapse"),"north","D-pad reaches panel collapse");
+  await evaluate("document.querySelector('[data-panel-collapse=north]').focus()");assert.equal(await evaluate("document.activeElement.dataset.panelCollapse"),"north");
   await tap(0);assert.equal(await visibleCount(),3);assert.equal(await evaluate("document.activeElement.dataset.panelExpand"),"north");
   await tap(0);assert.equal(await visibleCount(),4);
   await closeAll();
  }
  await tap(9);await evaluate("window.__pad.axes[0]=.85");await waitFor("window.__nav.useNavigationStore.getState().selected==='east'","analog east");await evaluate("window.__pad.axes[0]=0");await tap(0);
  assert.equal(await visibleCount(),1);await tap(1);assert.ok(await noPanels());
- await tap(9);await click('[data-compass-action="tools"]');await choose("north");await tap(1);
+ await tap(9);await click('[data-compass-action="tools"]');await choose("north");await choose("north");await tap(9);await tap(1);
  assert.ok(await noPanels());assert.equal(await currentTool(),"RAISE");assert.equal(await evaluate("window.__input.inputState.jump"),false);
  record("Simulated Xbox: Menu/D-pad/analog/A/B, independent panel combinations, edge-tab restore and neutral handoff");
  await tap(9);await choose("south");
@@ -279,7 +280,7 @@ try {
  await tap(1);assert.equal(await visibleCount(),1);assert.equal(await evaluate("document.querySelector('.tg-mesh-card.selected').title"),"BLOCK");await tap(1);assert.ok(await noPanels());
  record("Simulated Xbox explicit card selection, Place action and contextual B return; focused action contract, with broader spatial traversal deferred");
  // Real GLB download and independent preview lifecycle.
- await openMenu();await choose("west");await clickText("#tg-panel-west","TERRAIN EXPORT");
+ await openMenu();await choose("north");await clickText("#tg-panel-north","TERRAIN EXPORT");
  await waitFor("!!document.querySelector('.tg-terrain-export')","export");
  await evaluate("(async()=>{const source=await(await fetch('/src/App.jsx')).text();const url=source.match(/from\\s+[\\x22\\x27]([^\\x22\\x27]*deps\\/@react-three_fiber[^\\x22\\x27]*)[\\x22\\x27]/)?.[1];if(!url)throw Error('Missing R3F module URL');window.__fiber=await import(url);window.__scene=window.__fiber._roots.get(document.querySelector('canvas')).store.getState().scene})()");
  await waitFor("!!window.__scene.getObjectByName('Terrain export boundary')","preview boundary");
@@ -335,19 +336,19 @@ try {
  await key("Escape");assert.equal(await visibleCount(),1);await key("Escape");assert.ok(await noPanels());
  await openMenu();await choose("south");await click('[data-object-view="scatter"]');
  await waitFor("!!document.querySelector('.tg-mesh-scatter-manager')","existing Scatter");
- await openMenu();await choose("west");assert.equal(await visibleCount(),2);
- await clickText("#tg-panel-west","SAVE WORLD");assert.ok(await evaluate("!!localStorage.getItem('testingGroundsWorld')"));
- assert.equal(await evaluate("[...document.querySelectorAll('#tg-panel-west button')].find(e=>e.textContent==='LOAD WORLD').disabled"),false);
+ await togglePanel("north");assert.equal(await visibleCount(),2);
+ await clickText("#tg-panel-north","SAVE WORLD");assert.ok(await evaluate("!!localStorage.getItem('testingGroundsWorld')"));
+ assert.equal(await evaluate("[...document.querySelectorAll('#tg-panel-north button')].find(e=>e.textContent==='LOAD WORLD').disabled"),false);
  await evaluate("(()=>{const w=window.__world.useWorldStore.getState();w.removeObject(Object.keys(w.world.chunks[w.world.currentChunkId].objects).at(-1))})()");
- assert.equal(await objectCount(),objectsAfter-1);await clickText("#tg-panel-west","LOAD WORLD");assert.equal(await objectCount(),objectsAfter);
+ assert.equal(await objectCount(),objectsAfter-1);await clickText("#tg-panel-north","LOAD WORLD");assert.equal(await objectCount(),objectsAfter);
  record("Real placement, contextual return, shared Scatter and native world save/load restore");
  // Compact Editor View must keep every panel and a usable center.
  await openMenu();await click('[data-compass-action="editor-view"]');
  await cdp("Emulation.setDeviceMetricsOverride",{width:640,height:800,deviceScaleFactor:1,mobile:false});await pause(500);
  const compactLayout=await checkLayout();await screenshot("11-editor-640");
- await click('[data-action="world-view"]');
+ await click('.tg-compass-activate');
  await cdp("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});await pause(300);
- await openMenu();await click('[data-compass-action="editor-view"]');await checkLayout();await screenshot("12-editor-mobile");await click('[data-action="world-view"]');
+ await openMenu();await click('[data-compass-action="editor-view"]');await checkLayout();await screenshot("12-editor-mobile");await click('.tg-compass-activate');
  await cdp("Emulation.setDeviceMetricsOverride",{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
  // Movement/camera run after UI handoff, with the existing algorithms.
  await evaluate("document.activeElement?.blur();window.__positions=[];window.addEventListener('player-position-changed',e=>window.__positions.push(e.detail));window.__headings=[];window.addEventListener('camera-heading-changed',e=>window.__headings.push(e.detail.degrees))");

@@ -208,7 +208,8 @@ export function createProceduralCanopyData(
 
   const clusters = [];
 
-  branches.forEach((branch, branchIndex) => {
+  // Structural secondary limbs share the existing primary canopy; do not multiply foliage.
+  branches.filter(branch => !branch.proceduralSecondary).forEach((branch, branchIndex) => {
     for (
       let leafIndex = 0;
       leafIndex < leavesPerBranch;
@@ -432,6 +433,7 @@ export function createProceduralFloatingLeafData(
     return [];
   }
 
+  branches = branches.filter(branch => !branch.proceduralSecondary);
   if (!branches.length) {
     return [];
   }

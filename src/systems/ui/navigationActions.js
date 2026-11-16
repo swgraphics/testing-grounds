@@ -1,17 +1,19 @@
+import { teleportToChunk } from "../world/terrainReadiness";
 import { COMPASS_MENUS, DIRECTIONS, useNavigationStore } from "./navigationStore";
 import { clearGameplayInput } from "../input/inputOwnership";
 import { useEditorStore } from "../editor/editorStore";
 import { useInteractionStore } from "../interaction/interactionStore";
 import { useWorldStore } from "../world/worldStore";
 import { useTerrainExportStore } from "../terrain/terrainExportStore";
+import { endAdjustment } from "./controlAdjustment";
+import { compassControlState, hasBlockingInterface } from "./compassState";
 
 const emit = (name, detail) => window.dispatchEvent(new CustomEvent(name, { detail }));
 export function focusPanel(direction) {
   window.requestAnimationFrame(() => {
     const root = document.querySelector(".tg-terrain-export") || document.querySelector(direction ? "#tg-panel-" + direction + ":not([hidden])" : "[data-directional-panel]:not([hidden])");
     const controls = [...(root?.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),summary') ?? [])];
-    const preferred = direction === "north" ? root?.querySelector('[data-action="world-view"]') : null;
-    const control = preferred?.getClientRects().length ? preferred : controls.find(element => element.getClientRects().length > 0);
+    const control = controls.find(element => element.getClientRects().length > 0);
     control?.focus();
   });
 }
@@ -25,6 +27,27 @@ export function returnToWorldView() {
   emit("tg-mesh-menu-close");
   clearGameplayInput();
   document.activeElement?.blur?.();
+}
+export function exitToDefaultWorld() {
+  endAdjustment();
+  emit('tg-shortcut-picker-close');
+  // Existing pointer-up/history handlers finish applied edits; no click reaches the world.
+  window.dispatchEvent(new Event('pointerup'));
+  emit('tg-leaf-editor-close');
+  emit('crimson-tree-edit-exit-request');
+  emit('tg-mesh-cancel-placement');
+  emit('tg-return-to-world');
+  for(const details of document.querySelectorAll?.('.tg-panel-visibility[open],.tg-terrain-tools[open]')??[])details.open=false;
+  useNavigationStore.getState().setPlacementOrigin(null);
+  useInteractionStore.getState().deactivate();
+  returnToWorldView();
+  window.requestAnimationFrame(()=>document.querySelector('.tg-compass-activate')?.focus());
+}
+export function activateCompassControl() {
+  const state=compassControlState(useNavigationStore.getState(),useEditorStore.getState(),useInteractionStore.getState(),hasBlockingInterface());
+  clearGameplayInput();
+  if(state==='world')useNavigationStore.getState().openCompass();
+  else exitToDefaultWorld();
 }
 export function openWorkspace(workspace = "terrain") {
   useNavigationStore.getState().setWorkspace(workspace);
@@ -61,7 +84,8 @@ export function openIndependentDevTools(section) {
 export function runNavigationAction(action) {
   useNavigationStore.getState().closeCompass();
   clearGameplayInput();
-  if (action === "world-view") { returnToWorldView(); return; }
+  if (action === "world-view") { exitToDefaultWorld(); return; }
+  if (action === 'compass-tools') { returnToWorldView();useNavigationStore.getState().openCompass();useNavigationStore.getState().enterMenu('tools');return; }
   if (action === "devtools" || action === "clouds") { openIndependentDevTools(action === "clouds" ? "atmosphere" : undefined); return; }
   if (action.startsWith("brush-") || ["terrain","river","sun","lake"].includes(action)) {
     const tool = action.startsWith("brush-") ? action.slice(6).toUpperCase() : { terrain: "HEIGHT", river: "RIVER", sun: "SUN", lake: "POND" }[action];
@@ -84,8 +108,7 @@ export function runNavigationAction(action) {
     const current = Math.max(0, chunks.findIndex(chunk => chunk.id === world.currentChunkId));
     const offset = action === "next-area" ? 1 : action === "previous-area" ? -1 : 0;
     const chunk = chunks[(current + offset + chunks.length) % chunks.length];
-    useWorldStore.getState().setCurrentChunk(chunk.id);
-    emit("tg-teleport-to-area", { areaId: chunk.id, chunkId: chunk.id });
+    teleportToChunk(chunk.id);
     return;
   }
   if (["objects","upload","scatter","edit-objects"].includes(action)) {
@@ -94,7 +117,13 @@ export function runNavigationAction(action) {
   }
   if (action === "export") { useTerrainExportStore.getState().setOpen(true); focusPanel(); return; }
   if (action === "workspace" || action === "editor-view") { openWorkspace(); focusPanel("north"); }
-  if (action === "map") { useEditorStore.getState().openPanel("north"); focusPanel("north"); }
+  if (action === "map") { useEditorStore.getState().openPanel("west"); focusPanel("west"); }
+}
+export function backCompass() {
+  const nav = useNavigationStore.getState();
+  clearGameplayInput();
+  nav.back();
+  if (!nav.compassOpen || nav.trail.length <= 1) document.activeElement?.blur?.();
 }
 export function confirmCompass() {
   const state = useNavigationStore.getState();

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { clearGameplayInput } from "../../systems/input/inputOwnership";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import { useWorldStore } from "../../systems/world/worldStore";
 import TreeProperties from "./TreeProperties";
@@ -10,6 +11,8 @@ import { resolveObjectTarget, editObjectTarget } from "../../systems/objects/obj
 export default function CrimsonTreeInteractionPanel() {
   const world = useWorldStore(state => state.world);
   const activeTool = useInteractionStore((state) => state.activeTool);
+  const [selection, setSelection] = useState(null);
+  const previousFocus = useRef(null);
   const [treeId, setTreeId] = useState(null);
   const [definition, setDefinition] = useState(null);
   const [mode, setMode] = useState("trunk");
@@ -19,6 +22,9 @@ export default function CrimsonTreeInteractionPanel() {
 
   useEffect(() => {
     function handleEnter(event) {
+      previousFocus.current = document.activeElement;
+      clearGameplayInput();
+      window.requestAnimationFrame(() => document.querySelector(".tg-tree-interaction-close")?.focus());
       setTreeId(event.detail?.treeId ?? null);
       setDefinition(event.detail?.treeDefinition ?? null);
       setMode(event.detail?.mode ?? "trunk");
@@ -38,6 +44,8 @@ export default function CrimsonTreeInteractionPanel() {
     }
 
     function handleExit() {
+      clearGameplayInput();
+      window.requestAnimationFrame(() => { const e = previousFocus.current; if (e?.isConnected && e.getClientRects().length && e.closest("[data-directional-panel]")) e.focus(); else document.activeElement?.blur?.(); });
       setTreeId(null);
       setDefinition(null);
       setMode("trunk");
@@ -59,6 +67,8 @@ export default function CrimsonTreeInteractionPanel() {
       setGestureMode(event.detail?.mode ?? "length");
     }
 
+    const select = event => setSelection(event.detail);
+    window.addEventListener("crimson-tree-selected", select);
     window.addEventListener("crimson-tree-edit-enter", handleEnter);
     window.addEventListener("crimson-tree-edit-change", handleChange);
     window.addEventListener("crimson-tree-reticle-target-changed", handleTarget);
@@ -69,6 +79,7 @@ export default function CrimsonTreeInteractionPanel() {
     window.addEventListener("crimson-tree-branch-gesture-changed", handleBranchGesture);
 
     return () => {
+      window.removeEventListener("crimson-tree-selected", select);
       window.removeEventListener("crimson-tree-edit-enter", handleEnter);
       window.removeEventListener("crimson-tree-edit-change", handleChange);
       window.removeEventListener("crimson-tree-reticle-target-changed", handleTarget);
@@ -87,7 +98,10 @@ export default function CrimsonTreeInteractionPanel() {
     }
   }, [activeTool]);
 
-  if (activeTool !== "TREE" || !treeId) return null;
+  const selectedTarget = useInteractionStore(state => state.activeTarget);
+  if (activeTool !== "TREE" || !treeId) return !activeTool && selection && selectedTarget === 'tree:' + selection.treeId ? <div className="tg-tree-selection" style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',zIndex:30}}>
+    <button className="tg-ui-button" data-tree-edit-selected onClick={() => window.dispatchEvent(new CustomEvent('crimson-tree-edit-selected-request'))}>TREE SELECTED / EDIT TREE (E / X)</button>
+  </div> : null;
 
   const target = { id: treeId, chunkId: world.currentChunkId, scope: instanceScope, definition };
   const object = resolveObjectTarget(target, world);
@@ -144,8 +158,7 @@ export default function CrimsonTreeInteractionPanel() {
       <TreeProperties definition={effectiveDefinition} onChange={changeTree} seedEditable={!(object?.profileId && instanceScope === "global")} onVertexEdit={() => window.dispatchEvent(new CustomEvent("crimson-tree-leaf-vertex-open", { detail: { treeId, definition: effectiveDefinition, instanceScope } }))} />
       {object?.position && <ObjectTransformProperties object={object} onChange={patch => editObjectTarget(target, patch)} />}
       <ObjectEditHistory />
-      <button className="tg-tree-interaction-mode" onClick={() => window.dispatchEvent(new CustomEvent("tg-object-focus-edit", { detail: target }))}>EDIT OBJECT IN SOUTH</button>
-      <div className="tg-tree-interaction-hint">{mode === "trunk" ? "UP / DOWN = HEIGHT  ·  LEFT / RIGHT = BEND" : mode === "leaves" ? "SELECT LEAF VERTEX EDIT FOR DIRECT SHAPE CONTROL" : "BRANCH MODE = DIRECT PROCEDURAL EXTRUSION"}</div>
+      <button className="tg-tree-interaction-mode" onClick={() => { close(); window.dispatchEvent(new CustomEvent("tg-object-focus-edit", { detail: target })); }}>OBJECT//LIBRARY</button>
     </aside>
   );
 }

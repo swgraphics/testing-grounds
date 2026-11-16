@@ -1,3 +1,5 @@
+import { useWorldStore } from "../../systems/world/worldStore";
+import { hasTerrainAt } from "../../systems/world/terrainRegions";
 import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -42,7 +44,8 @@ function findTerrainPoint(camera) {
       lowValue = middleValue;
     }
   }
-  return ray.origin.clone().add(direction.multiplyScalar((low + high) / 2));
+  const hit=ray.origin.clone().add(direction.multiplyScalar((low + high) / 2));
+  return hasTerrainAt(hit.x,hit.z,useWorldStore.getState().world)?hit:null;
 }
 
 function toolToTerrainOperation(tool) {

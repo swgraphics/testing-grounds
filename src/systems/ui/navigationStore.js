@@ -1,11 +1,13 @@
 import { create } from "zustand";
+import { useEditorStore } from "../editor/editorStore";
+import { PANEL_DEFINITIONS } from "./directionalPanelRegistry";
 export const DIRECTIONS = ["north", "east", "south", "west"];
 export const COMPASS_MENUS = Object.freeze({
   world: [
-    { label: "WORLD // MAP", icon: "map-pin", action: "panel-north" },
+    { ...PANEL_DEFINITIONS.north, action: "panel-north" },
     { label: "DEV TOOLS", icon: "mountain", action: "panel-east" },
     { label: "OBJECTS // LIBRARY", icon: "box", action: "panel-south" },
-    { label: "WORLD EDITOR", icon: "mountain", action: "panel-west" },
+    { ...PANEL_DEFINITIONS.west, action: "panel-west" },
   ],
   objects: [
     { label: "PLACE", icon: "box", action: "objects" },
@@ -38,13 +40,19 @@ export const COMPASS_MENUS = Object.freeze({
     { label: "PREVIOUS AREA", icon: "map-pin", action: "previous-area" },
   ],
 });
-const HEADER_ACTIONS = ["editor-view", "tools", "world-view"];
+const HEADER_ACTIONS = ["editor-view", "tools"];
 const AUXILIARY = [...HEADER_ACTIONS, "parent"];
 export const useNavigationStore = create(set => ({
   compassOpen: false, menu: "world", trail: ["world"], selected: "north", lastDirection: null, workspace: "terrain", helpOpen: false,
   placementOrigin: null,
   setPlacementOrigin: placementOrigin => set({ placementOrigin }),
-  openCompass: () => set({ compassOpen: true, menu: "world", trail: ["world"], selected: "north", lastDirection: null }),
+  openCompass: () => {
+    const editor=useEditorStore.getState();
+    if(editor.viewMode==='editor'||Object.values(editor.visiblePanels).some(Boolean)) {
+      editor.closeAllPanels();if(typeof document!=="undefined")document.activeElement?.blur?.();set({compassOpen:false});return;
+    }
+    set({ compassOpen: true, menu: "world", trail: ["world"], selected: "north", lastDirection: null });
+  },
   closeCompass: () => set({ compassOpen: false }),
   select: selected => { if ([...DIRECTIONS, ...AUXILIARY].includes(selected)) set(state => ({ selected, lastDirection: state.selected === selected ? state.lastDirection : null })); },
   navigate: direction => set(state => {
@@ -66,6 +74,9 @@ export const useNavigationStore = create(set => ({
   setWorkspace: workspace => set({ workspace }),
   setHelp: helpOpen => set({ helpOpen }),
 }));
+useEditorStore.subscribe(state=>{
+  if(state.viewMode==='editor'&&useNavigationStore.getState().compassOpen)useNavigationStore.getState().closeCompass();
+});
 export function analogDirection(x, y, previous = "north") {
   if (Math.hypot(x, y) < 0.4) return null;
   const horizontal = x >= 0 ? "east" : "west", vertical = y >= 0 ? "south" : "north";

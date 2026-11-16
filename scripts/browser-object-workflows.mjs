@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const artifact = path.resolve("ui-revision-02b.local");
+const artifact = path.resolve(process.env.TG_OBJECT_ARTIFACT || "ui-revision-02b.local");
 const net = await import("node:net");
 const port = await new Promise(resolve => { const listener=net.createServer(); listener.listen(0,"127.0.0.1",()=>{ const chosen=listener.address().port;listener.close(()=>resolve(chosen)); }); });
 await fs.mkdir(artifact, { recursive: true });
@@ -39,7 +39,7 @@ try {
  };
  const cdp=(method,params={})=>new Promise((resolve,reject)=>{const request=++id;pending.set(request,{resolve,reject});socket.send(JSON.stringify({id:request,method,params}))});
  const evaluate=async expression=>{const result=await cdp("Runtime.evaluate",{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value};
- const waitFor=async(expression,label,attempts=100)=>{for(let i=0;i<attempts;i++){if(await evaluate(expression))return;await pause(200)}throw Error("Timeout: "+label)};
+ const waitFor=async(expression,label,attempts=Number(process.env.TG_BROWSER_WAIT_ATTEMPTS || 100))=>{for(let i=0;i<attempts;i++){if(await evaluate(expression))return;await pause(200)}throw Error("Timeout: "+label)};
  const screenshot=async name=>{const shot=await cdp("Page.captureScreenshot",{format:"png"});await fs.writeFile(path.join(artifact,name+".png"),Buffer.from(shot.data,"base64"))};
  const key=async(key,code=key)=>{const codes={Tab:9,Enter:13,Escape:27,ArrowUp:38,ArrowRight:39,ArrowDown:40,ArrowLeft:37};await cdp("Input.dispatchKeyEvent",{type:"keyDown",key,code,windowsVirtualKeyCode:codes[key]||0,text:key==="Enter"?"\r":"",unmodifiedText:key==="Enter"?"\r":""});await cdp("Input.dispatchKeyEvent",{type:"keyUp",key,code,windowsVirtualKeyCode:codes[key]||0});await pause(1000)};
  const click=async selector=>{
@@ -81,7 +81,7 @@ try {
  const currentTool=()=>evaluate("window.__tool.useInteractionStore.getState().activeTool");
  const visibleCount=()=>evaluate("document.querySelectorAll('[data-directional-panel]:not([hidden])').length");
  const noPanels=()=>evaluate("Object.values(window.__editor.useEditorStore.getState().visiblePanels).every(v=>!v) && !document.querySelector('[data-panel-expand]')");
- const openMenu=async()=>{await click(".tg-compass-activate");await waitFor("!!document.querySelector('[data-compass]')","compass")};
+ const openMenu=async()=>{await evaluate('document.activeElement?.blur()');if(await evaluate('!!document.querySelector("[aria-modal=true]:not([data-compass]),.tg-tree-interaction-panel")'))await click('.tg-compass-activate');if(!await evaluate('!!document.querySelector("[data-compass]")'))await key('Tab');if(!await evaluate('!!document.querySelector("[data-compass]")'))await key('Tab');await waitFor('!!document.querySelector("[data-compass]")','compass')};
  const choose=async direction=>{await click('[data-direction="'+direction+'"]')};
  const clickText=async(root,label)=>{
   await evaluate("document.querySelectorAll('[data-test-target]').forEach(e=>e.removeAttribute('data-test-target'));(()=>{const b=[...document.querySelectorAll("+JSON.stringify(root+" button")+")].find(e=>e.textContent.trim()==="+JSON.stringify(label)+");if(!b)throw Error('Missing button '+ "+JSON.stringify(label)+");b.setAttribute('data-test-target','true')})()");
@@ -101,7 +101,7 @@ try {
   for(const a of data.panels){assert.ok(a.x>=0&&a.y>=0&&a.w>0&&a.h>0);for(const b of data.panels)if(a!==b)assert.ok(Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)<=1||Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)<=1,"no directional panel overlap")}
   return data;
  };
- const closeAll=async()=>{await openMenu();await click('[data-compass-action="world-view"]');assert.ok(await noPanels())};
+ const closeAll=async()=>{if(await evaluate("document.querySelector('.tg-compass-activate').dataset.compassState!=='orange'"))await click('.tg-compass-activate');assert.ok(await noPanels())};
  const objectCount=()=>evaluate("Object.values(window.__world.useWorldStore.getState().world.chunks).reduce((n,c)=>n+Object.keys(c.objects||{}).length,0)");
  const historyCount=()=>evaluate("window.__history.useHistoryStore.getState().undoStack.length");
  await openMenu();await choose("south");await screenshot("01-library");
@@ -158,14 +158,15 @@ try {
   await screenshot('04-focused-edit-object');await click('[data-object-editor-close]');await closeAll();
   await evaluate("(()=>{window.__root.getState().internal.subscribers=window.__root.getState().internal.subscribers.filter(s=>s!==window.__placeCamera);let trunk;window.__scene.traverse(o=>{if(o.userData.tgCrimsonTreeTrunk&&o.userData.tgCrimsonTreeId===window.__targetId)trunk=o});if(!trunk)throw Error('Missing world tree');window.__worldColor=trunk.parent.children.filter(o=>o.material?.color).map(o=>o.material.color.getHexString());window.__treePoint=trunk.geometry.boundingBox.getCenter(trunk.position.clone()).applyMatrix4(trunk.matrixWorld);window.__treeCamera={ref:{current:()=>{const c=window.__root.getState().camera;c.position.copy(window.__treePoint).add({x:12,y:3,z:12});c.lookAt(window.__treePoint);c.updateMatrixWorld()}},priority:0,store:window.__root};window.__root.getState().internal.subscribers.push(window.__treeCamera)})()");
   assert.ok((await evaluate('window.__worldColor')).includes('aa22ee'),'focused color reaches live world material');
-  await pause(600);await click('canvas');await waitFor("!!document.querySelector('.tg-tree-interaction-panel')","native Tree Interaction");
+  // Close the preserved OBJECT selection tool before neutral-world Tree selection (Task 03 contract).
+  if(await evaluate("!!document.querySelector('[aria-label=\"Exit active OBJECT tool\"]')"))await click('[aria-label="Exit active OBJECT tool"]');await pause(600);await click('canvas');await click('[data-tree-edit-selected]');await waitFor("!!document.querySelector('.tg-tree-interaction-panel')","native Tree Interaction");
   assert.deepEqual(await evaluate("[...document.querySelectorAll('.tg-tree-interaction-panel [data-tree-property]')].map(e=>e.dataset.treeProperty)"),await evaluate('window.__modalPaths'));
   await setValue('.tg-tree-interaction-panel [data-tree-property="leaves.color"]','#11aa22');assert.equal((await tree()).treeDefinition.leaves.color,'#11aa22');
   await screenshot('06-tree-interaction');await click('.tg-tree-interaction-panel [data-tree-property="leaves.gradientEnabled"]');
   await setValue('.tg-tree-interaction-panel [data-tree-property="leaves.gradientColor"]','#2244ee');await screenshot('07-tree-color-gradient');
   assert.equal((await tree()).treeDefinition.leaves.gradientEnabled,true,'native gradient checkbox updates the world');
   assert.ok(await evaluate("(()=>{let trunk;window.__scene.traverse(o=>{if(o.userData.tgCrimsonTreeTrunk&&o.userData.tgCrimsonTreeId===window.__targetId)trunk=o});const leaf=trunk.parent.children.find(o=>o.material?.vertexColors&&o.geometry?.attributes?.color);if(!leaf)return false;const a=leaf.geometry.attributes.color.array;return a.some((value,index)=>index>2&&Math.abs(value-a[index%3])>.0001)})()"),'gradient reaches varied live world vertex colors');
-  await clickText('.tg-tree-interaction-panel','EDIT OBJECT IN SOUTH');await waitFor("!!document.querySelector('.tg-focused-object-editor')","same tree focused through South");
+  await clickText('.tg-tree-interaction-panel','OBJECT//LIBRARY');await waitFor("!!document.querySelector('.tg-focused-object-editor')","same tree focused through South");
   assert.equal(await evaluate("document.querySelector('.tg-focused-object-editor [data-tree-property=\"leaves.color\"]').value"),'#11aa22');
   assert.equal(await evaluate("document.querySelector('.tg-focused-object-editor [data-tree-property=\"leaves.gradientColor\"]').value"),'#2244ee');
   await setValue('.tg-focused-object-editor [data-tree-property="trunk.height"]',0);assert.equal((await tree()).treeDefinition.trunk.height,0);

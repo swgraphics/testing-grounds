@@ -1,6 +1,7 @@
+import { adjustmentState, endAdjustment } from "../../systems/ui/controlAdjustment";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import { analogDirection, useNavigationStore } from "../../systems/ui/navigationStore";
-import { confirmCompass, returnToWorldView } from "../../systems/ui/navigationActions";
+import { navigateCompass, confirmCompassFocus, backCompassFocus, cycleCompassGroup } from "../../systems/ui/compassFocus";
 import { getInputContext, isTextInput, clearGameplayInput } from "../../systems/input/inputOwnership";
 import { useEffect, useRef } from "react";
 
@@ -43,7 +44,12 @@ function focusables(root) {
 }
 
 function activeMenuRoot() {
+  // Overlays own navigation even if the previously focused panel is mounted.
+  const modal = ['.tg-help-dialog','.tg-chunk-dialog','.tg-leaf-editor-window','.tg-mesh-edit-backdrop','.tg-tree-interaction-panel','.tg-terrain-export'].map(selector => document.querySelector(selector)).find(visible);
+  if (modal && visible(modal)) return modal;
   const active = document.activeElement;
+  const layout = active?.closest?.('.tg-directional-layout');
+  if (layout) return layout;
   const activeRoot = active?.closest?.(MENU_ROOTS.join(", "));
   if (activeRoot && visible(activeRoot)) return activeRoot;
 
@@ -75,62 +81,19 @@ function focusFirst(root) {
   return focusElement(items[0]);
 }
 
-function devMenu() {
-  return document.querySelector(".tg-dev-full-menu.open");
+function activateControl(active) {
+  if (active?.matches?.('input[type="range"],select')) {
+    if (adjustmentState.current === active) endAdjustment();
+    else { endAdjustment(); adjustmentState.current = active; active.setAttribute('data-gamepad-adjusting', 'true'); }
+  } else active?.click?.();
 }
 
-function devHeaders(menu) {
-  return Array.from(menu?.querySelectorAll("[data-dev-section-header]") ?? []).filter(visible);
-}
-
-function sectionControls(header) {
-  const section = header?.closest?.(".tg-dev-section");
-  if (!section) return [];
-  return focusables(section).filter((element) => !element.matches("[data-dev-section-header]"));
-}
-
-function moveDevFocus(direction) {
-  const menu = devMenu();
-  if (!menu) return false;
-
-  const headers = devHeaders(menu);
-  if (!headers.length) return false;
-
-  const active = document.activeElement;
-  const activeHeader = active?.matches?.("[data-dev-section-header]") ? active : null;
-  const activeSection = active?.closest?.(".tg-dev-section");
-
-  if (activeHeader) {
-    if (direction === "down" && activeHeader.getAttribute("aria-expanded") === "true") {
-      const controls = sectionControls(activeHeader);
-      if (controls.length) return focusElement(controls[0]);
-    }
-
-    if (direction === "up" || direction === "down") {
-      const index = headers.indexOf(activeHeader);
-      const next = index + (direction === "down" ? 1 : -1);
-      if (next >= 0 && next < headers.length) return focusElement(headers[next]);
-      return true;
-    }
-
-    return true;
-  }
-
-  if (activeSection && (direction === "up" || direction === "down")) {
-    const controls = sectionControls(activeSection.querySelector("[data-dev-section-header]"));
-    const index = controls.indexOf(active);
-    if (index >= 0) {
-      const next = index + (direction === "down" ? 1 : -1);
-      if (next >= 0 && next < controls.length) return focusElement(controls[next]);
-
-      const header = activeSection.querySelector("[data-dev-section-header]");
-      if (header) return focusElement(header);
-    }
-  }
-
-  // If focus was lost for any reason, recover to the first header instead of
-  // allowing D-pad input to leak into world movement.
-  return focusElement(headers[0]);
+function cyclePanel(delta) {
+  const panels = [...document.querySelectorAll('[data-directional-panel]:not([hidden])')];
+  const current = document.activeElement?.closest?.('[data-directional-panel]');
+  const next = panels[(panels.indexOf(current) + delta + panels.length) % panels.length];
+  endAdjustment();
+  return focusFirst(next);
 }
 
 function moveRange(direction) {
@@ -153,13 +116,8 @@ function moveRange(direction) {
   return true;
 }
 
-function moveSpatialFocus(direction) {
-  const root = activeMenuRoot();
+function moveSpatialFocus(direction, root = activeMenuRoot()) {
   if (!root) return false;
-
-  if (direction === "left" || direction === "right") {
-    if (moveRange(direction)) return true;
-  }
 
   const items = focusables(root);
   if (!items.length) return false;
@@ -202,13 +160,41 @@ function moveSpatialFocus(direction) {
   return focusElement(candidates[0]?.item);
 }
 
-function moveFocus(direction) {
-  const menu = devMenu();
-  if (menu && activeMenuRoot() === menu) {
-    if ((direction === "left" || direction === "right") && moveRange(direction)) return true;
-    return moveDevFocus(direction);
+function moveFocus(direction, keyboard = false) {
+  const active = document.activeElement;
+  if (adjustmentState.current && (adjustmentState.current !== active || !visible(adjustmentState.current))) endAdjustment();
+  if (adjustmentState.current === active) {
+    if (active.matches('select')) {
+      const options = [...active.options];
+      const delta = ['right','down'].includes(direction) ? 1 : -1;
+      let index = active.selectedIndex + delta;
+      while (options[index]?.disabled) index += delta;
+      if (options[index]) {
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(active, options[index].value);
+        active.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      return true;
+    }
+    return moveRange(['right','up'].includes(direction) ? 'right' : 'left');
   }
-  return moveSpatialFocus(direction);
+  if (keyboard && ['left','right'].includes(direction) && moveRange(direction)) return true;
+  const root = activeMenuRoot();
+  if (root?.matches('.tg-title-screen')) return moveSpatialFocus(direction, root);
+  const panel = active?.closest?.('[data-directional-panel],.tg-panel-region');
+  // DOM order makes every control reachable, including content outside a scroller's viewport.
+  if (direction === 'up' || direction === 'down') {
+    const items = focusables(panel || root);
+    const index = items.indexOf(active);
+    if (index < 0) return focusElement(items[0]);
+    const next = items[index + (direction === 'down' ? 1 : -1)];
+    if (next) return focusElement(next);
+  }
+  if (panel && ['left','right'].includes(direction)) {
+    // Horizontal galleries stay in their row instead of jumping into a nearby toolbar.
+    const gallery = active?.closest?.('.tg-mesh-library');
+    if (gallery && moveSpatialFocus(direction, gallery)) return true;
+  }
+  return moveSpatialFocus(direction, root);
 }
 
 function readDpad(gamepad) {
@@ -246,6 +232,7 @@ function readDpad(gamepad) {
 export default function GamepadMenuNavigator() {
   const previousButtonsRef = useRef({});
   const aHoldRef = useRef({ startedAt: 0, locked: false });
+  const repeatRef = useRef({ direction: null, next: 0 });
 
   useEffect(() => {
     const edge = (key, pressed) => {
@@ -259,6 +246,7 @@ export default function GamepadMenuNavigator() {
       if (!gamepad) {
         previousButtonsRef.current = {};
         aHoldRef.current = { startedAt: 0, locked: false };
+        endAdjustment();
         return;
       }
 
@@ -270,25 +258,37 @@ export default function GamepadMenuNavigator() {
       const nav = useNavigationStore.getState();
       const confirm = edge("compass-a", Boolean(gamepad.buttons[0]?.pressed));
       const back = edge("compass-b", Boolean(gamepad.buttons[1]?.pressed));
+      const editSelected = edge("tree-edit", Boolean(gamepad.buttons[2]?.pressed));
       if (edge("start", Boolean(gamepad.buttons[9]?.pressed))) {
         if (title) window.dispatchEvent(new CustomEvent("tg-gamepad-start"));
         else if (!["modal","text"].includes(getInputContext())) { clearGameplayInput(); nav.openCompass(); }
+      }
+      if(getInputContext()==='gesture') {
+        if(back){window.dispatchEvent(new Event('pointercancel'));clearGameplayInput();}
+        return;
       }
       if (useNavigationStore.getState().compassOpen) {
         aHoldRef.current = { startedAt: 0, locked: false, consumed: true };
         previousButtonsRef.current.rt = Boolean(gamepad.buttons[7]?.pressed);
         const dpad = readDpad(gamepad);
         for (const [key, direction] of Object.entries({ up:"north", right:"east", down:"south", left:"west" })) {
-          if (edge("dpad-"+key, dpad[key])) nav.navigate(direction);
+          if (edge("dpad-"+key, dpad[key])) navigateCompass(direction);
         }
         const direction = analogDirection(Number(gamepad.axes[0]) || 0, Number(gamepad.axes[1]) || 0, useNavigationStore.getState().selected);
-        if (direction) nav.select(direction);
-        if (back) returnToWorldView(); else if (confirm) confirmCompass();
+        const auxiliary = document.querySelector('.tg-shortcut-picker') || document.activeElement?.closest('[data-compass-group]:not([data-compass-group="radial"])');
+        if (direction && auxiliary) {
+          const repeat = repeatRef.current;
+          if (repeat.direction !== direction || now >= repeat.next) { navigateCompass(direction);repeatRef.current = { direction, next: now + (repeat.direction === direction ? 150 : 400) }; }
+        } else if (direction) nav.select(direction);
+        else repeatRef.current = { direction: null, next: 0 };
+        if (edge('compass-lb', Boolean(gamepad.buttons[4]?.pressed))) cycleCompassGroup(-1);
+        if (edge('compass-rb', Boolean(gamepad.buttons[5]?.pressed))) cycleCompassGroup(1);
+        if (back) backCompassFocus(); else if (confirm) confirmCompassFocus();
         return;
       }
       // Contextual Back also works while placement owns the world input.
       if (back && (menuOpen || useInteractionStore.getState().activeMode === "place")) {
-        (document.activeElement || window).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+        if (!endAdjustment()) (document.activeElement || window).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
         previousButtonsRef.current.rt = Boolean(gamepad.buttons[7]?.pressed);
         aHoldRef.current = { startedAt: 0, locked: false, consumed: true };
         clearGameplayInput();
@@ -302,7 +302,7 @@ export default function GamepadMenuNavigator() {
       // A = select/open. Hold A on a Dev Tools header = lock/unlock.
       const aPressed = Boolean(gamepad.buttons[0]?.pressed);
       if (aPressed && !aHoldRef.current.startedAt) {
-        aHoldRef.current = { startedAt: now, locked: false };
+        aHoldRef.current = { startedAt: now, locked: false, target: active };
       }
       if (
         aPressed &&
@@ -314,18 +314,27 @@ export default function GamepadMenuNavigator() {
         active.dispatchEvent(new CustomEvent("tg-gamepad-section-lock", { bubbles: true }));
       }
       if (!aPressed && aHoldRef.current.startedAt) {
-        if (!aHoldRef.current.locked && active && menuOpen) {
-          active.click();
+        if (!aHoldRef.current.locked && active && active === aHoldRef.current.target && menuOpen) {
+          activateControl(active);
         }
         aHoldRef.current = { startedAt: 0, locked: false };
       }
 
+      if (!menuOpen && editSelected) document.querySelector('[data-tree-edit-selected]')?.click();
       if (menuOpen) {
+        if (document.querySelector('.tg-leaf-editor-window,.tg-tree-interaction-panel') && gamepad.buttons[7]?.pressed && !adjustmentState.current) return;
         const dpad = readDpad(gamepad);
-        if (edge("dpad-up", dpad.up)) moveFocus("up");
-        if (edge("dpad-down", dpad.down)) moveFocus("down");
-        if (edge("dpad-left", dpad.left)) moveFocus("left");
-        if (edge("dpad-right", dpad.right)) moveFocus("right");
+        const analog = analogDirection(Number(gamepad.axes[0]) || 0, Number(gamepad.axes[1]) || 0);
+        const direction = Object.keys(dpad).find(key => dpad[key]) || ({north:'up',south:'down',west:'left',east:'right'}[analog]);
+        const repeat = repeatRef.current;
+        if (direction && (repeat.direction !== direction || now >= repeat.next)) {
+          moveFocus(direction);
+          repeatRef.current = { direction, next: now + (repeat.direction === direction ? 150 : 400) };
+        } else if (!direction) repeatRef.current = { direction: null, next: 0 };
+        if (!title && activeMenuRoot()?.matches('.tg-directional-layout')) {
+          if (edge('lb', Boolean(gamepad.buttons[4]?.pressed))) cyclePanel(-1);
+          if (edge('rb', Boolean(gamepad.buttons[5]?.pressed))) cyclePanel(1);
+        }
       } else {
         // Keep D-pad navigation out of the world entirely unless a UI surface
         // is open. Quick shortcuts are intentionally removed until the UI
@@ -350,6 +359,7 @@ export default function GamepadMenuNavigator() {
 
   useEffect(() => {
     function onKeyDown(event) {
+      if(event.target?.closest?.('[data-map-resize]'))return;
       if (useNavigationStore.getState().compassOpen || event.defaultPrevented) return;
       if (isTextInput(event.target)) {
         if (!event.target.matches?.('input[type="range"]')) return;
@@ -365,11 +375,15 @@ export default function GamepadMenuNavigator() {
 
       event.preventDefault();
       event.stopPropagation();
-      moveFocus(direction);
+      moveFocus(direction, true);
     }
 
     window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
+    const cancelAdjustment = event => {
+      if (event.key === 'Escape' && endAdjustment()) { event.preventDefault(); event.stopImmediatePropagation(); }
+    };
+    window.addEventListener('keydown', cancelAdjustment, true);
+    return () => { window.removeEventListener("keydown", onKeyDown, true); window.removeEventListener('keydown', cancelAdjustment, true); endAdjustment(); };
   }, []);
 
   return null;

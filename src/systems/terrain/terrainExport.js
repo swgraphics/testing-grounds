@@ -1,3 +1,5 @@
+import { useWorldStore } from "../world/worldStore";
+import { terrainCoversRectangle } from "../world/terrainRegions";
 import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { getCommittedTerrainHeightAt } from "./terrainHeight";
@@ -29,6 +31,8 @@ export function terrainExportFilename(value) {
 // Standalone mesh: never reads or detaches a scene object. Both endpoints are sampled.
 export function createTerrainExportGeometry(options, sampleHeight = getCommittedTerrainHeightAt) {
   const { width, depth, vertices } = validateTerrainExport(options);
+  const world=useWorldStore.getState().world;
+  if(world.terrainSurface&&sampleHeight===getCommittedTerrainHeightAt&&!terrainCoversRectangle(options,world))throw new Error("The selected region includes space without terrain. Choose bounds inside the connected world.");
   const { minX, maxX, minZ, maxZ, segmentsX, segmentsZ, origin } = options;
   const offsetX = origin === "centered" ? (minX + maxX) / 2 : 0;
   const offsetZ = origin === "centered" ? (minZ + maxZ) / 2 : 0;

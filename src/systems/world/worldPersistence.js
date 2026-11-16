@@ -1,3 +1,5 @@
+import { TERRAIN_SHAPE_KEYS, terrainShape } from "./terrainRegions";
+import { snapshotSpatialTerrain, restoreSpatialTerrain } from "./spatialTerrainSnapshots";
 import { AREA_CONFIG } from "../../config/areaConfig";
 import {
   createInitialWorld,
@@ -50,7 +52,7 @@ function normalizeChunk(chunk, fallback) {
     grid: String(chunk?.grid ?? fallback.grid ?? "").toUpperCase(),
     coordinates: (() => {
       const parsed = parseGridCoordinate(chunk?.grid ?? fallback.grid);
-      return parsed ? { column: parsed.column, row: parsed.row } : (fallback.coordinates ?? null);
+      return chunk?.terrainRegion ? chunk.coordinates : parsed ? { column: parsed.column, row: parsed.row } : (fallback.coordinates ?? null);
     })(),
     localOrigin: Array.isArray(chunk?.localOrigin) ? chunk.localOrigin.slice(0, 3).map(Number) : [...(fallback.localOrigin ?? [0, 0, 0])],
     position: Array.isArray(chunk?.position)
@@ -72,6 +74,7 @@ function normalizeChunk(chunk, fallback) {
 
 function migrateWorld(input) {
   if (!input || typeof input !== "object") return null;
+  if (input.terrainSurface && (input.terrainSurface.version!==1 || !TERRAIN_SHAPE_KEYS.every(key=>Number.isFinite(input.terrainSurface.settings?.[key])))) return null;
 
   const sourceVersion = Number(input.schemaVersion ?? 1);
   const base = createInitialWorld(AREA_CONFIG);
@@ -132,7 +135,7 @@ function migrateWorld(input) {
     migrated.chunks[chunkId] = normalizeChunk(inputChunks[chunkId] ?? {}, fallback);
   });
 
-  Object.values(migrated.chunks).forEach((chunk) => {
+  if (!migrated.terrainSurface) Object.values(migrated.chunks).forEach((chunk) => {
     Object.entries(chunk.terrain?.terrainVertexEdits ?? {}).forEach(([key, value]) => {
       if (!(key in migrated.terrainVertexEdits)) migrated.terrainVertexEdits[key] = Number(value) || 0;
     });
@@ -187,7 +190,18 @@ export function serializeChunk(chunk, world = getWorldSnapshot()) {
   snapshot.terrain = { ...(snapshot.terrain ?? {}) };
   delete snapshot.terrain.terrainPreviewStamp;
   delete snapshot.terrain.terrainPreviewVersion;
-  snapshot.terrain.terrainVertexEdits = { ...(world.terrainVertexEdits ?? {}) };
+  if(world.terrainSurface) {
+    delete snapshot.terrain.terrainVertexEdits;
+    snapshot.spatialTerrainSnapshot=snapshotSpatialTerrain(chunk,world);
+    if(!chunk.terrainRegion&&chunk.id===world.currentChunkId) {
+      const bounds=snapshot.spatialTerrainSnapshot.bounds;
+      Object.assign(snapshot.terrain,terrainShape(world.terrainSurface.settings));
+      snapshot.terrain.terrainEdits=Object.fromEntries(Object.entries(world.terrainSurface.terrainEdits ?? {}).filter(([key])=>{
+        const [x,z]=key.split(',').map(value=>Number(value)*4);
+        return x>=bounds.minX&&x<=bounds.maxX&&z>=bounds.minZ&&z<=bounds.maxZ;
+      }));
+    }
+  } else snapshot.terrain.terrainVertexEdits = { ...(world.terrainVertexEdits ?? {}) };
 
   snapshot.objects = Object.fromEntries(
     Object.entries(snapshot.objects ?? {}).map(([id, object]) => {
@@ -262,6 +276,7 @@ export function saveChunkSnapshot(chunkId = getWorldSnapshot().currentChunkId) {
   if (!chunk) return null;
 
   const snapshot = serializeChunk(chunk, world);
+  if(world.terrainSurface&&!chunk.terrainRegion)snapshot.terrain={...snapshot.terrain,...terrainShape(world.terrainSurface.settings)};
   snapshot.metadata = {
     ...(snapshot.metadata ?? {}),
     savedAt: new Date().toISOString(),
@@ -289,6 +304,16 @@ export function loadChunkSnapshot(chunkId = getWorldSnapshot().currentChunkId) {
     if (!world.chunks?.[chunkId]) return null;
 
     const current = world.chunks[chunkId];
+    if(world.terrainSurface) {
+      const restored=normalizeChunk(parsed,current);
+      // Loading a local snapshot never moves its spatial footprint.
+      Object.assign(restored,{id:current.id,grid:current.grid,position:current.position,terrainRegion:current.terrainRegion,mapPosition:current.mapPosition,dirty:false});
+      const snapshot=parsed.spatialTerrainSnapshot ?? {sculpt:parsed.terrain?.terrainEdits,vertices:parsed.terrain?.terrainVertexEdits};
+      const next=restoreSpatialTerrain(world,current,snapshot);
+      if(!current.terrainRegion)for(const key of TERRAIN_SHAPE_KEYS)if(Number.isFinite(restored.terrain[key]))next.terrainSurface.settings[key]=restored.terrain[key];
+      useWorldStore.getState().replaceWorld({...next,chunks:{...next.chunks,[chunkId]:restored}});
+      clearHistory();return restored;
+    }
     const loadedChunk = normalizeChunk(parsed, current);
     const mergedVertexEdits = {
       ...(world.terrainVertexEdits ?? {}),
@@ -320,6 +345,12 @@ export function resetChunkSnapshot(chunkId = getWorldSnapshot().currentChunkId) 
   const world = getWorldSnapshot();
   if (!world.chunks?.[chunkId]) return null;
 
+  if(world.terrainSurface) {
+    const current=world.chunks[chunkId],next=restoreSpatialTerrain(world,current);
+    const reset={...current,terrain:{...(current.terrainRegion?.initialShape ?? {})},water:{},objects:{},foliage:{},dirty:true};delete reset.spatialTerrainSnapshot;
+    useWorldStore.getState().replaceWorld({...next,chunks:{...next.chunks,[chunkId]:reset},scatterProfiles:Object.fromEntries(Object.entries(next.scatterProfiles ?? {}).filter(([,profile])=>profile.chunkId!==chunkId))});
+    localStorage.removeItem(CHUNK_STORAGE_PREFIX+chunkId);writeChunkManifest(useWorldStore.getState().world);clearHistory();return reset;
+  }
   const templateWorld = world.worldType === "blank"
     ? createInitialWorld([])
     : createInitialWorld(AREA_CONFIG);

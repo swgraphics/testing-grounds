@@ -4,7 +4,7 @@ import path from "node:path";
 import assert from "node:assert/strict";
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const filterArgument = process.argv.slice(2).find(arg => !arg.startsWith("--url="));
-const artifact = path.resolve("task-12-qa.local/" + (filterArgument ? 'browser-' + filterArgument.replace(/[^a-z0-9-]/gi, '_') : 'browser'));
+const artifact = path.resolve((process.env.TG_DEMO_ARTIFACT || "task-12-qa.local") + "/" + (filterArgument ? 'browser-' + filterArgument.replace(/[^a-z0-9-]/gi, '_') : 'browser'));
 const net = await import("node:net");
 const port = await new Promise(resolve => { const listener=net.createServer(); listener.listen(0,"127.0.0.1",()=>{ const chosen=listener.address().port;listener.close(()=>resolve(chosen)); }); });
 await fs.mkdir(artifact, { recursive: true });
@@ -34,7 +34,7 @@ try {
  };
  const cdp=(method,params={})=>new Promise((resolve,reject)=>{const request=++id;pending.set(request,{resolve,reject});socket.send(JSON.stringify({id:request,method,params}))});
  const evaluate=async expression=>{const result=await cdp("Runtime.evaluate",{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value};
- const waitFor=async(expression,label,attempts=150)=>{for(let i=0;i<attempts;i++){try{if(await evaluate(expression))return}catch(error){if(error.code!==-32000&&!String(error).includes('Execution context was destroyed'))throw error}await pause(200)}throw Error("Timeout: "+label)};
+ const waitFor=async(expression,label,attempts=Number(process.env.TG_BROWSER_WAIT_ATTEMPTS || 150))=>{for(let i=0;i<attempts;i++){try{if(await evaluate(expression))return}catch(error){if(error.code!==-32000&&!String(error).includes('Execution context was destroyed'))throw error}await pause(200)}throw Error("Timeout: "+label)};
  const screenshot=async name=>{const shot=await cdp("Page.captureScreenshot",{format:"png"});await fs.writeFile(path.join(artifact,name+".png"),Buffer.from(shot.data,"base64"))};
  const key=async(key,code=key)=>{const codes={Tab:9,Enter:13,Escape:27,ArrowUp:38,ArrowRight:39,ArrowDown:40,ArrowLeft:37};await cdp("Input.dispatchKeyEvent",{type:"keyDown",key,code,windowsVirtualKeyCode:codes[key]||0,text:key==="Enter"?"\r":"",unmodifiedText:key==="Enter"?"\r":""});await cdp("Input.dispatchKeyEvent",{type:"keyUp",key,code,windowsVirtualKeyCode:codes[key]||0});await pause(1000)};
  const click=async selector=>{
@@ -80,7 +80,7 @@ try {
   const values=await evaluate(`(()=>{const before=window.__height.getTerrainHeightAt(30,30);window.__vertices.setTerrainVertexEdit(30,30,6);const after=window.__height.getTerrainHeightAt(30,30);window.__settings.saveWorldSettings();window.__vertices.setTerrainVertexEdit(30,30,0);window.__settings.loadWorldSettings();return {before,after,loaded:window.__height.getTerrainHeightAt(30,30)}})()`);assert.ok(Math.abs(values.after-values.before-6)<1e-6);assert.equal(values.loaded,values.after);return values;
  });
  await check('World map Add Chunk exposes an available grid and creates named chunk',async()=>{
-  await reset();await evaluate("window.__actions.openWorkspace('map')");await waitFor("!document.querySelector('#tg-panel-north').hidden",'map panel opened');await textClick('#tg-panel-north','ADD CHUNK');
+  await reset();await evaluate("window.__actions.openWorkspace('map')");await waitFor("!document.querySelector('#tg-panel-west').hidden",'map panel opened');await textClick('#tg-panel-west','ADD CHUNK');
   const info=await evaluate("({disabled:document.querySelector('.tg-chunk-dialog select').disabled,value:document.querySelector('.tg-chunk-dialog select').value,options:[...document.querySelector('.tg-chunk-dialog select').options].filter(o=>o.value&&!o.disabled).map(o=>o.value),occupied:Object.values(window.__world.useWorldStore.getState().world.chunks).map(c=>c.grid)})");
   if(info.disabled && info.occupied.includes(info.value))throw Error('Grid locked to occupied '+info.value);
   if(!info.disabled)await setValue('.tg-chunk-dialog select',info.options[0]);
@@ -92,14 +92,14 @@ try {
  await check('Area rename Escape cancels without saving',async()=>{
   await evaluate("window.__actions.openWorkspace('map')");await pause(350);
   const before=await evaluate("window.__world.useWorldStore.getState().world.chunks[window.__world.useWorldStore.getState().world.currentChunkId].name");
-  await evaluate("document.querySelector('#tg-panel-north .tg-teleport-controls [aria-pressed=true]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))");await pause(200);
+  await evaluate("document.querySelector('#tg-panel-west .tg-teleport-controls [aria-pressed=true]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))");await pause(200);
   await setValue('.tg-editor-area-rename-input','SHOULD CANCEL');await key('Escape');
   const after=await evaluate("window.__world.useWorldStore.getState().world.chunks[window.__world.useWorldStore.getState().world.currentChunkId].name");assert.equal(after,before);return {before,after};
  });
  await check('Chunk save/load/reset controls restore isolated chunk settings',async()=>{
-  await evaluate("window.__actions.openWorkspace('map')");await pause(300);await textClick('#tg-panel-north','SAVE CHUNK');
-  const before=await evaluate("window.__settings.terrainSettings.heightMultiplier");await evaluate("window.__settings.updateTerrainSetting('heightMultiplier',.37)");await textClick('#tg-panel-north','LOAD CHUNK');assert.equal(await evaluate("window.__settings.terrainSettings.heightMultiplier"),before);
-  await textClick('#tg-panel-north','RESET CHUNK');assert.equal(await evaluate("window.__settings.terrainSettings.heightMultiplier"),.5);return {restored:before,reset:.5};
+  await evaluate("window.__actions.openWorkspace('map')");await pause(300);await textClick('#tg-panel-west','SAVE CHUNK');
+  const before=await evaluate("window.__settings.terrainSettings.heightMultiplier");await evaluate("window.__settings.updateTerrainSetting('heightMultiplier',.37)");await textClick('#tg-panel-west','LOAD CHUNK');assert.equal(await evaluate("window.__settings.terrainSettings.heightMultiplier"),before);
+  await textClick('#tg-panel-west','RESET CHUNK');assert.equal(await evaluate("window.__settings.terrainSettings.heightMultiplier"),.5);return {restored:before,reset:.5};
  });
  await check('Help dialog traps input and Escape restores world ownership',async()=>{
   await reset();await evaluate("window.__nav.useNavigationStore.getState().setHelp(true)");await pause(300);await key('Tab');assert.ok(await evaluate("!!document.activeElement.closest('.tg-help-dialog')"));await key('Escape');assert.equal(await evaluate("!!document.querySelector('.tg-help-dialog')"),false);return 'Help opens, focuses and closes';
@@ -115,7 +115,8 @@ try {
   await screenshot('environment');return {sunBefore,sunAfter,pondBodies:after};
  });
  await check('Plateau settings change terrain; Region exposes validated export',async()=>{
-  await reset();await evaluate("window.__settings.updateTerrainSetting('plateauAmount',50)");const before=await evaluate("window.__height.getTerrainHeightAt(160,-170)");await evaluate("window.__settings.updateTerrainSetting('plateauAmount',0)");const after=await evaluate("window.__height.getTerrainHeightAt(160,-170)");assert.notEqual(after,before);
+  // This probe samples the authored base mountain, not the tile added above.
+  await reset();await evaluate("window.__world.useWorldStore.getState().setCurrentChunk('start');window.__settings.updateTerrainSetting('plateauAmount',50)");const before=await evaluate("window.__height.getTerrainHeightAt(160,-170)");await evaluate("window.__settings.updateTerrainSetting('plateauAmount',0)");const after=await evaluate("window.__height.getTerrainHeightAt(160,-170)");assert.notEqual(after,before);
   await evaluate("window.__actions.runNavigationAction('export')");await pause(300);await setValue('.tg-terrain-export input[type=number]',99999);assert.ok(await evaluate("document.querySelector('.tg-terrain-export [role=status]')?.textContent.length>0 && document.querySelector('.tg-terrain-export button[type=submit]').disabled"));await reset();return {before,after,invalidBoundsRejected:true};
  });
  await check('Dev Tools cloud control changes live shader uniform',async()=>{

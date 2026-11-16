@@ -15,6 +15,7 @@ const IDLE_STATE = {
   activeTool: null,
   activeMode: null,
   panelOpen: false,
+  gestureOwner: null,
   waterDiameter: 24,
 };
 
@@ -33,11 +34,14 @@ export const useInteractionStore = create((set) => ({
     set({ panelOpen: false });
   },
 
+  setGestureOwner(gestureOwner) { set({gestureOwner}); },
+
   deactivate() {
     set({
       activeTarget: null,
       activeTool: null,
       activeMode: null,
+      gestureOwner: null,
     });
   },
 

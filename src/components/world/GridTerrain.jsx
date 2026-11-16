@@ -10,9 +10,11 @@ import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
+import { markTerrainReady } from "../../systems/world/terrainReadiness";
+import { BASE_TERRAIN_SIZE, TERRAIN_SAMPLE_STEP } from "../../systems/world/terrainRegions";
 import { useWorldStore } from "../../systems/world/worldStore";
 
-const TERRAIN_SIZE = 600;
+const TERRAIN_SIZE = BASE_TERRAIN_SIZE;
 const TERRAIN_SEGMENTS = 120;
 
 const MINOR_GRID_STEP = 10;
@@ -33,20 +35,23 @@ const GRID_OFFSET = 0.08;
 
 const BASE_TERRAIN_HALF_SIZE = TERRAIN_SIZE / 2;
 const CREATOR_CHUNK_SIZE = 100;
-const CREATOR_CHUNK_SEGMENTS = 20;
+
 
 function TerrainExtensionChunk({ chunk, terrainKey }) {
+  const size = Number(chunk?.terrainRegion?.size ?? CREATOR_CHUNK_SIZE);
+  const segments = size / TERRAIN_SAMPLE_STEP;
   const centerX = Number(chunk?.position?.[0]);
   const centerZ = Number(chunk?.position?.[2]);
+  const guidesVisible=useWorldGuideStore(state=>state.visible);
 
   const geometry = useMemo(() => {
     if (![centerX, centerZ].every(Number.isFinite)) return null;
 
     const geo = new THREE.PlaneGeometry(
-      CREATOR_CHUNK_SIZE,
-      CREATOR_CHUNK_SIZE,
-      CREATOR_CHUNK_SEGMENTS,
-      CREATOR_CHUNK_SEGMENTS
+      size,
+      size,
+      segments,
+      segments
     );
     geo.rotateX(-Math.PI / 2);
     const positions = geo.attributes.position;
@@ -72,15 +77,22 @@ function TerrainExtensionChunk({ chunk, terrainKey }) {
     geo.computeBoundingBox();
     geo.computeBoundingSphere();
     return geo;
-  }, [centerX, centerZ, terrainKey]);
+  }, [centerX, centerZ, size, segments, terrainKey]);
 
   useEffect(() => () => geometry?.dispose(), [geometry]);
+  useEffect(()=>{if(!geometry)return;let clear;const frame=requestAnimationFrame(()=>{clear=markTerrainReady(chunk.id,geometry.uuid)});return()=>{cancelAnimationFrame(frame);clear?.()}},[chunk.id,geometry]);
 
+  // The terrain sampler reads mutable settings; terrainKey invalidates the guide cache.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const guideGeometry=useMemo(()=>createTerrainGridGeometry({lineStep:10,verticalOffset:GRID_OFFSET,bounds:{minX:centerX-size/2,maxX:centerX+size/2,minZ:centerZ-size/2,maxZ:centerZ+size/2}}),[centerX,centerZ,size,terrainKey]);
+  useEffect(()=>()=>guideGeometry.dispose(),[guideGeometry]);
   if (!geometry) return null;
 
   return (
+    <>
     <RigidBody key={`${chunk.id}-${terrainKey}`} type="fixed" colliders="trimesh">
       <mesh
+        userData={{tgTerrainRegion:chunk.id}}
         geometry={geometry}
         position={[centerX, 0, centerZ]}
         receiveShadow
@@ -96,6 +108,8 @@ function TerrainExtensionChunk({ chunk, terrainKey }) {
         />
       </mesh>
     </RigidBody>
+    {guidesVisible&&<lineSegments geometry={guideGeometry} userData={{tgTerrainGuide:chunk.id}}><lineBasicMaterial color={MAJOR_GRID_COLOR} transparent opacity={0.38} depthWrite={false}/></lineSegments>}
+    </>
   );
 }
 
@@ -136,8 +150,8 @@ function createTerrainGridGeometry({
   lineStep,
   excludeStep = null,
   verticalOffset,
+  bounds = {minX:-TERRAIN_SIZE/2,maxX:TERRAIN_SIZE/2,minZ:-TERRAIN_SIZE/2,maxZ:TERRAIN_SIZE/2},
 }) {
-  const halfSize = TERRAIN_SIZE / 2;
 
   const linePositions = [];
 
@@ -145,8 +159,8 @@ function createTerrainGridGeometry({
    * East/west lines.
    */
   for (
-    let z = -halfSize;
-    z <= halfSize;
+    let z = bounds.minZ;
+    z <= bounds.maxZ;
     z += lineStep
   ) {
     if (
@@ -157,13 +171,13 @@ function createTerrainGridGeometry({
     }
 
     for (
-      let x = -halfSize;
-      x < halfSize;
+      let x = bounds.minX;
+      x < bounds.maxX;
       x += GRID_SAMPLE_STEP
     ) {
       const nextX = Math.min(
         x + GRID_SAMPLE_STEP,
-        halfSize
+        bounds.maxX
       );
 
       const startHeight =
@@ -190,8 +204,8 @@ function createTerrainGridGeometry({
    * North/south lines.
    */
   for (
-    let x = -halfSize;
-    x <= halfSize;
+    let x = bounds.minX;
+    x <= bounds.maxX;
     x += lineStep
   ) {
     if (
@@ -202,13 +216,13 @@ function createTerrainGridGeometry({
     }
 
     for (
-      let z = -halfSize;
-      z < halfSize;
+      let z = bounds.minZ;
+      z < bounds.maxZ;
       z += GRID_SAMPLE_STEP
     ) {
       const nextZ = Math.min(
         z + GRID_SAMPLE_STEP,
-        halfSize
+        bounds.maxZ
       );
 
       const startHeight =
@@ -252,27 +266,30 @@ export default function GridTerrain() {
   const [, refresh] = useState(0);
   const guidesVisible = useWorldGuideStore((state) => state.visible);
   const chunks = useWorldStore((state) => state.world.chunks);
+  const surface=useWorldStore(state=>state.world.terrainSurface);
+  const shapeSettings=surface?.settings ?? terrainSettings;
   const terrainKey = [
-    terrainSettings.heightMultiplier,
-    terrainSettings.mountainHeight,
-    terrainSettings.cliffSharpness,
-    terrainSettings.rollingHills,
-    terrainSettings.ridgeStrength,
-    terrainSettings.plateauAmount,
-    terrainSettings.geometryStrength,
+    shapeSettings.heightMultiplier,
+    shapeSettings.mountainHeight,
+    shapeSettings.cliffSharpness,
+    shapeSettings.rollingHills,
+    shapeSettings.ridgeStrength,
+    shapeSettings.plateauAmount,
+    shapeSettings.geometryStrength,
     terrainSettings.terrainEditVersion,
     terrainSettings.terrainPreviewVersion,
     terrainSettings.terrainVertexEditVersion,
-  ].join("-");
+  ].join("-") + (surface?.revision ? ":"+surface.revision : "");
 
   const extensionChunks = useMemo(() => Object.values(chunks ?? {}).filter((chunk) => {
     const x = Number(chunk?.position?.[0]);
     const z = Number(chunk?.position?.[2]);
     if (![x, z].every(Number.isFinite)) return false;
-    return (x - CREATOR_CHUNK_SIZE / 2 >= BASE_TERRAIN_HALF_SIZE) ||
-      (x + CREATOR_CHUNK_SIZE / 2 <= -BASE_TERRAIN_HALF_SIZE) ||
-      (z - CREATOR_CHUNK_SIZE / 2 >= BASE_TERRAIN_HALF_SIZE) ||
-      (z + CREATOR_CHUNK_SIZE / 2 <= -BASE_TERRAIN_HALF_SIZE);
+    const size=Number(chunk.terrainRegion?.size ?? CREATOR_CHUNK_SIZE);
+    return (x - size / 2 >= BASE_TERRAIN_HALF_SIZE) ||
+      (x + size / 2 <= -BASE_TERRAIN_HALF_SIZE) ||
+      (z - size / 2 >= BASE_TERRAIN_HALF_SIZE) ||
+      (z + size / 2 <= -BASE_TERRAIN_HALF_SIZE);
   }), [chunks]);
 
   useEffect(() => {
@@ -367,18 +384,7 @@ export default function GridTerrain() {
     geo.computeBoundingSphere();
 
     return geo;
-  }, [
-    terrainSettings.heightMultiplier,
-    terrainSettings.mountainHeight,
-    terrainSettings.cliffSharpness,
-    terrainSettings.rollingHills,
-    terrainSettings.ridgeStrength,
-    terrainSettings.plateauAmount,
-    terrainSettings.geometryStrength,
-    terrainSettings.terrainEditVersion,
-    terrainSettings.terrainPreviewVersion,
-    terrainSettings.terrainVertexEditVersion,
-  ]);
+  }, [terrainKey]);
 
   /*
    * Minor grid:
@@ -386,24 +392,15 @@ export default function GridTerrain() {
    * Every 10 meters, excluding lines that belong
    * to the 50-meter major grid.
    */
+  useEffect(()=>{let clear;const frame=requestAnimationFrame(()=>{clear=markTerrainReady("base-terrain",terrainGeometry.uuid)});return()=>{cancelAnimationFrame(frame);clear?.()}},[terrainGeometry]);
+
   const minorGridGeometry = useMemo(() => {
     return createTerrainGridGeometry({
       lineStep: MINOR_GRID_STEP,
       excludeStep: MAJOR_GRID_STEP,
       verticalOffset: GRID_OFFSET,
     });
-  }, [
-    terrainSettings.heightMultiplier,
-    terrainSettings.mountainHeight,
-    terrainSettings.cliffSharpness,
-    terrainSettings.rollingHills,
-    terrainSettings.ridgeStrength,
-    terrainSettings.plateauAmount,
-    terrainSettings.geometryStrength,
-    terrainSettings.terrainEditVersion,
-    terrainSettings.terrainPreviewVersion,
-    terrainSettings.terrainVertexEditVersion,
-  ]);
+  }, [terrainKey]);
 
   /*
    * Major grid:
@@ -417,18 +414,7 @@ export default function GridTerrain() {
       excludeStep: SECTOR_GRID_STEP,
       verticalOffset: GRID_OFFSET + 0.01,
     });
-  }, [
-    terrainSettings.heightMultiplier,
-    terrainSettings.mountainHeight,
-    terrainSettings.cliffSharpness,
-    terrainSettings.rollingHills,
-    terrainSettings.ridgeStrength,
-    terrainSettings.plateauAmount,
-    terrainSettings.geometryStrength,
-    terrainSettings.terrainEditVersion,
-    terrainSettings.terrainPreviewVersion,
-    terrainSettings.terrainVertexEditVersion,
-  ]);
+  }, [terrainKey]);
 
   /*
    * Sector grid:
@@ -442,18 +428,7 @@ export default function GridTerrain() {
       lineStep: SECTOR_GRID_STEP,
       verticalOffset: GRID_OFFSET + 0.02,
     });
-  }, [
-    terrainSettings.heightMultiplier,
-    terrainSettings.mountainHeight,
-    terrainSettings.cliffSharpness,
-    terrainSettings.rollingHills,
-    terrainSettings.ridgeStrength,
-    terrainSettings.plateauAmount,
-    terrainSettings.geometryStrength,
-    terrainSettings.terrainEditVersion,
-    terrainSettings.terrainPreviewVersion,
-    terrainSettings.terrainVertexEditVersion,
-  ]);
+  }, [terrainKey]);
 
   /*
    * Dispose old geometry after terrain settings
@@ -487,18 +462,7 @@ export default function GridTerrain() {
    * Only terrain-shape settings rebuild the
    * Rapier terrain body.
    */
-  const terrainPhysicsKey = [
-    terrainSettings.heightMultiplier,
-    terrainSettings.mountainHeight,
-    terrainSettings.cliffSharpness,
-    terrainSettings.rollingHills,
-    terrainSettings.ridgeStrength,
-    terrainSettings.plateauAmount,
-    terrainSettings.geometryStrength,
-    terrainSettings.terrainEditVersion,
-    terrainSettings.terrainPreviewVersion,
-    terrainSettings.terrainVertexEditVersion,
-  ].join("-");
+  const terrainPhysicsKey = terrainKey;
 
   /*
    * The terrain collider is replaced whenever terrainPhysicsKey changes.
@@ -528,6 +492,7 @@ export default function GridTerrain() {
           ]}
         />
         <mesh
+          userData={{tgTerrainRegion:"base-terrain"}}
           geometry={terrainGeometry}
           receiveShadow
         >

@@ -1,6 +1,5 @@
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import { runNavigationAction } from "../../systems/ui/navigationActions";
-import { useNavigationStore } from "../../systems/ui/navigationStore";
 
 const BRUSHES = [["raise", "Raise"], ["lower", "Lower"], ["smooth", "Smooth"], ["flatten", "Flatten"], ["slope", "Path / Slope"], ["vertex", "Vertex Edit"]];
 export function TerrainTools() {
@@ -14,7 +13,7 @@ export function TerrainTools() {
       <button className="tg-ui-button" onClick={() => runNavigationAction("sun")}>MOVE SUN</button>
       <button className="tg-ui-button" onClick={() => runNavigationAction("clouds")}>EDIT CLOUDS</button>
       <button className="tg-ui-button" onClick={() => runNavigationAction("devtools")}>PLATEAU / TERRAIN SETTINGS</button>
-      <button className="tg-ui-button" onClick={() => { const nav = useNavigationStore.getState(); nav.openCompass(); nav.enterMenu("tools"); }}>COMPASS TOOLS</button>
+      <button className="tg-ui-button" onClick={() => runNavigationAction("compass-tools")}>COMPASS TOOLS</button>
     </div>
   </details>;
 }

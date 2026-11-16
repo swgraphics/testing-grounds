@@ -70,7 +70,7 @@ try {
  assert.ok(target,'scattered target');
  await evaluate(`window.__target=${JSON.stringify(target)};window.__pose={position:[__target.position[0],__target.position[1]+2.7,__target.position[2]+7],target:[__target.position[0],__target.position[1]+2.7,__target.position[2]]}`);
  report.near=await measure("near");await screenshot(phase+"-before");
- await click("canvas");await pause(1000);
+ await click("canvas");await click("[data-tree-edit-selected]");await pause(1000);
  report.entered={tool:await evaluate("window.__tool.useInteractionStore.getState().activeTool"),snapshot:await snapshot()};
  console.log('entered',report.entered.tool,'trees',report.entered.snapshot.trees.length);
  await evaluate(`window.dispatchEvent(new CustomEvent('crimson-tree-edit-change',{detail:{treeId:__target.id,scope:'single',patch:{trunk:{height:65}}}}))`);
@@ -79,14 +79,14 @@ try {
  if(phase!=="baseline"){
   assert.equal(report.initial.trees.length,144,'unchanged default density');
   assert.deepEqual(report.edited.trees.map(t=>t.id),report.initial.trees.map(t=>t.id));
-  assert.equal(report.entered.tool,'TREE','native reticle click enters tree edit');
+  assert.equal(report.entered.tool,'TREE','native select then explicit Edit enters tree edit');
   for(const before of report.initial.trees){const after=report.edited.trees.find(t=>t.id===before.id);assert.equal(after.uuid,before.uuid,'same tree mesh on editing');assert.equal(after.definition.seed,before.definition.seed,'procedural seed preserved');assert.deepEqual(after.position,before.position);if(before.id!==target.id)assert.equal(after.geometry,before.geometry,'neighbor geometry unchanged')}
   assert.equal(report.edited.trees.find(t=>t.id===target.id).definition.trunk.height,65);
   const inventory=await evaluate(`(()=>{const result={forest:0,leafInstances:0,outlineColors:[],fillColors:[],fallingColors:[],fernFills:[],fernAccents:[]};window.__scene.traverse(o=>{if(o.userData.tgForestTree)result.forest++;if(o.isInstancedMesh){result.leafInstances+=o.count;if(o.count===2)result.fallingColors.push(o.material.color.getHexString());else result.fillColors.push(o.material.color.getHexString())}if(o.isLineSegments&&o.geometry.isInstancedBufferGeometry)result.outlineColors.push(o.material.color.getHexString());if(o.isMesh&&o.material?.emissive?.getHexString()==='3a8c0e'){result.fernAccents.push(o.material.emissive.getHexString());result.fernFills.push(o.material.color.getHexString())}});return result})()`);
   assert.equal(inventory.forest,144);assert.ok(inventory.leafInstances>=144*750);assert.ok(inventory.outlineColors.every(c=>c==='3a8c0e'));assert.ok(inventory.fernAccents.length>0);assert.ok(inventory.fernFills.every(c=>c==='3a8c0e'));assert.ok(inventory.fillColors.every(c=>c==='8bcf6a'));assert.equal(inventory.fallingColors.length,144);assert.ok(inventory.fallingColors.every(c=>c==='8bcf6a'));report.inventory=inventory;
   await evaluate(`window.dispatchEvent(new CustomEvent('crimson-tree-edit-change',{detail:{treeId:__target.id,scope:'single',patch:{branches:{length:62},leaves:{size:44,outlineColor:'#123456'}}}}))`);
   await pause(600);const changed=await snapshot();const def=changed.trees.find(t=>t.id===target.id).definition;assert.equal(def.branches.length,62);assert.equal(def.leaves.size,44);assert.equal(def.leaves.outlineColor,'#123456');
-  await evaluate(`window.dispatchEvent(new CustomEvent('crimson-tree-edit-exit-request'))`);await pause(300);await click('canvas');assert.equal(await evaluate("window.__tool.useInteractionStore.getState().activeTool"),'TREE');
+  await evaluate(`window.dispatchEvent(new CustomEvent('crimson-tree-edit-exit-request'))`);await pause(300);await click('canvas');await click('[data-tree-edit-selected]');assert.equal(await evaluate("window.__tool.useInteractionStore.getState().activeTool"),'TREE');
   await evaluate(`(async()=>{window.__persist=await import('/src/systems/world/worldPersistence.js');window.__persist.saveWorldSnapshot();window.__persist.loadWorldSnapshot()})()`);await pause(1000);
   const loaded=await snapshot();assert.deepEqual(loaded.trees.find(t=>t.id===target.id).definition,def);assert.equal(loaded.trees.length,144);
   report.persistence='PASS trunk, branch, leaf settings, custom color, same seed/IDs/position after save/load';
@@ -111,7 +111,7 @@ try {
   }
   assert.ok(Math.max(...repeated.slice(-4))-Math.min(...repeated.slice(-4))<=2,'no progressive geometry accumulation');report.repeatedGeometryCounts=repeated;
   for(const other of loaded.trees.slice(0,4)){
-   await evaluate(`window.dispatchEvent(new CustomEvent('crimson-tree-edit-exit-request'));window.__pose={position:[${other.position[0]},${other.position[1]+2.7},${other.position[2]+7}],target:[${other.position[0]},${other.position[1]+2.7},${other.position[2]}]}`);await pause(500);await click('canvas');
+   await evaluate(`window.dispatchEvent(new CustomEvent('crimson-tree-edit-exit-request'));window.__pose={position:[${other.position[0]},${other.position[1]+2.7},${other.position[2]+7}],target:[${other.position[0]},${other.position[1]+2.7},${other.position[2]}]}`);await pause(500);await click('canvas');await click('[data-tree-edit-selected]');
    assert.equal(await evaluate("window.__tool.useInteractionStore.getState().activeTool"),'TREE');
    assert.equal(await evaluate("window.__tool.useInteractionStore.getState().activeTarget"),'tree:'+other.id);
    await evaluate(`window.dispatchEvent(new CustomEvent('crimson-tree-edit-change',{detail:{treeId:${JSON.stringify(other.id)},scope:'single',patch:{leaves:{outlineColor:'#fc0303',gradientEnabled:true,gradientColor:'#224466'}}}}))`);await pause(300);

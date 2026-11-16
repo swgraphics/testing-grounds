@@ -1,3 +1,5 @@
+import { clearGameplayInput } from '../../systems/input/inputOwnership';
+import { hasTerrainAt, terrainChunkAt } from "../../systems/world/terrainRegions";
 import { mergeTreeProperties } from "../../systems/objects/treeProperties";
 // MeshPlacementSystem.jsx
 
@@ -366,16 +368,21 @@ function findTerrainHit(ray) {
 
   const distance = (low + high) / 2;
 
-  return ray.origin
-    .clone()
-    .add(direction.multiplyScalar(distance));
+  const hit=ray.origin.clone().add(direction.multiplyScalar(distance));
+  return hasTerrainAt(hit.x,hit.z,useWorldStore.getState().world)?hit:null;
 }
 
+function placedObjectChunkId(id) {
+ const world=useWorldStore.getState().world;return Object.values(world.chunks).find(c=>c.objects?.[id])?.id ?? world.currentChunkId;
+}
+function placementChunkAt(position) {
+ const world=useWorldStore.getState().world;return world.terrainSurface?terrainChunkAt(position.x,position.z,world)?.id:world.currentChunkId;
+}
 export default function MeshPlacementSystem() {
   const { camera, gl } = useThree();
 
   const [selectedMesh, setSelectedMesh] = useState(null);
-  const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
+  const objectScope = useWorldStore((state) => state.world.terrainSurface ? "all" : state.world.currentChunkId);
   const [placementMode, setPlacementMode] = useState(false);
   const [previewPosition, setPreviewPosition] = useState(null);
   const [loadedScene, setLoadedScene] = useState(null);
@@ -421,8 +428,8 @@ export default function MeshPlacementSystem() {
 
   useEffect(() => {
     setPlacedMeshes([]);
-    const chunk = useWorldStore.getState().world.chunks[currentChunkId];
-    const objects = Object.values(chunk?.objects ?? {});
+    const world=useWorldStore.getState().world;
+    const objects = objectScope==="all" ? Object.values(world.chunks).flatMap(c=>Object.values(c.objects ?? {})) : Object.values(world.chunks[objectScope]?.objects ?? {});
     if (!objects.length) return;
 
     let cancelled = false;
@@ -472,7 +479,7 @@ export default function MeshPlacementSystem() {
     }
     hydrate();
     return () => { cancelled = true; setTerrainPreviewStamp(null); };
-  }, [loader, currentChunkId, historyRevision]);
+  }, [loader, objectScope, historyRevision]);
 
   // --------------------------------------------------
   // MESH MENU EVENTS
@@ -661,7 +668,7 @@ export default function MeshPlacementSystem() {
     if (state.activeTool !== "OBJECT" || state.activeMode !== "select") return;
     const id = state.activeTarget?.startsWith("object:") ? state.activeTarget.slice(7) : null;
     const world = useWorldStore.getState().world;
-    if (id && world.chunks?.[world.currentChunkId]?.objects?.[id]) selectedPlacedIdRef.current = id;
+    if (id && Object.values(world.chunks).some(c=>c.objects?.[id])) selectedPlacedIdRef.current = id;
   }), []);
 
   function beginObjectDrag(id, event) {
@@ -678,12 +685,13 @@ export default function MeshPlacementSystem() {
     event.stopPropagation();
     // R3F pointer handlers are passive; stopPropagation is the supported API.
     selectPlacedObject(id);
-    const chunkId = useWorldStore.getState().world.currentChunkId;
+    const chunkId = placedObjectChunkId(id);
     const object = useWorldStore.getState().world.chunks?.[chunkId]?.objects?.[id];
     beginHistoryTransaction("MOVE OBJECT", { chunks: { [chunkId]: { objects: { [id]: object } } } }, {
       paths: [["chunks", chunkId, "objects", id]],
     });
     draggingObjectRef.current = true;
+    useInteractionStore.getState().setGestureOwner('object-drag');clearGameplayInput();
     useInteractionStore.getState().activate({
       target: `object:${id}`,
       tool: "OBJECT",
@@ -723,7 +731,7 @@ export default function MeshPlacementSystem() {
       if (!current) return;
 
       let changed = false;
-      const chunkId = useWorldStore.getState().world.currentChunkId;
+      const chunkId = placedObjectChunkId(id);
       const beforeObject = useWorldStore.getState().world.chunks?.[chunkId]?.objects?.[id];
       let rotationY = current.rotationY ?? current.object?.rotation.y ?? 0;
       let scale = current.scale ?? current.object?.scale.x ?? 1;
@@ -785,16 +793,21 @@ export default function MeshPlacementSystem() {
       if (!draggingObjectRef.current) return;
       const id = selectedPlacedIdRef.current;
       if (!id) return;
-      const chunkId = useWorldStore.getState().world.currentChunkId;
+      const chunkId = placedObjectChunkId(id);
       const afterObject = useWorldStore.getState().world.chunks?.[chunkId]?.objects?.[id];
       commitHistoryTransaction({ chunks: { [chunkId]: { objects: { [id]: afterObject } } } }, { paths: [["chunks", chunkId, "objects", id]] });
       draggingObjectRef.current = false;
+      if(useInteractionStore.getState().gestureOwner==='object-drag')useInteractionStore.getState().setGestureOwner(null);
+      const interaction=useInteractionStore.getState();
+      if(interaction.activeTool==='OBJECT'&&interaction.activeMode==='edit')interaction.activate({target:`object:${id}`,tool:'OBJECT',mode:'select'});
     }
     window.addEventListener("pointerup", finishObjectHistory, true);
     window.addEventListener("pointercancel", finishObjectHistory, true);
+    window.addEventListener("blur", finishObjectHistory, true);
     return () => {
       window.removeEventListener("pointerup", finishObjectHistory, true);
       window.removeEventListener("pointercancel", finishObjectHistory, true);
+      window.removeEventListener("blur", finishObjectHistory, true);
     };
   }, []);
 
@@ -809,7 +822,7 @@ export default function MeshPlacementSystem() {
       if (!treeId || !patch) return;
 
       const world = useWorldStore.getState().world;
-      const object = world.chunks?.[world.currentChunkId]?.objects?.[treeId];
+      const object = world.chunks?.[placedObjectChunkId(treeId)]?.objects?.[treeId];
       if (!object || object.modelType !== "crimson-tree") return;
       const nextDefinition = event.detail.applied ? object.treeDefinition : mergeTreeProperties(createCrimsonTreeDefinition(object.treeDefinition ?? {}), patch);
       // Store mutation belongs to the event, never a React state updater.
@@ -967,7 +980,7 @@ export default function MeshPlacementSystem() {
 
   if (hasLoadedScene) {
     const object = cloneScene(loadedScene);
-    const placementChunkId = useWorldStore.getState().world.currentChunkId;
+    const placementChunkId = placementChunkAt(previewPosition);
     const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
     beginHistoryTransaction("PLACE OBJECT", { chunks: { [placementChunkId]: { objects: { [objectId]: undefined } } } }, {
       paths: [["chunks", placementChunkId, "objects", objectId]],
@@ -1017,7 +1030,7 @@ export default function MeshPlacementSystem() {
   }
 
   const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
-  const placementChunkId = useWorldStore.getState().world.currentChunkId;
+  const placementChunkId = placementChunkAt(previewPosition);
   const windPhase = placedMeshes.length * 1.73;
   beginHistoryTransaction("PLACE OBJECT", { chunks: { [placementChunkId]: { objects: { [objectId]: undefined } } } }, {
     paths: [["chunks", placementChunkId, "objects", objectId]],
@@ -1100,7 +1113,7 @@ export default function MeshPlacementSystem() {
         object.position.copy(previewPosition);
         object.rotation.y = placementRotation;
         const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
-        const placementChunkId = useWorldStore.getState().world.currentChunkId;
+        const placementChunkId = placementChunkAt(previewPosition);
         beginHistoryTransaction("PLACE OBJECT", { chunks: { [placementChunkId]: { objects: { [objectId]: undefined } } } }, {
           paths: [["chunks", placementChunkId, "objects", objectId]],
         });
@@ -1116,7 +1129,7 @@ export default function MeshPlacementSystem() {
         });
       } else {
         const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
-        const placementChunkId = useWorldStore.getState().world.currentChunkId;
+        const placementChunkId = placementChunkAt(previewPosition);
         beginHistoryTransaction("PLACE OBJECT", { chunks: { [placementChunkId]: { objects: { [objectId]: undefined } } } }, {
           paths: [["chunks", placementChunkId, "objects", objectId]],
         });

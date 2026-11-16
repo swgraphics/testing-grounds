@@ -9,6 +9,7 @@ import "./DirectionalPanels.css";
 export default function EditorView(hosts) {
   const viewMode = useEditorStore(state => state.viewMode);
   const visiblePanels = useEditorStore(state => state.visiblePanels);
+  const worldMapSize = useEditorStore(state => state.worldMapSize);
   const exportOpen = useTerrainExportStore(state => state.open);
   const editor = viewMode === "editor";
   useEffect(() => {
@@ -16,7 +17,7 @@ export default function EditorView(hosts) {
     return () => document.body.classList.remove("tg-editor-active");
   }, [editor]);
   return <>
-    <ActiveToolFeedback style={panelLayoutStyle(visiblePanels)} />
+    <ActiveToolFeedback style={panelLayoutStyle(visiblePanels, worldMapSize)} />
     <DirectionalPanelLayout viewMode={viewMode} visiblePanels={visiblePanels} {...hosts} />
     {exportOpen && <TerrainExportPanel />}
   </>;

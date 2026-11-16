@@ -1,10 +1,11 @@
+import { hasTerrainAt } from "../world/terrainRegions";
 import * as THREE from "three";
 import { terrainSettings } from "./terrainSettings";
 import { useWorldStore } from "../world/worldStore";
 import { getTerrainVertexEditDelta } from "./terrainVertexEditing";
 import { beginHistoryTransaction, commitHistoryTransaction, cancelHistoryTransaction } from "../history/historyStore";
 
-const EDIT_GRID = 4;
+export const EDIT_GRID = 4;
 const MAX_EDIT = 48;
 
 function keyFor(x, z) {
@@ -22,7 +23,9 @@ function writeEdits(edits) {
 
   const state = useWorldStore.getState();
   const currentChunk = state.world.chunks[state.world.currentChunkId];
-  if (currentChunk) {
+  if (state.world.terrainSurface) {
+    useWorldStore.setState({world:{...state.world,terrainSurface:{...state.world.terrainSurface,revision:Number(state.world.terrainSurface.revision||0)+1,terrainEdits:edits,settings:{...state.world.terrainSurface.settings,terrainEditVersion:terrainSettings.terrainEditVersion}}}});
+  } else if (currentChunk) {
     state.updateCurrentChunk({
       terrain: {
         ...currentChunk.terrain,
@@ -68,17 +71,20 @@ export function getTerrainEditDelta(x, z) {
   );
 }
 
+export function terrainHistoryPaths(chunkId=useWorldStore.getState().world.currentChunkId) {
+  return useWorldStore.getState().world.terrainSurface ? [['terrainSurface','terrainEdits'],['terrainSurface','settings','terrainEditVersion']] : [['chunks',chunkId,'terrain','terrainEdits'],['chunks',chunkId,'terrain','terrainEditVersion']];
+}
 export function beginTerrainHistory(tool = "TERRAIN") {
   const chunkId = useWorldStore.getState().world.currentChunkId;
   beginHistoryTransaction(tool, getTerrainHistorySnapshot(), {
-    paths: [["chunks", chunkId, "terrain", "terrainEdits"], ["chunks", chunkId, "terrain", "terrainEditVersion"]],
+    paths: terrainHistoryPaths(chunkId),
     terrain: true,
   });
 }
 
 export function commitTerrainHistory() {
   commitHistoryTransaction(getTerrainHistorySnapshot(), {
-    paths: [["chunks", useWorldStore.getState().world.currentChunkId, "terrain", "terrainEdits"], ["chunks", useWorldStore.getState().world.currentChunkId, "terrain", "terrainEditVersion"]],
+    paths: terrainHistoryPaths(useWorldStore.getState().world.currentChunkId),
     terrain: true,
   });
 }
@@ -89,7 +95,7 @@ export function cancelTerrainHistory() {
 
 export function getTerrainHistorySnapshot() {
   const world = useWorldStore.getState().world;
-  const chunk = world.chunks?.[world.currentChunkId];
+  if (world.terrainSurface) return {terrainSurface:{terrainEdits:{...terrainSettings.terrainEdits},settings:{terrainEditVersion:terrainSettings.terrainEditVersion}}};
   return { chunks: { [world.currentChunkId]: { terrain: { terrainEdits: { ...(terrainSettings.terrainEdits ?? {}) }, terrainEditVersion: Number(terrainSettings.terrainEditVersion || 0) } } } };
 }
 
@@ -100,6 +106,7 @@ export function applyTerrainBrush({
   radius = 14,
   strength = 0.7,
 }) {
+  if (!hasTerrainAt(x,z,useWorldStore.getState().world)) return;
   const edits = { ...readEdits() };
   const minX = Math.floor((x - radius) / EDIT_GRID);
   const maxX = Math.ceil((x + radius) / EDIT_GRID);

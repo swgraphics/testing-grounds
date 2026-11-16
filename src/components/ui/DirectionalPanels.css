@@ -91,7 +91,7 @@ body {
 .tg-object-transforms { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .tg-object-transforms label { display: grid; flex: 1 1 80px; min-width: 0; font: 11px var(--tg-font-display); }
 .tg-object-transforms input { width: 100%; min-width: 0; box-sizing: border-box; }
-body .tg-mesh-edit-backdrop.tg-object-editor-backdrop { position: fixed; inset: 0; z-index: 1120; display: grid; align-items: end; justify-items: center; padding: 16px; box-sizing: border-box; pointer-events: auto; background: rgba(5, 6, 8, .45); backdrop-filter: blur(3px); }
+body .tg-mesh-edit-backdrop.tg-object-editor-backdrop { position: fixed; inset: 0; z-index: var(--tg-layer-dialog,600); display: grid; align-items: end; justify-items: center; padding: 16px; box-sizing: border-box; pointer-events: auto; background: rgba(5, 6, 8, .45); backdrop-filter: blur(3px); }
 body .tg-object-editor-backdrop .tg-focused-object-editor { position: relative; inset: auto; margin: 0; transform: none; width: min(1000px, 100%); height: min(760px, calc(100dvh - 32px)); min-height: 0; max-height: none; grid-template-columns: minmax(0, 1fr) minmax(280px, 42%); grid-template-rows: minmax(0, 1fr); gap: 12px; padding: 12px; pointer-events: auto; }
 .tg-focused-object-editor .tg-mesh-edit-preview { min-height: 0; height: 100%; }
 .tg-focused-object-editor .tg-mesh-edit-controls { min-height: 0; max-height: none; height: 100%; overflow: auto; }
@@ -175,3 +175,32 @@ body .tg-object-editor-backdrop .tg-focused-object-editor { position: relative; 
 @media (max-height: 650px) {
   body { --tg-north-height: 140px; --tg-south-height: 170px; }
 }
+
+/* Task 05.1: compact North toolbar; West owns the map and its resize handle. */
+body { --tg-north-height:116px; --tg-west-width:clamp(230px,24vw,360px); }
+.tg-directional-panel { position:relative; }
+
+.tg-panel-region.west .tg-directional-panel { align-self:flex-start; height:min(var(--tg-map-height,420px),100%); }
+.tg-map-layout { display:flex; flex-direction:column; gap:12px; min-width:0; padding-bottom:16px; }
+.tg-map-layout .tg-world-map-shell { position:relative; width:100%; height:clamp(180px,calc(var(--tg-map-height,420px) / 2 + 40px),420px); min-height:180px; display:flex; flex-direction:column; }
+.tg-map-layout .tg-world-map-viewport { height:auto; flex:1; min-height:120px; }
+.tg-map-layout .tg-world-map-heading { padding:6px; flex-wrap:wrap; gap:4px; }
+.tg-map-layout .tg-world-map-heading small { font-size:9px; }
+.tg-map-layout .tg-world-map-footer { flex-wrap:wrap; font-size:10px; padding:6px; }
+.tg-map-layout .tg-world-map-pan-hint { display:none; }
+.tg-map-controls { overflow:visible; }
+.tg-map-resize { position:absolute; right:2px; bottom:2px; z-index:6; width:28px; height:28px; padding:4px; color:#fff; border:1px solid #62666c; background:#101215; cursor:nwse-resize; touch-action:none; }
+.tg-map-resize svg { width:100%; height:100%; }
+.tg-map-resize:focus-visible { outline:2px solid #2a8fff; }
+.tg-world-editor-toolbar { display:flex; align-items:center; gap:16px; min-height:42px; min-width:max-content; }
+.tg-world-editor-toolbar .tg-world-group { display:flex; align-items:center; gap:8px; margin:0; padding:0; border:0; }
+.tg-world-editor-toolbar .tg-world-group h3 { display:none; }
+.tg-world-editor-toolbar .tg-world-actions { display:flex; flex-wrap:nowrap; gap:6px; }
+.tg-world-editor-toolbar .tg-ui-button { white-space:nowrap; min-height:32px; }
+.tg-world-editor-toolbar .tg-terrain-tools { margin:0; }
+.tg-world-editor-toolbar .tg-terrain-tools[open]>.tg-panel-actions { position:fixed; top:118px; left:16px; right:16px; padding:12px; display:flex; flex-wrap:wrap; background:#08090b; border:1px solid #62666c; z-index:10; }
+body .tg-object-editor-backdrop[data-world-object-editor] { background:transparent; backdrop-filter:none; pointer-events:none; align-items:flex-start; justify-content:flex-end; padding-top:140px; }
+body .tg-object-editor-backdrop[data-world-object-editor] .tg-focused-object-editor { width:min(880px,85vw); height:min(570px,65vh); pointer-events:auto; border:1px solid #62666c; }
+@media(max-width:900px) { body { --tg-north-height:116px; --tg-west-width:200px; } }
+@media(max-width:500px) { body { --tg-north-height:110px; --tg-west-width:112px; } .tg-map-layout .tg-world-map-shell { height:200px; } .tg-map-layout .tg-world-map-heading small { display:none; } }
+.tg-panel-visibility-menu { max-height:min(180px,60vh); }

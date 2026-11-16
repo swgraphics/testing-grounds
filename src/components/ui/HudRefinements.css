@@ -1,0 +1,44 @@
+/* Task 04: scoped HUD refinements; shared assets and the title keep their branding. */
+.tg-canvas-shell.world-overlay { inset: 0; border: 0; }
+.tg-canvas-shell.world-overlay canvas { border: 0; }
+.tg-directional-layout.world { background: transparent; }
+.tg-directional-layout.world .tg-panel-expand { color: #fff; background: rgb(0 0 0 / .28); border-color: rgb(255 255 255 / .45); box-shadow: none; }
+.tg-directional-layout.world .tg-panel-expand:is(:hover,:focus-visible) { color: var(--tg-orange); border-color: var(--tg-orange); }
+.tg-dev-tools-host .tg-dev-section-header { background: #08090b; color: #fff; border: 0; border-bottom: 1px solid #45484c; font: 400 13px/1.4 var(--tg-font-heading); letter-spacing: -.02em; padding: 12px 8px; box-shadow: none; }
+.tg-dev-tools-host .tg-dev-section-header:is(:hover,.open) { background: #15171a; }
+.tg-dev-tools-host .tg-dev-section-header:focus-visible { outline: var(--tg-focus); outline-offset: -2px; }
+.tg-dev-tools-host .tg-side-panel-button, .tg-dev-tools-host .tg-dev-speed-button { background: #101215; border-color: #50545b; box-shadow: none; }
+.tg-dev-tools-host .tg-side-panel-button.active, .tg-dev-tools-host .tg-dev-speed-button.active { background: rgb(255 72 0 / .12); border-color: var(--tg-orange); color: var(--tg-orange); box-shadow: none; }
+.tg-dev-tools-host .tg-dev-slider { --tg-slider-knob: #fff; min-height: 24px; cursor: pointer; }
+.tg-dev-tools-host .tg-dev-slider:focus-visible { outline: 1px solid #d7dce4; outline-offset: 3px; }
+.tg-dev-tools-host .tg-dev-slider:active, .tg-dev-tools-host .tg-dev-slider[data-slider-active], .tg-dev-tools-host .tg-dev-slider[data-gamepad-adjusting] { --tg-slider-knob: var(--tg-orange); }
+.tg-dev-tools-host .tg-dev-slider::-webkit-slider-runnable-track { background: linear-gradient(90deg,#fff,#494d53); height: 5px; }
+.tg-dev-tools-host .tg-dev-slider::-moz-range-track { background: linear-gradient(90deg,#fff,#494d53); height: 5px; }
+.tg-dev-tools-host .tg-dev-slider::-webkit-slider-thumb { background: var(--tg-slider-knob); border: 2px solid #141518; box-shadow: 0 0 0 1px #b8bdc5; margin-top: -5px; }
+.tg-dev-tools-host .tg-dev-slider::-moz-range-thumb { background: var(--tg-slider-knob); border: 2px solid #141518; box-shadow: 0 0 0 1px #b8bdc5; }
+.tg-character-selector { display: grid; grid-template-columns: 36px minmax(0,1fr) 36px; align-items: center; gap: 5px; margin: 8px 0 12px; }
+.tg-character-selector output { text-align: center; color: #fff; font: 12px/1.5 var(--tg-font-heading); overflow-wrap: anywhere; text-transform: uppercase; }
+.tg-character-selector button { min-height: 36px; padding: 0; }
+.tg-loading-compass-icon { filter: brightness(0) invert(1); animation: tg-loading-compass-turn 16s linear infinite; }
+@keyframes tg-loading-compass-turn { to { transform: rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .tg-loading-compass-icon { animation: none; } }
+
+.tg-dev-tools-host .tg-dev-slider:focus-visible { box-shadow: none; }
+
+/* Tree Interaction and Objects Library use the same monochrome foundations. */
+.tg-tree-interaction-panel { background-color:#08090b; color:#fff; border-color:#50545b; box-shadow:none; }
+.tg-tree-interaction-panel :is(.tg-side-panel-title,.tg-tree-interaction-section,summary), .tg-object-library-host :is(h2,h3,.tg-mesh-menu-title) { color:#fff; font-family:var(--tg-font-heading); font-weight:400; background:transparent; box-shadow:none; }
+.tg-tree-interaction-panel .tg-tree-interaction-subtitle { color:#aeb4bc; }
+.tg-tree-interaction-panel :is(button,.tg-tree-interaction-mode), .tg-object-library-host .tg-mesh-menu-actions button { color:#fff; background:#101215; border:1px solid #50545b; box-shadow:none; }
+.tg-tree-interaction-panel .tg-tree-interaction-mode.active, .tg-object-library-host .tg-mesh-menu-actions button.active { color:var(--tg-orange); background:rgb(255 72 0 / .08); border-color:var(--tg-orange); }
+.tg-tree-interaction-panel .tg-shared-tree-properties summary { border-bottom:1px solid #45484c; padding:10px 0; }
+.tg-tree-interaction-panel .tg-tree-interaction-slider span { color:#d4d8df; }
+.tg-tree-interaction-panel .tg-tree-interaction-slider strong { color:#fff; }
+.tg-tree-interaction-panel input[type=range] { accent-color:#fff; }
+.tg-tree-interaction-panel input[type=range]::-webkit-slider-runnable-track { background:linear-gradient(90deg,#fff,#494d53); }
+.tg-tree-interaction-panel input[type=range]::-webkit-slider-thumb { background:#fff; border-color:#141518; box-shadow:none; }
+.tg-tree-interaction-panel input[type=range]:is(:active,[data-gamepad-adjusting])::-webkit-slider-thumb { background:var(--tg-orange); }
+.tg-object-library-host .tg-mesh-card { color:#fff; background:#101215; border:1px solid #50545b; box-shadow:none; }
+.tg-object-library-host .tg-mesh-card.selected { color:var(--tg-orange); border-color:var(--tg-orange); background:linear-gradient(130deg,rgb(255 72 0 / .1),#101215); box-shadow:none; }
+.tg-object-library-host .tg-mesh-card span { color:inherit; }
+.tg-object-library-host .tg-mesh-menu-actions button:disabled { color:#91969e; opacity:.5; }

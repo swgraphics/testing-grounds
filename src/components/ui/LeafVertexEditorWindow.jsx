@@ -35,7 +35,7 @@ export default function LeafVertexEditorWindow() {
   const [selected, setSelected] = useState(0);
   const [drag, setDrag] = useState(null);
   const [instanceScope, setInstanceScope] = useState("global");
-  const previousBRef = useRef(false);
+
 
   function emitVertices(vertices) {
     if (!treeIdRef.current) return;
@@ -96,7 +96,8 @@ export default function LeafVertexEditorWindow() {
       }
     }
     window.addEventListener("keydown", keydown, true);
-    return () => window.removeEventListener("keydown", keydown, true);
+    window.addEventListener("tg-leaf-editor-close", commitAndClose);
+    return () => { window.removeEventListener("keydown", keydown, true); window.removeEventListener("tg-leaf-editor-close", commitAndClose); };
   }, [open, points, treeId]);
 
   useEffect(() => {
@@ -104,13 +105,8 @@ export default function LeafVertexEditorWindow() {
     const timer = window.setInterval(() => {
       const gamepad = navigator.getGamepads?.().find((entry) => entry?.connected);
       if (!gamepad) return;
-      const bPressed = Boolean(gamepad.buttons?.[1]?.pressed);
-      if (bPressed && !previousBRef.current) {
-        commitAndClose();
-        previousBRef.current = bPressed;
-        return;
-      }
-      previousBRef.current = bPressed;
+      // RT explicitly owns direct vertex motion; ordinary stick input navigates UI.
+      if (!gamepad.buttons?.[7]?.pressed || document.activeElement?.hasAttribute('data-gamepad-adjusting')) return;
       const x = Number(gamepad.axes?.[0] ?? 0);
       const y = Number(gamepad.axes?.[1] ?? 0);
       if (Math.abs(x) < 0.16 && Math.abs(y) < 0.16) return;
@@ -195,7 +191,7 @@ export default function LeafVertexEditorWindow() {
           </svg>
         </div>
         <div className="tg-leaf-editor-footer">
-          <span>DRAG VERTEX · LEFT STICK MOVE · B / ESC KEEP CHANGES</span>
+          <span>DRAG VERTEX · RT + LEFT STICK MOVE · B / ESC KEEP CHANGES</span>
           <strong>VERTEX {selected + 1}</strong>
           <button type="button" className="tg-mesh-save" onClick={commitAndClose}>SAVE</button>
           <button type="button" className="tg-mesh-cancel" onClick={cancelAndRevert}>CANCEL</button>

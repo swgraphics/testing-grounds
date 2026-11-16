@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const artifact = path.resolve("task-10-browser.local");
+const artifact = path.resolve(process.env.TG_CHARACTER_ARTIFACT || "task-10-browser.local");
 const net = await import("node:net");
 const port = await new Promise(resolve => { const listener=net.createServer(); listener.listen(0,"127.0.0.1",()=>{ const chosen=listener.address().port;listener.close(()=>resolve(chosen)); }); });
 await fs.mkdir(artifact, { recursive: true });
@@ -69,9 +69,11 @@ try {
  // Existing UI controls select the preview; no movement/controller implementation is changed.
  await evaluate('window.__editor.useEditorStore.getState().openDevToolsMenu()');
  await evaluate("[...document.querySelectorAll('[data-dev-section-header]')].find(b=>b.textContent.includes('CHARACTER')).click()");
- await waitFor("[...document.querySelectorAll('.tg-side-panel-button')].some(b=>b.textContent==='CRASH TESTER 2.0')",'new character option');
+ await waitFor("!!document.querySelector('.tg-character-selector')",'compact character selector');
  const start=Date.now();
- await evaluate("[...document.querySelectorAll('.tg-side-panel-button')].find(b=>b.textContent==='CRASH TESTER 2.0').click();window.__editor.useEditorStore.getState().closeDevTools();document.activeElement?.blur()");
+ await click('[aria-label="Next character"]');await waitFor("document.querySelector('[data-character-id]').dataset.characterId==='crashTester01'",'previous model selection');
+ await click('[aria-label="Previous character"]');await waitFor("document.querySelector('[data-character-id]').dataset.characterId==='crashTester20'",'new model selection');
+ await evaluate("window.__editor.useEditorStore.getState().closeDevTools();document.activeElement?.blur()");
  await waitFor("window.__avatarSnapshot()?.id==='crashTester20' && window.__avatarSnapshot()?.vertices===15279",'new skinned model');
  report.previewReadyMs=Date.now()-start;await pause(2000);report.newIdle=await avatar();
  assert.equal(report.newIdle.bones,66);assert.equal(report.newIdle.triangles,10403);assert.equal(report.newIdle.state,'idle');assert.ok(report.newIdle.textureSizes.every(t=>t.width===2048&&t.height===2048));
@@ -97,7 +99,7 @@ try {
  await evaluate('window.__front=-5');await pause(300);await screenshot(report.phase+'-idle-back');await evaluate('window.__front=5');
  // Representative UAL1/UAL2 actions through the actual existing action buttons.
  await evaluate('window.__editor.useEditorStore.getState().open()');await waitFor("document.body.classList.contains('tg-editor-active')",'editor context');
- await click('.tg-animation-library-toggle');await waitFor("!!document.querySelector('.tg-animation-library-panel')",'animation library');
+ await click('[data-object-view="animation"]');await waitFor("!!document.querySelector('.tg-animation-library-panel')",'animation library');
  const sample=['Idle_Loop','Walk_Loop','Jog_Fwd_Loop','Sprint_Loop','Jump_Start','Jump_Loop','Jump_Land','Interact','Punch_Jab','Punch_Cross','Roll','PickUp_Table','Dance_Loop','Sword_Heavy_Combo','ClimbUp_1m','TreeChopping_Loop','Zombie_Walk_Fwd_Loop','Yes'];
  for(const name of sample){
   await evaluate(`(()=>{const b=[...document.querySelectorAll('.tg-animation-library-action')].find(b=>b.title.startsWith(${JSON.stringify(name.replaceAll('_',' '))}+' '));const all=[...document.querySelectorAll('.tg-animation-library-action')];const wanted=all.find(b=>b.title.split(' — ')[0]===${JSON.stringify(name.replaceAll('_',' '))});if(!wanted&&!b)throw Error('No UI action '+${JSON.stringify(name)});(wanted??b).click()})()`);

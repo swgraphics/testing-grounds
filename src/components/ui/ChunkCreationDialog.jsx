@@ -1,104 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
-import { useWorldStore } from "../../systems/world/worldStore";
-import { columnToLetter, getGridCells, gridToWorldPosition } from "../../systems/world/worldGrid";
-import { terrainSettings } from "../../systems/terrain/terrainSettings";
-
-function getPlayerChunkTarget(position) {
-  const [x, , z] = Array.isArray(position) ? position : [0, 0, 0];
-  if (![x, z].every(Number.isFinite)) return null;
-
-  // The authored starting terrain is 600m wide, centered on the origin.
-  // New creator chunks are 100m tiles and are snapped around the player's
-  // current world position so the new terrain appears directly beneath them.
-  const centerX = Math.floor(Number(x) / 100) * 100 + 50;
-  const centerZ = Math.floor(Number(z) / 100) * 100 + 50;
-  const outsideBase =
-    centerX - 50 >= 300 || centerX + 50 <= -300 ||
-    centerZ - 50 >= 300 || centerZ + 50 <= -300;
-
-  if (!outsideBase) return null;
-
-  const column = Math.round((centerX + 250) / 100);
-  const row = Math.round((centerZ + 250) / 100) + 1;
-  if (column < 0 || row < 1) return null;
-
-  return {
-    grid: `${columnToLetter(column)}${row}`,
-    position: [centerX, 0, centerZ],
-  };
-}
-
-export default function ChunkCreationDialog({ onClose, initialGrid = "", initialMapPosition = null, playerPosition = [0, 0, 0] }) {
-  useEffect(() => {
-    function escape(event) { if (event.key === "Escape") { event.preventDefault(); onClose(); } }
-    window.addEventListener("keydown", escape);
-    return () => window.removeEventListener("keydown", escape);
-  }, [onClose]);
-  const chunks = useWorldStore((state) => state.world.chunks);
-  const createChunk = useWorldStore((state) => state.createChunk);
-  const cells = useMemo(() => getGridCells(), []);
-  const occupied = useMemo(
-    () => new Set(Object.values(chunks ?? {}).map((chunk) => String(chunk.grid ?? "").toUpperCase())),
-    [chunks]
-  );
-  const firstAvailableGrid = useMemo(() => cells.find((cell) => !occupied.has(cell)) ?? "", [cells, occupied]);
-  const playerTarget = useMemo(() => getPlayerChunkTarget(playerPosition), [playerPosition]);
-  const targetGrid = playerTarget?.grid ?? "";
-  const [grid, setGrid] = useState(initialGrid || targetGrid || firstAvailableGrid);
-  const effectiveGrid = playerTarget?.grid ?? grid;
-  const [name, setName] = useState("");
-
-  function handleCreate(event) {
-    event.preventDefault();
-    const createGrid = effectiveGrid;
-    if (!createGrid || occupied.has(createGrid)) return;
-    const position = playerTarget?.position ?? gridToWorldPosition(createGrid);
-    const id = createChunk({
-      grid: createGrid,
-      name: name.trim() || `CHUNK ${createGrid}`,
-      position,
-      mapPosition: initialMapPosition,
-      terrain: { ...terrainSettings },
-    });
-    if (id) onClose();
-  }
-
-  return (
-    <div className="tg-chunk-dialog-backdrop" role="presentation" onPointerDown={onClose}>
-      <form onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); onClose(); } }} className="tg-chunk-dialog" onSubmit={handleCreate} onPointerDown={(event) => event.stopPropagation()}>
-        <div className="tg-chunk-dialog-title">ADD WORLD CHUNK</div>
-        <div className="tg-chunk-dialog-copy">{playerTarget ? "A new 100M terrain chunk will appear around the player at the current world edge." : "Choose the grid location first. World position is derived from the grid."}</div>
-
-        <label>
-          <span>GRID COORDINATE</span>
-          <select value={effectiveGrid} onChange={(event) => setGrid(event.target.value)} required disabled={Boolean(playerTarget)}>
-            <option value="">SELECT EMPTY CELL</option>
-            {playerTarget && (
-              <option value={targetGrid}>{targetGrid} — PLAYER EDGE</option>
-            )}
-            {cells.map((cell) => (
-              <option key={cell} value={cell} disabled={occupied.has(cell)}>
-                {cell}{occupied.has(cell) ? " — OCCUPIED" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          <span>{playerTarget ? "NEW TERRAIN CHUNK AT PLAYER" : "CHUNK NAME"}</span>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={grid ? `CHUNK ${grid}` : "CREATOR NAME"}
-            maxLength={32}
-          />
-        </label>
-
-        <div className="tg-chunk-dialog-actions">
-          <button type="button" onClick={onClose}>CANCEL</button>
-          <button type="submit" disabled={!grid}>CREATE CHUNK</button>
-        </div>
-      </form>
-    </div>
-  );
+import { useEffect, useState } from 'react';
+import { useWorldStore } from '../../systems/world/worldStore';
+import { getExpansionCandidates } from '../../systems/world/terrainRegions';
+import { addTerrainChunk } from '../../systems/world/terrainExpansion';
+export default function ChunkCreationDialog({onClose,onCreated,initialGrid='',playerPosition=[0,0,0]}) {
+ const world=useWorldStore(s=>s.world),candidates=getExpansionCandidates(world,playerPosition);
+ const [grid,setGrid]=useState(()=>candidates.find(c=>c.grid===initialGrid)?.grid ?? candidates[0]?.grid ?? '');
+ const [name,setName]=useState(''),[error,setError]=useState('');
+ useEffect(()=>{const escape=e=>{if(e.key==='Escape'){e.preventDefault();onClose()}};window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape)},[onClose]);
+ const target=candidates.find(c=>c.grid===grid);
+ function create(event){event.preventDefault();const result=addTerrainChunk({grid,name});if(!result.ok){setError(result.message);return;}onCreated?.(result);onClose();}
+ return <div className="tg-chunk-dialog-backdrop" role="presentation" onPointerDown={onClose}>
+ <form className="tg-chunk-dialog" role="dialog" aria-modal="true" aria-label="Add terrain chunk" onSubmit={create} onKeyDown={e=>{if(e.key!=='Tab')return;const controls=[...e.currentTarget.querySelectorAll('select,input,button:not(:disabled)')],index=controls.indexOf(document.activeElement);e.preventDefault();controls[(index+(e.shiftKey?-1:1)+controls.length)%controls.length]?.focus()}} onPointerDown={e=>e.stopPropagation()}>
+ <div className="tg-chunk-dialog-title">ADD WORLD CHUNK</div>
+ <div className="tg-chunk-dialog-copy">Extend the world with connected terrain. Existing areas and edits stay in place.</div>
+ <label><span>GRID COORDINATE</span><select autoFocus aria-label="New terrain location" value={grid} onChange={e=>setGrid(e.target.value)} required>{candidates.map(c=><option key={c.grid} value={c.grid}>{c.grid} / X {c.position[0]}, Z {c.position[2]} / {c.size}M</option>)}</select></label>
+ <label><span>CHUNK NAME</span><input value={name} onChange={e=>setName(e.target.value)} placeholder={'CHUNK '+grid} maxLength={32}/></label>
+ {target&&<p className="tg-chunk-dialog-copy">{target.size} x {target.size}M terrain // X {target.position[0]} / Z {target.position[2]}</p>}
+ {(error||!target)&&<p role="alert">{error||'No supported adjacent terrain location is available.'}</p>}
+ <div className="tg-chunk-dialog-actions"><button type="button" onClick={onClose}>CANCEL</button><button type="submit" disabled={!target}>CREATE CHUNK</button></div>
+ </form></div>;
 }

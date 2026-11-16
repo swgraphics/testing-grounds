@@ -1,3 +1,4 @@
+import { getTerrainRegions, containsPoint } from "../world/terrainRegions";
 import * as THREE from "three";
 import { terrainSettings } from "./terrainSettings";
 import { getTerrainVertexEditDelta } from "./terrainVertexEditing";
@@ -10,8 +11,7 @@ export function smoothStep(edge0, edge1, value) {
   return x * x * (3 - 2 * x);
 }
 
-export function getCommittedTerrainHeightAt(x, z) {
-  const isBlankWorld = useWorldStore.getState().world.worldType === "blank";
+export function getProceduralTerrainHeightAt(x, z, settings, isBlankWorld) {
   const distance = Math.sqrt(x * x + z * z);
   const flatSquareSize = 90;
   let height = 0;
@@ -21,9 +21,9 @@ export function getCommittedTerrainHeightAt(x, z) {
       ? 1
       : smoothStep(95, 190, distance);
     let rolling = 0;
-    rolling += Math.sin(x * 0.018) * 10 * terrainSettings.rollingHills;
-    rolling += Math.cos(z * 0.022) * 8 * terrainSettings.rollingHills;
-    rolling += Math.sin((x + z) * 0.012) * 6 * terrainSettings.rollingHills;
+    rolling += Math.sin(x * 0.018) * 10 * settings.rollingHills;
+    rolling += Math.cos(z * 0.022) * 8 * settings.rollingHills;
+    rolling += Math.sin((x + z) * 0.012) * 6 * settings.rollingHills;
 
     const mountainDistance = Math.sqrt(
       (x - 160) * (x - 160) + (z + 170) * (z + 170)
@@ -31,22 +31,22 @@ export function getCommittedTerrainHeightAt(x, z) {
 
     const mountain = Math.max(
       0,
-      70 * terrainSettings.mountainHeight - mountainDistance * 0.35
+      70 * settings.mountainHeight - mountainDistance * 0.35
     );
 
     const ridge =
       Math.max(
         0,
-        Math.sin((x - 80) * 0.025 * terrainSettings.cliffSharpness) * 22
-      ) * terrainSettings.ridgeStrength;
+        Math.sin((x - 80) * 0.025 * settings.cliffSharpness) * 22
+      ) * settings.ridgeStrength;
 
     height =
       (rolling + mountain + ridge) *
       terrainBlend *
-      terrainSettings.heightMultiplier;
+      settings.heightMultiplier;
 
-    const plateauStrength = (terrainSettings.plateauAmount ?? 0) / 100;
-    const plateauLevel = 42 * terrainSettings.heightMultiplier;
+    const plateauStrength = (settings.plateauAmount ?? 0) / 100;
+    const plateauLevel = 42 * settings.heightMultiplier;
 
     if (height > plateauLevel) {
       const flattenedHeight = plateauLevel + (height - plateauLevel) * 0.16;
@@ -54,7 +54,7 @@ export function getCommittedTerrainHeightAt(x, z) {
     }
 
     const geometryStrength = THREE.MathUtils.clamp(
-      (terrainSettings.geometryStrength ?? 0) / 100,
+      (settings.geometryStrength ?? 0) / 100,
       0,
       1
     );
@@ -71,6 +71,21 @@ export function getCommittedTerrainHeightAt(x, z) {
     if (!isBlankWorld && insideSpawnSquare) height = 0;
   }
 
+  return height;
+}
+export function getCommittedTerrainHeightAt(x,z) {
+  const world=useWorldStore.getState().world,surface=world.terrainSurface;
+  const settings=surface?.settings ?? terrainSettings,blank=world.worldType==='blank';
+  let height=getProceduralTerrainHeightAt(x,z,settings,blank);
+  if(surface) {
+    const region=getTerrainRegions(world).slice(1).find(r=>containsPoint(r,x,z));
+    const chunk=region?world.chunks[region.id]:null;
+    if(chunk?.terrainRegion) {
+      const edge=Math.min(x-region.minX,region.maxX-x,z-region.minZ,region.maxZ-z);
+      const blend=smoothStep(0,Math.min(20,chunk.terrainRegion.size/4),edge);
+      height=THREE.MathUtils.lerp(height,getProceduralTerrainHeightAt(x,z,{...settings,...chunk.terrain},blank),blend);
+    }
+  }
   height += getTerrainEditDelta(x, z);
   height += getTerrainVertexEditDelta(x, z);
 

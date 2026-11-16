@@ -14,8 +14,6 @@ export default function LoadingOverlay({
       aria-label={message}
     >
       <div className="tg-loading-overlay-content">
-        <div className="tg-loading-compass-glow" />
-
         <img
           className="tg-loading-compass-icon"
           src="/images/TG_ICON.svg"

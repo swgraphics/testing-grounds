@@ -148,7 +148,8 @@ export default function Water() {
   const waterHeight = terrainSettings.waterHeight ?? -4;
   const worldType = useWorldStore((state) => state.world.worldType);
   const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
-  const waterBodies = useWorldStore((state) => state.world.chunks?.[currentChunkId]?.water?.bodies ?? EMPTY_WATER_BODIES);
+  const chunks=useWorldStore(state=>state.world.chunks),spatial=useWorldStore(state=>Boolean(state.world.terrainSurface));
+  const waterBodies=useMemo(()=>spatial?Object.values(chunks).flatMap(c=>c.water?.bodies ?? []):chunks?.[currentChunkId]?.water?.bodies ?? EMPTY_WATER_BODIES,[chunks,currentChunkId,spatial]);
   const [terrainRevision, refresh] = useState(0);
 
   useEffect(() => {

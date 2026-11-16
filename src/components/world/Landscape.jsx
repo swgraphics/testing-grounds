@@ -1,3 +1,4 @@
+import { hasTerrainAt } from "../../systems/world/terrainRegions";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
@@ -409,6 +410,7 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
     );
 
     return points.map((point, index) => {
+      if(!hasTerrainAt(point.x,point.z,useWorldStore.getState().world))return null;
       const treeId = `scatter-tree-${profileId}-${currentChunkId}-${index}`;
       const override = treeOverrides[treeId];
       const treeDefinition = mergeScatterTreeDefinition(
@@ -471,8 +473,8 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
 
 function TreeScatter() {
   const profiles = useWorldStore((state) => state.world.scatterProfiles ?? {});
-  const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
-  const currentChunk = useWorldStore((state) => state.world.chunks?.[state.world.currentChunkId]);
+  const currentChunkId = useWorldStore((state) => state.world.terrainSurface?.baseChunkId ?? state.world.currentChunkId);
+  const chunks = useWorldStore(state=>state.world.chunks);
 
   const terrainValues = {
     scatterSeed: useTerrainSetting("scatterSeed", 1),
@@ -497,7 +499,7 @@ function TreeScatter() {
       if (!treeId || !treeId.startsWith("scatter-tree-")) return;
 
       let matchingProfileId = Object.keys(useWorldStore.getState().world.scatterProfiles ?? {})
-        .find((profileId) => treeId.startsWith(`scatter-tree-${profileId}-${currentChunkId}-`));
+        .find((profileId) => treeId.startsWith(`scatter-tree-${profileId}-${useWorldStore.getState().world.scatterProfiles[profileId]?.chunkId ?? currentChunkId}-`));
       if (!matchingProfileId && treeId.startsWith(`scatter-tree-crimson-tree-${currentChunkId}-`)) {
         matchingProfileId = "crimson-tree";
       }
@@ -587,8 +589,8 @@ function TreeScatter() {
           key={`tree-scatter-${profileId}`}
           profileId={profileId}
           profile={profile}
-          currentChunkId={currentChunkId}
-          currentChunk={currentChunk}
+          currentChunkId={profile.chunkId ?? currentChunkId}
+          currentChunk={chunks[profile.chunkId ?? currentChunkId]}
           terrainValues={terrainValues}
         />
       ))}
@@ -812,7 +814,7 @@ function ScatterGLTFAsset({ modelPath, position, rotation, scale }) {
 }
 
 function GenericObjectScatter({ objectId, profile }) {
-  const currentChunk = useWorldStore((state) => state.world.chunks?.[state.world.currentChunkId]);
+  const currentChunk = useWorldStore((state) => state.world.chunks?.[state.world.terrainSurface ? profile.chunkId ?? state.world.terrainSurface.baseChunkId : state.world.currentChunkId]);
   const asset = resolveScatterAsset(objectId, profile);
   const scatterSeed = useTerrainSetting("scatterSeed", 1);
   const terrainHeightMultiplier = useTerrainSetting("heightMultiplier", 1.5);
@@ -840,7 +842,7 @@ function GenericObjectScatter({ objectId, profile }) {
       const rotation = seededScatterRandom(base + 61) * Math.PI * 2;
       const y = getTerrainHeightAt(x, z) + 0.02;
       return { position: [x, y, z], rotation, scale };
-    });
+    }).filter(p=>hasTerrainAt(p.position[0],p.position[2],useWorldStore.getState().world));
   }, [count, objectId, scatterSeed, spread, chunkX, chunkZ, terrainHeightMultiplier, terrainMountainHeight, terrainCliffSharpness, terrainRollingHills, terrainRidgeStrength, terrainPlateauAmount, terrainGeometryStrength, profile?.scaleVariation]);
 
   if (!asset.modelPath || count <= 0) return null;

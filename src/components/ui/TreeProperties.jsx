@@ -5,7 +5,6 @@ export default function TreeProperties({ definition, onChange, onVertexEdit, see
   return <div className="tg-shared-tree-properties">
     {TREE_PROPERTY_GROUPS.map(([title, fields]) => <details key={title} open={title === "TRUNK"}>
       <summary>{title}</summary>
-      {title === "SECONDARY BRANCHES" && <p className="tg-library-guidance">Count applies to custom branches. Other stored secondary parameters are not consumed by the current generator; investigation remains Pass 03B.</p>}
       {fields.map(([label, path, max = 100, disabled = false]) => <label className="tg-tree-interaction-slider tg-mesh-edit-slider" key={path}>
         <span>{label}<strong>{treePropertyValue(definition, path)}</strong></span>
         <input aria-label={label} data-tree-property={path} type="range" min="0" max={max} step="1" disabled={disabled} value={Math.min(max, Number(treePropertyValue(definition, path)))} onChange={event => input(path, Number(event.target.value))} />
@@ -18,7 +17,6 @@ export default function TreeProperties({ definition, onChange, onVertexEdit, see
         <input aria-label={label} data-tree-property={path} type="color" value={treePropertyValue(definition, path)} onChange={event => input(path, event.target.value)} />
       </label>)}
       <label className="tg-tree-interaction-slider tg-mesh-edit-slider"><span>FOLIAGE GRADIENT</span><input aria-label="FOLIAGE GRADIENT" data-tree-property="leaves.gradientEnabled" type="checkbox" checked={Boolean(treePropertyValue(definition, "leaves.gradientEnabled"))} onChange={event => input("leaves.gradientEnabled", event.target.checked)} /></label>
-      <p className="tg-library-guidance">Trunk and branch material colors are fixed by the current renderer.</p>
     </details>
     <label className="tg-tree-interaction-slider tg-mesh-edit-slider"><span>VARIATION SEED</span><input aria-label="VARIATION SEED" data-tree-property="seed" type="number" min="0" step="1" disabled={!seedEditable} value={treePropertyValue(definition, "seed")} onChange={event => input("seed", Number(event.target.value))} /></label>
     {!seedEditable && <p className="tg-library-guidance">Population-wide variation seeds are generated per instance. Select Single Tree to edit its seed.</p>}

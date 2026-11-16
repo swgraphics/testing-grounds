@@ -1,3 +1,4 @@
+import { terrainChunkAt, containsPoint, BASE_TERRAIN_BOUNDS } from "../../systems/world/terrainRegions";
 import { useEffect, useRef, useState } from "react";
 
 import { AREA_CONFIG } from "../../config/areaConfig";
@@ -23,6 +24,7 @@ export default function AreaDiscovery() {
   const [visible, setVisible] = useState(false);
 
   const enteredAreasRef = useRef(new Set());
+  const spatialRegionRef=useRef(null);
   const fadeTimerRef = useRef(null);
   const clearTimerRef = useRef(null);
 
@@ -59,9 +61,19 @@ export default function AreaDiscovery() {
         return;
       }
 
+      const world=useWorldStore.getState().world;
+      if(world.terrainSurface) {
+        const owner=terrainChunkAt(position.x,position.z,world);
+        const region=containsPoint(BASE_TERRAIN_BOUNDS,position.x,position.z)?'base-terrain':owner?.id ?? null;
+        const previous=spatialRegionRef.current;spatialRegionRef.current=region;
+        // Creating/selecting a chunk is not a physical crossing. Keep that selection
+        // until the player actually enters another terrain region.
+        if(previous&&region&&previous!==region&&owner&&world.currentChunkId!==owner.id){setCurrentChunk(owner.id);showArea(owner)}
+        if(region&&region!=='base-terrain')return;
+      } else spatialRegionRef.current=null;
       const nearbyAreas = [];
 
-      AREA_CONFIG.forEach((area) => {
+      AREA_CONFIG.filter(area=>world.chunks[area.id]).forEach((area) => {
         const distance = horizontalDistance(
           position,
           area.position

@@ -1,14 +1,16 @@
 import { useNavigationStore } from "../ui/navigationStore";
 import { inputState } from "./inputState";
 import { resetGamepadState } from "./gamepadState";
+import { useInteractionStore } from "../interaction/interactionStore";
 
 export const TEXT_INPUT = 'input,textarea,select,[contenteditable="true"]';
-const MODALS = '.tg-chunk-dialog-backdrop,.tg-mesh-edit-backdrop,[aria-modal="true"]:not([data-compass]),.tg-help-dialog';
+const MODALS = '.tg-tree-interaction-panel,.tg-leaf-editor-window,.tg-chunk-dialog-backdrop,.tg-mesh-edit-backdrop:not([data-world-object-editor]),[aria-modal="true"]:not([data-compass]),.tg-help-dialog';
 const PANELS = '.tg-dev-full-menu.open,.tg-dev-panel,.tg-interaction-panel,.tg-mesh-menu,.tg-terrain-export,.tg-leaf-editor-window,.tg-animation-library-panel';
 export function isTextInput(target) { return Boolean(target?.closest?.(TEXT_INPUT)); }
 export function getInputContext(doc = typeof document === "undefined" ? null : document) {
   const state = useNavigationStore.getState();
   if (doc?.querySelector(".tg-title-screen")) return "title";
+  if (useInteractionStore.getState().gestureOwner) return "gesture";
   if (state.helpOpen || doc?.querySelector(MODALS)) return "modal";
   if (state.compassOpen) return state.menu === "world" ? "compass" : "submenu";
   if (isTextInput(doc?.activeElement)) return "text";
