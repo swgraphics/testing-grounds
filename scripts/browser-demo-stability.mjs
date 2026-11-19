@@ -120,7 +120,7 @@ try {
   await evaluate("window.__actions.runNavigationAction('export')");await pause(300);await setValue('.tg-terrain-export input[type=number]',99999);assert.ok(await evaluate("document.querySelector('.tg-terrain-export [role=status]')?.textContent.length>0 && document.querySelector('.tg-terrain-export button[type=submit]').disabled"));await reset();return {before,after,invalidBoundsRejected:true};
  });
  await check('Dev Tools cloud control changes live shader uniform',async()=>{
-  await reset();await evaluate("window.__actions.runNavigationAction('clouds')");await pause(600);
+  await reset();await evaluate("window.__actions.openIndependentDevTools('atmosphere')");await pause(600);
   const selector=await evaluate(`(()=>{const row=[...document.querySelectorAll('.tg-dev-full-menu.open .tg-dev-slider-row')].find(e=>e.textContent.toUpperCase().includes('DENSE')&&e.querySelector('input'));const input=row?.querySelector('input');if(!input)throw Error('Cloud density input unavailable');input.setAttribute('data-qa-density','');return '[data-qa-density]'})()`);
   const before=await evaluate("window.__cloud.cloudSettings.density");await evaluate("document.querySelector('[data-qa-density]').focus()");await key('ArrowRight');
   const after=await evaluate("window.__cloud.cloudSettings.density");assert.notEqual(after,before);await pause(300);

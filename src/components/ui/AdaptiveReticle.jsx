@@ -7,11 +7,14 @@ import { useInteractionStore } from "../../systems/interaction/interactionStore"
 export default function AdaptiveReticle() {
   const [sunTarget, setSunTarget] = useState(false);
   const [treeTarget, setTreeTarget] = useState(false);
+  const [cloudTarget, setCloudTarget] = useState(false);
   const [held, setHeld] = useState(false);
   const sunMode = useInteractionStore((state) => state.activeTool === "SUN");
-  const sunInteractable = sunMode || sunTarget;
+  const sunInteractable = sunMode || (!cloudTarget && sunTarget);
   const treeMode = useInteractionStore((state) => state.activeTool === "TREE");
-  const treeInteractable = !sunInteractable && (treeTarget || treeMode);
+  const treeInteractable = !sunInteractable && !cloudTarget && (treeTarget || treeMode);
+  const cloudMode = useInteractionStore(state => state.activeTool === 'CLOUD');
+  const cloudInteractable = !sunInteractable && !treeInteractable && (cloudTarget || cloudMode);
   const targetRef = useRef(false);
   const pointerHeldRef = useRef(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
@@ -42,6 +45,12 @@ export default function AdaptiveReticle() {
 
     window.addEventListener("crimson-tree-reticle-target-changed", handleTreeTargetChange);
     return () => window.removeEventListener("crimson-tree-reticle-target-changed", handleTreeTargetChange);
+  }, []);
+
+  useEffect(() => {
+    const target = event => setCloudTarget(Boolean(event.detail?.active));
+    window.addEventListener('tg-cloud-reticle-target-changed', target);
+    return () => window.removeEventListener('tg-cloud-reticle-target-changed', target);
   }, []);
 
   /*
@@ -210,6 +219,8 @@ export default function AdaptiveReticle() {
           <span className="tg-tree-reticle-leaf leaf-b" />
           <span className="tg-tree-reticle-leaf leaf-c" />
         </span>
+      ) : cloudInteractable ? (
+        <span className="tg-cloud-reticle" />
       ) : (
         <span className="tg-reticle-dot" />
       )}

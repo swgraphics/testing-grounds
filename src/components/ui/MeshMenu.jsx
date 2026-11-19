@@ -26,6 +26,7 @@ import { useWorldStore } from "../../systems/world/worldStore";
 
 
 function PreviewIcon({ kind = "structure" }) {
+  if (kind === 'cloud') return <div className="tg-mesh-cloud-icon" aria-hidden="true" />;
   if (kind === "tree") {
     return (
       <div className="tg-mesh-icon tg-mesh-icon-tree" aria-hidden="true">
@@ -549,6 +550,7 @@ useEffect(() => {
   function placeSelected() {
     if (!selectedMesh) return;
     rememberLibraryPosition();
+    if (selectedMesh.kind === 'cloud') window.dispatchEvent(new CustomEvent('tg-mesh-cancel-placement'));
     returnToWorldView();
     setMode("place");
     setEditOpen(false);
@@ -559,7 +561,7 @@ useEffect(() => {
       mode: "PLACE",
     });
     window.dispatchEvent(
-      new CustomEvent("tg-mesh-place-request", {
+      new CustomEvent(selectedMesh.kind === 'cloud' ? 'tg-cloud-place-request' : "tg-mesh-place-request", {
         detail: { mesh: selectedMesh, origin: "south" },
       })
     );
@@ -746,7 +748,7 @@ function getDefaultCrimsonProfile() {
           <button type="button" className={`tg-mesh-place-button ${mode === "place" && selectedMesh ? "active" : ""}`} disabled={!selectedMesh || Boolean(worldTarget)} onClick={placeSelected}>
             PLACE
           </button>
-          <button type="button" data-object-edit disabled={!selectedMesh} onClick={editSelected}>
+          <button type="button" data-object-edit disabled={!selectedMesh || selectedMesh.kind === 'cloud'} title={selectedMesh?.kind === 'cloud' ? 'Place a cloud, then edit it in CLOUDS or Cloud Interaction.' : undefined} onClick={editSelected}>
             EDIT
           </button>
           {mode !== "scatter" && <button type="button" data-add-to-scatter="selected" disabled={!eligibility.eligible} onClick={scatterProfile?.enabled ? () => setMode("scatter") : addToScatter}>{scatterProfile?.enabled ? "OPEN POPULATION" : "ADD TO SCATTER"}</button>}
@@ -793,6 +795,7 @@ function getDefaultCrimsonProfile() {
                   <div className="tg-mesh-card-art">
                     <PreviewIcon kind={mesh.kind} />
                   </div>
+                  {mesh.category && <small className="tg-cloud-category">{mesh.category.toUpperCase()}</small>}
                   <span
                     onDoubleClick={(event) => {
                       event.preventDefault();

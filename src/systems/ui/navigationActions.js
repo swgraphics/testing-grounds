@@ -73,6 +73,7 @@ export function backFromObjectPlacement() {
   emit("tg-mesh-cancel-placement");
   useInteractionStore.getState().deactivate();
   if (origin === "south") openObjectLibrary("return");
+  else if (origin === 'east') openIndependentDevTools('clouds');
   else document.activeElement?.blur?.();
   return true;
 }
@@ -86,7 +87,7 @@ export function runNavigationAction(action) {
   clearGameplayInput();
   if (action === "world-view") { exitToDefaultWorld(); return; }
   if (action === 'compass-tools') { returnToWorldView();useNavigationStore.getState().openCompass();useNavigationStore.getState().enterMenu('tools');return; }
-  if (action === "devtools" || action === "clouds") { openIndependentDevTools(action === "clouds" ? "atmosphere" : undefined); return; }
+  if (action === "devtools" || action === "clouds") { openIndependentDevTools(action === "clouds" ? "clouds" : undefined); return; }
   if (action.startsWith("brush-") || ["terrain","river","sun","lake"].includes(action)) {
     const tool = action.startsWith("brush-") ? action.slice(6).toUpperCase() : { terrain: "HEIGHT", river: "RIVER", sun: "SUN", lake: "POND" }[action];
     returnToWorldView();

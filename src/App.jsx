@@ -15,6 +15,7 @@ import EditorView from "./components/ui/EditorView";
 import InteractionPanel from "./components/ui/InteractionPanel";
 import CrimsonTreeInteractionPanel from "./components/ui/CrimsonTreeInteractionPanel";
 import AdaptiveReticle from "./components/ui/AdaptiveReticle";
+import CloudInteractionPanel from './components/ui/CloudInteractionPanel';
 import { endAdjustment } from "./systems/ui/controlAdjustment";
 import GamepadMenuNavigator from "./components/ui/GamepadMenuNavigator";
 import LeafVertexEditorWindow from "./components/ui/LeafVertexEditorWindow";
@@ -237,6 +238,7 @@ export default function App() {
           <CrimsonTreeInteractionPanel />
           <LeafVertexEditorWindow />
           <AdaptiveReticle />
+          <CloudInteractionPanel />
         </>
       )}
 

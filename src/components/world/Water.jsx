@@ -6,6 +6,7 @@ import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
 import { useWorldStore } from "../../systems/world/worldStore";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
+import { createLivingWaterMaterial, updateLivingWater } from '../../systems/atmosphere/livingVapor/waterMaterial.js';
 
 const WATER_SIZE = 900;
 const WATER_DEPTH = 100;
@@ -140,6 +141,13 @@ function PondWaterfall({ body, waterHeight, terrainRevision }) {
   );
 }
 
+function LivingWaterSurfaceMaterial({ opacity = 0.72 }) {
+  const material = useMemo(() => createLivingWaterMaterial(opacity), [opacity]);
+  useEffect(() => () => material.dispose(), [material]);
+  useFrame(({ clock }) => updateLivingWater(material, clock.elapsedTime));
+  return <primitive object={material} attach="material" />;
+}
+
 export default function Water() {
   const surfaceRef = useRef();
   const frameCounterRef = useRef(0);
@@ -169,13 +177,6 @@ export default function Water() {
       waterSubdivisions
     );
     geometry.rotateX(-Math.PI / 2);
-    geometry.setAttribute(
-      "color",
-      new THREE.Float32BufferAttribute(
-        new Array(geometry.attributes.position.count * 3).fill(1),
-        3
-      )
-    );
     return geometry;
   }, [waterSubdivisions]);
 
@@ -187,7 +188,6 @@ export default function Water() {
     frameCounterRef.current += 1;
 
     const positions = surface.geometry.attributes.position;
-    const colors = surface.geometry.attributes.color;
     const windStrength = THREE.MathUtils.clamp((Number(terrainSettings.windStrength) || 0) / 100, 0, 1);
     const windSpeed = THREE.MathUtils.clamp((Number(terrainSettings.windSpeed) || 0) / 100, 0, 1);
     const response = THREE.MathUtils.clamp((Number(terrainSettings.waterWaveStrength) || 0) / 100, 0, 1);
@@ -200,12 +200,9 @@ export default function Water() {
       const z = positions.getZ(i);
       const peak = waveValue(x, z, time);
       positions.setY(i, WATER_SURFACE_OFFSET + peak * waveHeight);
-      const white = THREE.MathUtils.smoothstep(peak, 0.55, 0.94);
-      colors.setXYZ(i, white, white, white);
     }
 
     positions.needsUpdate = true;
-    colors.needsUpdate = true;
     if (frameCounterRef.current % 2 === 0) surface.geometry.computeVertexNormals();
   });
 
@@ -218,7 +215,7 @@ export default function Water() {
           <group position={[body.x, body.y, body.z]}>
             <mesh rotation-x={-Math.PI / 2} receiveShadow>
               <circleGeometry args={[Math.max(4, Number(body.diameter) / 2), Math.max(32, waterSubdivisions)]} />
-              <meshStandardMaterial color="#4e9ac2" emissive="#0d4c72" emissiveIntensity={0.18} transparent opacity={0.82} roughness={0.26} metalness={0.04} side={THREE.DoubleSide} depthWrite={false} />
+              <LivingWaterSurfaceMaterial opacity={0.82} />
             </mesh>
             <mesh rotation-x={-Math.PI / 2} position-y={0.015}>
               <ringGeometry args={[Math.max(4, Number(body.diameter) / 2) * 0.96, Math.max(4, Number(body.diameter) / 2), 48]} />
@@ -245,29 +242,7 @@ export default function Water() {
         </mesh>
 
         <mesh ref={surfaceRef} geometry={surfaceGeometry} receiveShadow>
-          <meshStandardMaterial
-            color="#4e9ac2"
-            emissive="#0d4c72"
-            emissiveIntensity={0.18}
-            transparent
-            opacity={0.72}
-            roughness={0.26}
-            metalness={0.04}
-            side={THREE.DoubleSide}
-            flatShading
-            depthWrite={false}
-          />
-        </mesh>
-
-        <mesh geometry={surfaceGeometry} position-y={WATER_WIREFRAME_OFFSET}>
-          <meshBasicMaterial
-            color="#ffffff"
-            vertexColors
-            transparent
-            opacity={0.34}
-            depthWrite={false}
-            side={THREE.DoubleSide}
-          />
+          <LivingWaterSurfaceMaterial />
         </mesh>
 
         {guidesVisible && (

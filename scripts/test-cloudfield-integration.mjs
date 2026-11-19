@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import { createServer } from 'vite';
+const server = await createServer({ configFile: false, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, watch: null, hmr: false }, appType: 'custom' });
+globalThis.window = new EventTarget(); window.requestAnimationFrame = fn => fn();
+const storage = new Map(); globalThis.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+try {
+  const { useWorldStore: world, createBlankWorld } = await server.ssrLoadModule('/src/systems/world/worldStore.js');
+  const state = await server.ssrLoadModule('/src/systems/atmosphere/livingVapor/cloudState.js');
+  const persistence = await server.ssrLoadModule('/src/systems/world/worldPersistence.js');
+  const { useHistoryStore: history } = await server.ssrLoadModule('/src/systems/history/historyStore.js');
+  const { CloudObject } = await server.ssrLoadModule('/src/systems/atmosphere/livingVapor/cloudObject.js');
+  const { cageIsVisible } = await server.ssrLoadModule('/src/systems/atmosphere/livingVapor/settings.js');
+  const palette = await server.ssrLoadModule('/src/systems/atmosphere/atmospherePalette.js');
+  const { terrainSettings } = await server.ssrLoadModule('/src/systems/terrain/terrainSettings.js');
+  const { cloudSettings } = await server.ssrLoadModule('/src/systems/atmosphere/clouds/CloudSettings.js');
+  world.getState().initializeBlankWorld();
+  for (const family of ['cumulus', 'stratus', 'cirrus']) {
+    const id = state.createCloud(family, [10, 35, 20]);
+    assert.ok(id); assert.equal(state.cloudRecords(world.getState().world)[id].position[1], 35, 'aerial position never snaps to terrain');
+    assert.equal(state.useCloudUI.getState().selectedId, id);
+  }
+  const selected = state.useCloudUI.getState().selectedId;
+  state.changeCloud(selected, { position: [30, 50, 70], quaternion: [0, Math.SQRT1_2, 0, Math.SQRT1_2], scale: [0.5, 1, 2], persistencePercent: 100, cage: false, fill: true });
+  const expected = JSON.stringify(state.cloudRecords(world.getState().world));
+  const vaporBeforeTransform = state.cloudRecords(world.getState().world)[selected].vapor;
+  state.changeCloud(selected, { position: [31, 50, 70] });
+  history.getState().undo();
+  assert.equal(state.cloudRecords(world.getState().world)[selected].vapor, vaporBeforeTransform, 'transform Undo never rewinds the live vapor checkpoint');
+  persistence.saveWorldSnapshot(); world.getState().initializeBlankWorld(); persistence.loadWorldSnapshot();
+  assert.equal(JSON.stringify(state.cloudRecords(world.getState().world)), expected, 'world restoration preserves settings, transforms and meaningful vapor');
+  state.deleteCloud(selected); assert.ok(!state.cloudRecords(world.getState().world)[selected]);
+  history.getState().undo(); assert.ok(state.cloudRecords(world.getState().world)[selected], 'deletion Undo restores full cloud');
+  history.getState().redo(); assert.ok(!state.cloudRecords(world.getState().world)[selected]);
+  while (Object.keys(state.cloudRecords(world.getState().world)).length < 6) state.createCloud('cumulus', [0, 50, 0]);
+  assert.equal(state.createCloud('cumulus', [0, 50, 0]), null, 'limit blocks seventh object');
+  assert.match(state.useCloudUI.getState().message, /limit/);
+  for (const guides of [true, false]) for (const cage of [true, false]) assert.equal(cageIsVisible(guides, cage), guides && cage);
+  terrainSettings.sunHeight = 80; const day = palette.getAtmospherePalette();
+  terrainSettings.sunHeight = 10; const night = palette.getAtmospherePalette();
+  assert.notDeepEqual(day.cloudTopColor, night.cloudTopColor);
+  terrainSettings.sunRotation = 0; const direction1 = palette.getAtmospherePalette().sunDirection;
+  terrainSettings.sunRotation = 50; const direction2 = palette.getAtmospherePalette().sunDirection;
+  assert.ok(direction1.distanceTo(direction2) > 0.1);
+  cloudSettings.usePalette = false; cloudSettings.upperColor = '#ff00aa';
+  const cloud = new CloudObject({ id: 'dispose-test', position: [0, 30, 0] });
+  let disposed = 0; for (const resource of [cloud.texture, cloud.volumeMaterial, cloud.cageMaterial, cloud.volume.geometry, cloud.cage.geometry]) resource.addEventListener('dispose', () => disposed++);
+  cloud.dispose(); cloud.dispose(); assert.equal(disposed, 5, 'all last-instance resources disposed once');
+  world.getState().replaceWorld(createBlankWorld());
+  assert.equal(persistence.serializeWorld().livingVapor, undefined, 'old worlds require no vapor records');
+  console.log('PASS aerial cloud creation/selection, six-cloud limit, full Save/Load, deletion Undo/Redo, guide coordination, atmosphere direction/colors, resource disposal and old-world compatibility');
+} finally { await server.close(); }

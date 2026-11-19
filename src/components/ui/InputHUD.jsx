@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import CloudControls from './CloudControls';
 import "./HudRefinements.css";
 import { characterRegistry, activeCharacterId } from "../character/characterRegistry";
 import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
@@ -460,6 +461,7 @@ export default function InputHUD({ devToolsHost }) {
     camera: false,
     physics: false,
     atmosphere: false,
+    clouds: false,
     world: false,
     materials: false,
   });
@@ -1417,6 +1419,11 @@ function handleSectionLockChange(event) {
     </div>
   </div>
 )}
+            </div>
+
+            <div className="tg-dev-section">
+              <DevSectionHeader label="CLOUDS" sectionName="clouds" isOpen={openDevSections.clouds} onToggle={toggleDevSection} />
+              {openDevSections.clouds && <div className="tg-dev-section-content"><CloudControls allowCreation /></div>}
             </div>
 
             {/* ATMOSPHERE */}

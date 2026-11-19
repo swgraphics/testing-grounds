@@ -8,6 +8,7 @@ import Lighting from "../components/world/Lighting";
 import GridTerrain from "../components/world/GridTerrain";
 import GridFloor from "../components/world/GridFloor";
 import Water from "../components/world/Water";
+import LivingVaporSystem from '../components/world/LivingVaporSystem';
 import Landscape from "../components/world/Landscape";
 import WorldGizmos from "../components/world/WorldGizmos";
 import TestCourse from "../components/world/TestCourse";
@@ -50,6 +51,7 @@ export default function TestingGrounds({ titleMode = false }) {
       <XboxController />
       <CameraTelemetry />
       <MeshPlacementSystem />
+      {!titleMode && <LivingVaporSystem />}
       {!titleMode && <SunReticleSensor />}
       {!titleMode && <CrimsonTreeInteractionSystem />}
       {!titleMode && <WorldInteractionSystem />}

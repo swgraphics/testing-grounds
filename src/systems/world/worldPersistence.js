@@ -9,6 +9,7 @@ import {
 } from "./worldStore";
 import { parseGridCoordinate } from "./worldGrid";
 import { clearHistory } from "../history/historyStore";
+import { captureLivingVapor, normalizeLivingVapor } from '../atmosphere/livingVapor/cloudPersistence.js';
 
 export const WORLD_STORAGE_KEY = "testingGroundsWorld";
 export const LEGACY_WORLD_STORAGE_KEY = "testingGroundsWorldState";
@@ -100,6 +101,7 @@ function migrateWorld(input) {
     scatterProfiles: { ...(input.scatterProfiles ?? {}) },
     atmosphere: { ...(input.atmosphere ?? {}) },
     terrainVertexEdits: { ...(input.terrainVertexEdits ?? {}) },
+    livingVapor: normalizeLivingVapor(input.livingVapor),
   };
 
   const inputChunks = input.chunks ?? {};
@@ -221,6 +223,8 @@ export function serializeChunk(chunk, world = getWorldSnapshot()) {
 
 export function serializeWorld(world = getWorldSnapshot()) {
   const snapshot = cloneSerializable(world);
+  const vapor = captureLivingVapor(world);
+  if (vapor) snapshot.livingVapor = normalizeLivingVapor(vapor);
   snapshot.schemaVersion = WORLD_SCHEMA_VERSION;
   snapshot.worldType = snapshot.worldType === "blank" ? "blank" : "default";
   snapshot.metadata = {

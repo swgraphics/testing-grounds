@@ -21,6 +21,7 @@ const MENU_ROOTS = [
   ".tg-dev-panel",
   ".tg-interaction-panel",
   ".tg-tree-interaction-panel",
+  ".tg-cloud-interaction-panel",
   ".tg-workspace-v2",
   ".tg-directional-layout",
   ".tg-mesh-menu",
@@ -320,7 +321,7 @@ export default function GamepadMenuNavigator() {
         aHoldRef.current = { startedAt: 0, locked: false };
       }
 
-      if (!menuOpen && editSelected) document.querySelector('[data-tree-edit-selected]')?.click();
+      if (!menuOpen && editSelected) document.querySelector('[data-cloud-edit-selected],[data-tree-edit-selected]')?.click();
       if (menuOpen) {
         if (document.querySelector('.tg-leaf-editor-window,.tg-tree-interaction-panel') && gamepad.buttons[7]?.pressed && !adjustmentState.current) return;
         const dpad = readDpad(gamepad);
@@ -340,7 +341,7 @@ export default function GamepadMenuNavigator() {
         // is open. Quick shortcuts are intentionally removed until the UI
         // overhaul; D-pad is now reserved for navigation.
         const dpad = readDpad(gamepad);
-        const workspace = document.querySelector(".tg-directional-layout");
+        const workspace = document.querySelector('.tg-cloud-interaction-panel') || document.querySelector(".tg-directional-layout");
         if (workspace && Object.values(dpad).some(Boolean)) focusFirst(workspace);
         previousButtonsRef.current["dpad-up"] = false;
         previousButtonsRef.current["dpad-down"] = false;
