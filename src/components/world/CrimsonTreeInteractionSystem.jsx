@@ -153,7 +153,7 @@ export default function CrimsonTreeInteractionSystem() {
   };
 
   useFrame(() => {
-    if (document.body.classList.contains("tg-editor-active")) return;
+      if (document.body.classList.contains("tg-editor-active") || !gameplayInputAllowed()) return;
 
     // The old implementation raycast the entire scene every render frame.
     // Tree targeting only needs a responsive sampling rate; doing it every

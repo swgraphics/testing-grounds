@@ -1,3 +1,4 @@
+import { useGeologyTerrainVersion } from './useGeologyTerrainVersion';
 import { hasTerrainAt } from "../../systems/world/terrainRegions";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -19,6 +20,7 @@ import { BUILTIN_OBJECTS } from "../../systems/objects/objectRegistry";
 const MAX_TREES = 900;
 const MAX_FOLIAGE = 1400;
 const MAX_ROCKS = 650;
+const EMPTY_TREE_OVERRIDES = Object.freeze({});
 
 const MAX_TREE_COLLIDERS = 160;
 const MAX_ROCK_COLLIDERS = 180;
@@ -390,6 +392,7 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
   const count = countFromSlider(density, maxCount);
   const chunkX = isDefaultCrimson ? 0 : Number(currentChunk?.position?.[0] ?? 0);
   const chunkZ = isDefaultCrimson ? 0 : Number(currentChunk?.position?.[2] ?? 0);
+  const geologyVersion = useGeologyTerrainVersion({minX:chunkX-300,maxX:chunkX+300,minZ:chunkZ-300,maxZ:chunkZ+300});
   const seedBase = Number(terrainValues.scatterSeed) || 1;
   const profileSeed = Number(profile?.seed ?? 1);
   const baseDefinition = useMemo(
@@ -398,7 +401,7 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
       : createCrimsonTreeDefinition(),
     [profile?.treeDefinition],
   );
-  const treeOverrides = profile?.treeOverrides ?? {};
+  const treeOverrides = profile?.treeOverrides ?? EMPTY_TREE_OVERRIDES;
 
   const trees = useMemo(() => {
     const points = makeProfileTreePoints(
@@ -439,7 +442,7 @@ function ProceduralTreeScatterProfile({ profileId, profile, currentChunkId, curr
     });
   // getTerrainHeightAt reads module settings; keep these invalidation dependencies.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count, coverage, seedBase, profileSeed, profileId, currentChunkId, chunkX, chunkZ, baseDefinition, treeOverrides, isDefaultCrimson, terrainValues.heightMultiplier, terrainValues.mountainHeight, terrainValues.cliffSharpness, terrainValues.rollingHills, terrainValues.ridgeStrength, terrainValues.plateauAmount, terrainValues.geometryStrength]);
+  }, [geologyVersion, count, coverage, seedBase, profileSeed, profileId, currentChunkId, chunkX, chunkZ, baseDefinition, treeOverrides, isDefaultCrimson, terrainValues.heightMultiplier, terrainValues.mountainHeight, terrainValues.cliffSharpness, terrainValues.rollingHills, terrainValues.ridgeStrength, terrainValues.plateauAmount, terrainValues.geometryStrength]);
 
   const windStrength = Number(terrainValues.windStrength) || 0;
   const windSpeed = Number(terrainValues.windSpeed) || 0;
@@ -599,6 +602,7 @@ function TreeScatter() {
 }
 
 function FoliageScatter() {
+  const geologyVersion = useGeologyTerrainVersion({minX:-300,maxX:300,minZ:-300,maxZ:300});
   const fernRefs = useRef([]);
   const foliagePointsRef = useRef([]);
   const frameCounterRef = useRef(0);
@@ -654,6 +658,7 @@ function FoliageScatter() {
         );
       });
   }, [
+    geologyVersion,
     foliageDensity,
     scatterSeed,
     terrainHeightMultiplier,
@@ -718,6 +723,7 @@ function FoliageScatter() {
 }
 
 function RockScatter() {
+  const geologyVersion = useGeologyTerrainVersion({minX:-300,maxX:300,minZ:-300,maxZ:300});
   const rockRefs = useRef([]);
   const rockPointsRef = useRef([]);
   const rockDensity = useTerrainSetting("rockDensity", 20);
@@ -761,6 +767,7 @@ function RockScatter() {
       );
     });
   }, [
+    geologyVersion,
     rockDensity,
     boulderAmount,
     boulderHeight,
@@ -832,6 +839,7 @@ function GenericObjectScatter({ objectId, profile }) {
   const chunkX = Number(currentChunk?.position?.[0] ?? 0);
   const chunkZ = Number(currentChunk?.position?.[2] ?? 0);
 
+  const geologyVersion = useGeologyTerrainVersion({minX:chunkX-spread,maxX:chunkX+spread,minZ:chunkZ-spread,maxZ:chunkZ+spread});
   const points = useMemo(() => {
     return Array.from({ length: count }, (_, index) => {
       const base = index + 1 + objectId.length * 31 + Number(scatterSeed) * 101;
@@ -843,7 +851,7 @@ function GenericObjectScatter({ objectId, profile }) {
       const y = getTerrainHeightAt(x, z) + 0.02;
       return { position: [x, y, z], rotation, scale };
     }).filter(p=>hasTerrainAt(p.position[0],p.position[2],useWorldStore.getState().world));
-  }, [count, objectId, scatterSeed, spread, chunkX, chunkZ, terrainHeightMultiplier, terrainMountainHeight, terrainCliffSharpness, terrainRollingHills, terrainRidgeStrength, terrainPlateauAmount, terrainGeometryStrength, profile?.scaleVariation]);
+  }, [geologyVersion, count, objectId, scatterSeed, spread, chunkX, chunkZ, terrainHeightMultiplier, terrainMountainHeight, terrainCliffSharpness, terrainRollingHills, terrainRidgeStrength, terrainPlateauAmount, terrainGeometryStrength, profile?.scaleVariation]);
 
   if (!asset.modelPath || count <= 0) return null;
 

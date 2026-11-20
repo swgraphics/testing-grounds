@@ -8,11 +8,14 @@ import * as THREE from "three";
 import { RigidBody, TrimeshCollider } from "@react-three/rapier";
 
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
-import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
+import { getTerrainHeightAt, getTerrainHeightWithoutGeologyAt } from "../../systems/terrain/terrainHeight";
+import { getGeologyTerrainDelta } from '../../systems/geology/geologySampling';
+import { useGeologyTerrainVersion } from './useGeologyTerrainVersion';
 import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
 import { markTerrainReady } from "../../systems/world/terrainReadiness";
 import { BASE_TERRAIN_SIZE, TERRAIN_SAMPLE_STEP } from "../../systems/world/terrainRegions";
 import { useWorldStore } from "../../systems/world/worldStore";
+import { terrainHeightChanged, terrainGridSampler } from '../../systems/terrain/terrainRenderState';
 
 const TERRAIN_SIZE = BASE_TERRAIN_SIZE;
 const TERRAIN_SEGMENTS = 120;
@@ -36,6 +39,14 @@ const GRID_OFFSET = 0.08;
 const BASE_TERRAIN_HALF_SIZE = TERRAIN_SIZE / 2;
 const CREATOR_CHUNK_SIZE = 100;
 
+function createTerrainFoundation(size, segments, originX = 0, originZ = 0) {
+  const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+  geometry.rotateX(-Math.PI / 2);
+  const positions = geometry.attributes.position, heights = new Float64Array(positions.count);
+  for (let i = 0; i < positions.count; i++) heights[i] = getTerrainHeightWithoutGeologyAt(originX + positions.getX(i), originZ + positions.getZ(i));
+  return {geometry, heights};
+}
+
 
 function TerrainExtensionChunk({ chunk, terrainKey }) {
   const size = Number(chunk?.terrainRegion?.size ?? CREATOR_CHUNK_SIZE);
@@ -43,17 +54,16 @@ function TerrainExtensionChunk({ chunk, terrainKey }) {
   const centerX = Number(chunk?.position?.[0]);
   const centerZ = Number(chunk?.position?.[2]);
   const guidesVisible=useWorldGuideStore(state=>state.visible);
+  const geologyVersion = useGeologyTerrainVersion({minX:centerX-size/2,maxX:centerX+size/2,minZ:centerZ-size/2,maxZ:centerZ+size/2});
+  // terrainKey invalidates module-owned shape/sculpt/vertex samples.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const foundation = useMemo(() => createTerrainFoundation(size, segments, centerX, centerZ), [size, segments, centerX, centerZ, terrainKey]);
+  useEffect(() => () => foundation.geometry.dispose(), [foundation]);
 
   const geometry = useMemo(() => {
     if (![centerX, centerZ].every(Number.isFinite)) return null;
 
-    const geo = new THREE.PlaneGeometry(
-      size,
-      size,
-      segments,
-      segments
-    );
-    geo.rotateX(-Math.PI / 2);
+    const geo = foundation.geometry.clone();
     const positions = geo.attributes.position;
     const colors = [];
     const vertexColor = new THREE.Color();
@@ -63,7 +73,7 @@ function TerrainExtensionChunk({ chunk, terrainKey }) {
       const localZ = positions.getZ(i);
       const worldX = centerX + localX;
       const worldZ = centerZ + localZ;
-      const height = getTerrainHeightAt(worldX, worldZ);
+      const height = foundation.heights[i] + getGeologyTerrainDelta(worldX, worldZ);
       positions.setY(i, height);
 
       const normalizedHeight = THREE.MathUtils.clamp(height / TERRAIN_MAX_GRADIENT_HEIGHT, 0, 1);
@@ -77,20 +87,21 @@ function TerrainExtensionChunk({ chunk, terrainKey }) {
     geo.computeBoundingBox();
     geo.computeBoundingSphere();
     return geo;
-  }, [centerX, centerZ, size, segments, terrainKey]);
+  // The geology field is world-owned; its bounded version invalidates this region.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centerX, centerZ, foundation, geologyVersion]);
 
   useEffect(() => () => geometry?.dispose(), [geometry]);
   useEffect(()=>{if(!geometry)return;let clear;const frame=requestAnimationFrame(()=>{clear=markTerrainReady(chunk.id,geometry.uuid)});return()=>{cancelAnimationFrame(frame);clear?.()}},[chunk.id,geometry]);
 
-  // The terrain sampler reads mutable settings; terrainKey invalidates the guide cache.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const guideGeometry=useMemo(()=>createTerrainGridGeometry({lineStep:10,verticalOffset:GRID_OFFSET,bounds:{minX:centerX-size/2,maxX:centerX+size/2,minZ:centerZ-size/2,maxZ:centerZ+size/2}}),[centerX,centerZ,size,terrainKey]);
-  useEffect(()=>()=>guideGeometry.dispose(),[guideGeometry]);
+  // Guides reuse the mesh samples and follow the mesh geometry lifecycle.
+  const guideGeometry=useMemo(()=>geometry ? createTerrainGridGeometry({lineStep:10,verticalOffset:GRID_OFFSET,bounds:{minX:centerX-size/2,maxX:centerX+size/2,minZ:centerZ-size/2,maxZ:centerZ+size/2},heightAt:terrainGridSampler(geometry,segments,centerX,centerZ)}) : null,[centerX,centerZ,size,geometry,segments]);
+  useEffect(()=>()=>guideGeometry?.dispose(),[guideGeometry]);
   if (!geometry) return null;
 
   return (
     <>
-    <RigidBody key={`${chunk.id}-${terrainKey}`} type="fixed" colliders="trimesh">
+    <RigidBody key={`${chunk.id}-${terrainKey}-${geologyVersion}`} type="fixed" colliders="trimesh">
       <mesh
         userData={{tgTerrainRegion:chunk.id}}
         geometry={geometry}
@@ -150,6 +161,7 @@ function createTerrainGridGeometry({
   lineStep,
   excludeStep = null,
   verticalOffset,
+  heightAt = getTerrainHeightAt,
   bounds = {minX:-TERRAIN_SIZE/2,maxX:TERRAIN_SIZE/2,minZ:-TERRAIN_SIZE/2,maxZ:TERRAIN_SIZE/2},
 }) {
 
@@ -181,11 +193,11 @@ function createTerrainGridGeometry({
       );
 
       const startHeight =
-        getTerrainHeightAt(x, z) +
+        heightAt(x, z) +
         verticalOffset;
 
       const endHeight =
-        getTerrainHeightAt(nextX, z) +
+        heightAt(nextX, z) +
         verticalOffset;
 
       linePositions.push(
@@ -226,11 +238,11 @@ function createTerrainGridGeometry({
       );
 
       const startHeight =
-        getTerrainHeightAt(x, z) +
+        heightAt(x, z) +
         verticalOffset;
 
       const endHeight =
-        getTerrainHeightAt(x, nextZ) +
+        heightAt(x, nextZ) +
         verticalOffset;
 
       linePositions.push(
@@ -267,6 +279,7 @@ export default function GridTerrain() {
   const guidesVisible = useWorldGuideStore((state) => state.visible);
   const chunks = useWorldStore((state) => state.world.chunks);
   const surface=useWorldStore(state=>state.world.terrainSurface);
+  const geologyVersion = useGeologyTerrainVersion({minX:-300,maxX:300,minZ:-300,maxZ:300});
   const shapeSettings=surface?.settings ?? terrainSettings;
   const terrainKey = [
     shapeSettings.heightMultiplier,
@@ -293,7 +306,8 @@ export default function GridTerrain() {
   }), [chunks]);
 
   useEffect(() => {
-    function handleTerrainChange() {
+    function handleTerrainChange(event) {
+      if (!terrainHeightChanged(event)) return;
       refresh((value) => value + 1);
     }
 
@@ -313,15 +327,12 @@ export default function GridTerrain() {
   /*
    * Solid terrain geometry.
    */
+  // terrainKey invalidates module-owned shape/sculpt/vertex samples.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const foundation = useMemo(() => createTerrainFoundation(TERRAIN_SIZE, TERRAIN_SEGMENTS), [terrainKey]);
+  useEffect(() => () => foundation.geometry.dispose(), [foundation]);
   const terrainGeometry = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(
-      TERRAIN_SIZE,
-      TERRAIN_SIZE,
-      TERRAIN_SEGMENTS,
-      TERRAIN_SEGMENTS
-    );
-
-    geo.rotateX(-Math.PI / 2);
+    const geo = foundation.geometry.clone();
 
     const positions =
       geo.attributes.position;
@@ -339,7 +350,7 @@ export default function GridTerrain() {
       const z = positions.getZ(i);
 
       const height =
-        getTerrainHeightAt(x, z);
+        foundation.heights[i] + getGeologyTerrainDelta(x, z);
 
       positions.setY(i, height);
 
@@ -384,7 +395,9 @@ export default function GridTerrain() {
     geo.computeBoundingSphere();
 
     return geo;
-  }, [terrainKey]);
+  // The geology field is world-owned; its bounded version invalidates this region.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foundation, geologyVersion]);
 
   /*
    * Minor grid:
@@ -399,8 +412,9 @@ export default function GridTerrain() {
       lineStep: MINOR_GRID_STEP,
       excludeStep: MAJOR_GRID_STEP,
       verticalOffset: GRID_OFFSET,
+      heightAt: terrainGridSampler(terrainGeometry, TERRAIN_SEGMENTS),
     });
-  }, [terrainKey]);
+  }, [terrainGeometry]);
 
   /*
    * Major grid:
@@ -413,8 +427,9 @@ export default function GridTerrain() {
       lineStep: MAJOR_GRID_STEP,
       excludeStep: SECTOR_GRID_STEP,
       verticalOffset: GRID_OFFSET + 0.01,
+      heightAt: terrainGridSampler(terrainGeometry, TERRAIN_SEGMENTS),
     });
-  }, [terrainKey]);
+  }, [terrainGeometry]);
 
   /*
    * Sector grid:
@@ -427,8 +442,9 @@ export default function GridTerrain() {
     return createTerrainGridGeometry({
       lineStep: SECTOR_GRID_STEP,
       verticalOffset: GRID_OFFSET + 0.02,
+      heightAt: terrainGridSampler(terrainGeometry, TERRAIN_SEGMENTS),
     });
-  }, [terrainKey]);
+  }, [terrainGeometry]);
 
   /*
    * Dispose old geometry after terrain settings
@@ -462,7 +478,7 @@ export default function GridTerrain() {
    * Only terrain-shape settings rebuild the
    * Rapier terrain body.
    */
-  const terrainPhysicsKey = terrainKey;
+  const terrainPhysicsKey = terrainKey + ':geology:' + geologyVersion;
 
   /*
    * The terrain collider is replaced whenever terrainPhysicsKey changes.

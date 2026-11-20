@@ -92,7 +92,7 @@ export class CloudObject {
     this.applyScale();
     this.volume = new THREE.Mesh(boxGeometry(), this.volumeMaterial);
     this.volume.renderOrder = 1;
-    this.volume.frustumCulled = false; // the box is only a bounding volume; keep it simple
+    this.volume.frustumCulled = true; // The exact containing box conservatively bounds all vapor.
     this.volume.raycast = () => {}; // Cage-space picking belongs to the native cloud system.
     this.cage = new THREE.LineSegments(cageGeometry(), this.cageMaterial);
     this.cage.renderOrder = 2;
@@ -143,6 +143,7 @@ export class CloudObject {
     c.uCamLocal.value.copy(u.uCamLocal.value);
     c.uAlpha.value = selected ? 0.62 : 0.26;
     this.cage.visible = this.cageVisible && guides;
+    this.volume.visible = !this.sim.isEmpty();
     this.syncTexture();
   }
 

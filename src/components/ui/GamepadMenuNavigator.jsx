@@ -22,6 +22,7 @@ const MENU_ROOTS = [
   ".tg-interaction-panel",
   ".tg-tree-interaction-panel",
   ".tg-cloud-interaction-panel",
+  ".tg-geology-canyon-controls",
   ".tg-workspace-v2",
   ".tg-directional-layout",
   ".tg-mesh-menu",
@@ -321,7 +322,7 @@ export default function GamepadMenuNavigator() {
         aHoldRef.current = { startedAt: 0, locked: false };
       }
 
-      if (!menuOpen && editSelected) document.querySelector('[data-cloud-edit-selected],[data-tree-edit-selected]')?.click();
+      if (!menuOpen && editSelected) document.querySelector('[data-cloud-edit-selected],[data-tree-edit-selected],[data-geology-edit-selected]')?.click();
       if (menuOpen) {
         if (document.querySelector('.tg-leaf-editor-window,.tg-tree-interaction-panel') && gamepad.buttons[7]?.pressed && !adjustmentState.current) return;
         const dpad = readDpad(gamepad);

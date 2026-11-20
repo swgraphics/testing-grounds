@@ -2,7 +2,8 @@ import { hasTerrainAt } from "../world/terrainRegions";
 import * as THREE from "three";
 import { terrainSettings } from "./terrainSettings";
 import { useWorldStore } from "../world/worldStore";
-import { getTerrainVertexEditDelta } from "./terrainVertexEditing";
+import { getCommittedTerrainHeightAt } from './terrainHeight';
+import { geologyAffectsBounds } from '../geology/geologySampling';
 import { beginHistoryTransaction, commitHistoryTransaction, cancelHistoryTransaction } from "../history/historyStore";
 
 export const EDIT_GRID = 4;
@@ -113,8 +114,8 @@ export function applyTerrainBrush({
   const minZ = Math.floor((z - radius) / EDIT_GRID);
   const maxZ = Math.ceil((z + radius) / EDIT_GRID);
 
-  const centerBase = getTerrainEditDelta(x, z);
-  const target = centerBase;
+  const composite = ['flatten', 'smooth'].includes(tool) && geologyAffectsBounds({minX:x-radius,maxX:x+radius,minZ:z-radius,maxZ:z+radius});
+  const target = composite ? getCommittedTerrainHeightAt(x, z) : getTerrainEditDelta(x, z);
 
   for (let gx = minX; gx <= maxX; gx += 1) {
     for (let gz = minZ; gz <= maxZ; gz += 1) {
@@ -133,17 +134,17 @@ export function applyTerrainBrush({
       if (tool === "lower") next = current - strength * falloff;
 
       if (tool === "flatten") {
-        next = THREE.MathUtils.lerp(current, target, 0.35 * falloff);
+        next = composite ? current + (target - getCommittedTerrainHeightAt(px, pz)) * .35 * falloff : THREE.MathUtils.lerp(current, target, .35 * falloff);
       }
 
       if (tool === "smooth") {
-        const neighborAverage = (
-          (Number(edits[`${gx - 1},${gz}`]) || 0) +
-          (Number(edits[`${gx + 1},${gz}`]) || 0) +
-          (Number(edits[`${gx},${gz - 1}`]) || 0) +
-          (Number(edits[`${gx},${gz + 1}`]) || 0)
-        ) / 4;
-        next = THREE.MathUtils.lerp(current, neighborAverage, 0.22 * falloff);
+        const neighborAverage = composite ? (
+          getCommittedTerrainHeightAt(px - EDIT_GRID, pz) +
+          getCommittedTerrainHeightAt(px + EDIT_GRID, pz) +
+          getCommittedTerrainHeightAt(px, pz - EDIT_GRID) +
+          getCommittedTerrainHeightAt(px, pz + EDIT_GRID)
+        ) / 4 : ((Number(edits[`${gx-1},${gz}`])||0)+(Number(edits[`${gx+1},${gz}`])||0)+(Number(edits[`${gx},${gz-1}`])||0)+(Number(edits[`${gx},${gz+1}`])||0))/4;
+        next = composite ? current + (neighborAverage - getCommittedTerrainHeightAt(px, pz)) * .22 * falloff : THREE.MathUtils.lerp(current, neighborAverage, .22 * falloff);
       }
 
       if (tool === "slope") {
@@ -202,135 +203,8 @@ export function clearTerrainEdits() {
   writeEdits({});
 }
 
-export function analyzeTerrainWallAt(x, z, sample = 5) {
-  const px = Number(x);
-  const pz = Number(z);
-  if (![px, pz].every(Number.isFinite)) return null;
-
-  const step = Math.max(2, Number(sample) || 5);
-  const hL = getTerrainHeightAtSafe(px - step, pz);
-  const hR = getTerrainHeightAtSafe(px + step, pz);
-  const hD = getTerrainHeightAtSafe(px, pz - step);
-  const hU = getTerrainHeightAtSafe(px, pz + step);
-
-  const dx = (hR - hL) / (step * 2);
-  const dz = (hU - hD) / (step * 2);
-  const gradient = Math.hypot(dx, dz);
-  const editL = getTerrainEditOnlyDelta(px - step, pz);
-  const editR = getTerrainEditOnlyDelta(px + step, pz);
-  const editD = getTerrainEditOnlyDelta(px, pz - step);
-  const editU = getTerrainEditOnlyDelta(px, pz + step);
-  const editGradient = Math.hypot(
-    (editR - editL) / (step * 2),
-    (editU - editD) / (step * 2),
-  );
-  if (gradient < 1.0 && editGradient < 0.55) return null;
-
-  const normal = new THREE.Vector2(dx, dz).normalize();
-  const tangent = new THREE.Vector2(-normal.y, normal.x).normalize();
-
-  const continuationDistance = 20;
-  const leftGradient = sampleGradientAlong(px, pz, tangent, continuationDistance, step);
-  const rightGradient = sampleGradientAlong(px, pz, tangent, -continuationDistance, step);
-  const leftContinues = leftGradient >= 1.1;
-  const rightContinues = rightGradient >= 1.1;
-
-  const mode = leftContinues && rightContinues
-    ? "CENTER"
-    : leftContinues || rightContinues
-      ? "END"
-      : "EDGE";
-
-  return {
-    point: new THREE.Vector3(px, getTerrainHeightAtSafe(px, pz), pz),
-    normal,
-    tangent,
-    gradient,
-    mode,
-    leftContinues,
-    rightContinues,
-    wallSpan: Math.min(34, Math.max(12, gradient * 8)),
-  };
-}
-
-function getTerrainEditOnlyDelta(x, z) {
-  const edits = readEdits();
-  const gx = x / EDIT_GRID;
-  const gz = z / EDIT_GRID;
-  const x0 = Math.floor(gx);
-  const z0 = Math.floor(gz);
-  const tx = gx - x0;
-  const tz = gz - z0;
-  const sample = (ix, iz) => Number(edits[`${ix},${iz}`]) || 0;
-  const a = sample(x0, z0);
-  const b = sample(x0 + 1, z0);
-  const c = sample(x0, z0 + 1);
-  const d = sample(x0 + 1, z0 + 1);
-  return THREE.MathUtils.lerp(
-    THREE.MathUtils.lerp(a, b, tx),
-    THREE.MathUtils.lerp(c, d, tx),
-    tz
-  );
-}
-
-function getTerrainHeightAtSafe(x, z) {
-  const edits = readEdits();
-  const gx = x / EDIT_GRID;
-  const gz = z / EDIT_GRID;
-  const x0 = Math.floor(gx);
-  const z0 = Math.floor(gz);
-  const tx = gx - x0;
-  const tz = gz - z0;
-  const sampleEdit = (ix, iz) => Number(edits[`${ix},${iz}`]) || 0;
-
-  const a = sampleEdit(x0, z0);
-  const b = sampleEdit(x0 + 1, z0);
-  const c = sampleEdit(x0, z0 + 1);
-  const d = sampleEdit(x0 + 1, z0 + 1);
-  const editDelta = THREE.MathUtils.lerp(
-    THREE.MathUtils.lerp(a, b, tx),
-    THREE.MathUtils.lerp(c, d, tx),
-    tz
-  );
-
-  // Avoid recursive getTerrainHeightAt() calls while inspecting the terrain
-  // edit field. This helper is intentionally limited to the creator-edit
-  // component plus the procedural terrain height already sampled by the
-  // caller's raycast in WorldInteractionSystem.
-  const rolling = Math.sin(x * 0.018) * 10 * terrainSettings.rollingHills
-    + Math.cos(z * 0.022) * 8 * terrainSettings.rollingHills
-    + Math.sin((x + z) * 0.012) * 6 * terrainSettings.rollingHills;
-  const mountainDistance = Math.sqrt((x - 160) ** 2 + (z + 170) ** 2);
-  const mountain = Math.max(0, 70 * terrainSettings.mountainHeight - mountainDistance * 0.35);
-  const ridge = Math.max(0, Math.sin((x - 80) * 0.025 * terrainSettings.cliffSharpness) * 22) * terrainSettings.ridgeStrength;
-  const distance = Math.sqrt(x * x + z * z);
-  const terrainBlend = smoothStepSafe(95, 190, distance);
-  let base = (rolling + mountain + ridge) * terrainBlend * terrainSettings.heightMultiplier;
-  const plateauLevel = 42 * terrainSettings.heightMultiplier;
-  if (base > plateauLevel) {
-    const flattenedHeight = plateauLevel + (base - plateauLevel) * 0.16;
-    base = THREE.MathUtils.lerp(base, flattenedHeight, (terrainSettings.plateauAmount ?? 0) / 100);
-  }
-  const geometryStrength = THREE.MathUtils.clamp((terrainSettings.geometryStrength ?? 0) / 100, 0, 1);
-  if (geometryStrength > 0) {
-    const geometryStep = THREE.MathUtils.lerp(0.25, 8, geometryStrength);
-    base = THREE.MathUtils.lerp(base, Math.round(base / geometryStep) * geometryStep, geometryStrength);
-  }
-  if (Math.abs(x) < 90 && Math.abs(z) < 90) base = 0;
-  return base + editDelta + getTerrainVertexEditDelta(x, z);
-}
-
-function smoothStepSafe(edge0, edge1, value) {
-  const t = THREE.MathUtils.clamp((value - edge0) / (edge1 - edge0), 0, 1);
-  return t * t * (3 - 2 * t);
-}
-
-function sampleGradientAlong(x, z, direction, distance, step) {
-  const center = getTerrainHeightAtSafe(x, z);
-  const px = x + direction.x * distance;
-  const pz = z + direction.y * distance;
-  return Math.abs(getTerrainHeightAtSafe(px, pz) - center) / Math.max(distance, step);
-}
+// Compatibility export: wall detection uses the same committed sampler as rendering/export.
+export { analyzeCanyonWallAt as analyzeTerrainWallAt } from '../geology/canyonEdgeOperations';
 
 export function applyCanyonWallExpansion({
   anchor,

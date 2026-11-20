@@ -2,6 +2,8 @@ import { getTerrainRegions, getExpansionCandidates, containsPoint, spatialGrid }
 import { useEffect, useRef, useState } from "react";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import { useWorldStore } from "../../systems/world/worldStore";
+import { useEditorStore } from '../../systems/editor/editorStore';
+import { terrainHeightKey } from '../../systems/terrain/terrainRenderState';
 
 const SIZE = 300;
 const CONTOUR_STEP = 5;
@@ -93,6 +95,8 @@ export default function WorldMap({ onAddChunk, onSelectChunk }) {
   const chunks = useWorldStore((state) => state.world.chunks);
   const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
   const world = useWorldStore((state) => state.world);
+  const visible = useEditorStore(state => state.visiblePanels.west);
+  const heightKey = terrainHeightKey(world);
   const currentChunk = world.chunks?.[currentChunkId];
   const mapBounds = getMapBounds(chunks,world);
   const terrainMapBounds = getTerrainMapBounds(chunks,world,mapBounds);
@@ -102,82 +106,92 @@ export default function WorldMap({ onAddChunk, onSelectChunk }) {
   const mapWidth = mapColumns * MAP_STEP;
   const mapHeight = mapRows * MAP_STEP;
   const occupiedCount = Object.keys(chunks).length;
+  const { minX: mapMinX, maxX: mapMaxX, minZ: mapMinZ, maxZ: mapMaxZ } = terrainMapBounds;
   const centerX=world.terrainSurface&&currentChunk?((mapBounds.minX+mapBounds.maxX)/2-((currentChunk.position[0]+300)/world.grid.chunkSize-.5))*MAP_STEP:0;
   const centerY=world.terrainSurface&&currentChunk?((mapBounds.minY+mapBounds.maxY)/2-((currentChunk.position[2]+300)/world.grid.chunkSize-.5))*MAP_STEP:0;
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.imageSmoothingEnabled = false;
+    if (!visible) return;
+    // The map is a derived overview. Coalesce sculpt notifications so its
+    // 90,000-sample raster does not block each live viewport update.
+    const redraw = () => {
+      const world = useWorldStore.getState().world;
+      const terrainMapBounds = { minX: mapMinX, maxX: mapMaxX, minZ: mapMinZ, maxZ: mapMaxZ };
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.imageSmoothingEnabled = false;
 
-    const regions=getTerrainRegions(world);
-    const heights = new Float32Array(SIZE * SIZE);
-    let minHeight = Infinity;
-    let maxHeight = -Infinity;
-    for (let py = 0; py < SIZE; py += 1) {
-      for (let px = 0; px < SIZE; px += 1) {
-        const x = terrainMapBounds.minX + (px / (SIZE - 1)) * (terrainMapBounds.maxX - terrainMapBounds.minX);
-        const z = terrainMapBounds.minZ + (py / (SIZE - 1)) * (terrainMapBounds.maxZ - terrainMapBounds.minZ);
-        const h = getTerrainHeightAt(x, z);
-        heights[py * SIZE + px] = h;
-        minHeight = Math.min(minHeight, h);
-        maxHeight = Math.max(maxHeight, h);
-      }
-    }
-
-    const image = ctx.createImageData(SIZE, SIZE);
-    const range = Math.max(1, maxHeight - minHeight);
-    for (let py = 0; py < SIZE; py += 1) {
-      for (let px = 0; px < SIZE; px += 1) {
-        const h = heights[py * SIZE + px];
-        const normalized = (h - minHeight) / range;
-        const shade = Math.round(22 + normalized * 115);
-        const index = (py * SIZE + px) * 4;
-        image.data[index] = shade;
-        image.data[index + 1] = shade + 4;
-        image.data[index + 2] = shade + 8;
-        const x=terrainMapBounds.minX+px/(SIZE-1)*(terrainMapBounds.maxX-terrainMapBounds.minX),z=terrainMapBounds.minZ+py/(SIZE-1)*(terrainMapBounds.maxZ-terrainMapBounds.minZ);
-        image.data[index + 3] = !world.terrainSurface||regions.some(r=>containsPoint(r,x,z))?255:0;
-      }
-    }
-    ctx.putImageData(image, 0, 0);
-
-    ctx.lineWidth = 1.15;
-    for (
-      let level = Math.ceil(minHeight / CONTOUR_STEP) * CONTOUR_STEP;
-      level <= maxHeight;
-      level += CONTOUR_STEP
-    ) {
-      ctx.beginPath();
-      for (let py = 1; py < SIZE; py += 1) {
-        for (let px = 1; px < SIZE; px += 1) {
-          const a = heights[(py - 1) * SIZE + (px - 1)];
-          const b = heights[(py - 1) * SIZE + px];
-          const c = heights[py * SIZE + px];
-          const d = heights[py * SIZE + (px - 1)];
-          const highA = a >= level;
-          const highB = b >= level;
-          const highC = c >= level;
-          const highD = d >= level;
-          const points = [];
-          if (highA !== highB) points.push([px - 0.5, py - 1]);
-          if (highB !== highC) points.push([px, py - 0.5]);
-          if (highC !== highD) points.push([px - 0.5, py]);
-          if (highD !== highA) points.push([px - 1, py - 0.5]);
-          if (points.length === 2) {
-            ctx.moveTo(points[0][0], points[0][1]);
-            ctx.lineTo(points[1][0], points[1][1]);
-          }
+      const regions=getTerrainRegions(world);
+      const heights = new Float32Array(SIZE * SIZE);
+      let minHeight = Infinity;
+      let maxHeight = -Infinity;
+      for (let py = 0; py < SIZE; py += 1) {
+        for (let px = 0; px < SIZE; px += 1) {
+          const x = terrainMapBounds.minX + (px / (SIZE - 1)) * (terrainMapBounds.maxX - terrainMapBounds.minX);
+          const z = terrainMapBounds.minZ + (py / (SIZE - 1)) * (terrainMapBounds.maxZ - terrainMapBounds.minZ);
+          const h = getTerrainHeightAt(x, z);
+          heights[py * SIZE + px] = h;
+          minHeight = Math.min(minHeight, h);
+          maxHeight = Math.max(maxHeight, h);
         }
       }
-      ctx.strokeStyle = "rgba(235, 242, 248, 0.62)";
-      ctx.stroke();
-    }
 
-    baseMapRef.current = ctx.getImageData(0, 0, SIZE, SIZE);
-  }, [world,terrainMapBounds.minX,terrainMapBounds.maxX,terrainMapBounds.minZ,terrainMapBounds.maxZ]);
+      const image = ctx.createImageData(SIZE, SIZE);
+      const range = Math.max(1, maxHeight - minHeight);
+      for (let py = 0; py < SIZE; py += 1) {
+        for (let px = 0; px < SIZE; px += 1) {
+          const h = heights[py * SIZE + px];
+          const normalized = (h - minHeight) / range;
+          const shade = Math.round(22 + normalized * 115);
+          const index = (py * SIZE + px) * 4;
+          image.data[index] = shade;
+          image.data[index + 1] = shade + 4;
+          image.data[index + 2] = shade + 8;
+          const x=terrainMapBounds.minX+px/(SIZE-1)*(terrainMapBounds.maxX-terrainMapBounds.minX),z=terrainMapBounds.minZ+py/(SIZE-1)*(terrainMapBounds.maxZ-terrainMapBounds.minZ);
+          image.data[index + 3] = !world.terrainSurface||regions.some(r=>containsPoint(r,x,z))?255:0;
+        }
+      }
+      ctx.putImageData(image, 0, 0);
+
+      ctx.lineWidth = 1.15;
+      for (
+        let level = Math.ceil(minHeight / CONTOUR_STEP) * CONTOUR_STEP;
+        level <= maxHeight;
+        level += CONTOUR_STEP
+      ) {
+        ctx.beginPath();
+        for (let py = 1; py < SIZE; py += 1) {
+          for (let px = 1; px < SIZE; px += 1) {
+            const a = heights[(py - 1) * SIZE + (px - 1)];
+            const b = heights[(py - 1) * SIZE + px];
+            const c = heights[py * SIZE + px];
+            const d = heights[py * SIZE + (px - 1)];
+            const highA = a >= level;
+            const highB = b >= level;
+            const highC = c >= level;
+            const highD = d >= level;
+            const points = [];
+            if (highA !== highB) points.push([px - 0.5, py - 1]);
+            if (highB !== highC) points.push([px, py - 0.5]);
+            if (highC !== highD) points.push([px - 0.5, py]);
+            if (highD !== highA) points.push([px - 1, py - 0.5]);
+            if (points.length === 2) {
+              ctx.moveTo(points[0][0], points[0][1]);
+              ctx.lineTo(points[1][0], points[1][1]);
+            }
+          }
+        }
+        ctx.strokeStyle = "rgba(235, 242, 248, 0.62)";
+        ctx.stroke();
+      }
+
+      baseMapRef.current = ctx.getImageData(0, 0, SIZE, SIZE);
+    };
+    const timer = window.setTimeout(redraw, 200);
+    return () => window.clearTimeout(timer);
+  }, [visible, heightKey, mapMinX, mapMaxX, mapMinZ, mapMaxZ]);
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");

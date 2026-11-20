@@ -1,4 +1,8 @@
 import { clearGameplayInput } from '../../systems/input/inputOwnership';
+import { gameplayInputAllowed } from '../../systems/input/inputOwnership';
+import {captureGeologyFoundation,createGeologyFeature,pickGeologyFeatureAt} from '../../systems/geology/geologyFeatures';
+import {geologyDefinition} from '../../systems/geology/geologyDefinition';
+import GeologyPlacementGhost from './GeologyPlacementGhost';
 import { hasTerrainAt, terrainChunkAt } from "../../systems/world/terrainRegions";
 import { mergeTreeProperties } from "../../systems/objects/treeProperties";
 // MeshPlacementSystem.jsx
@@ -16,7 +20,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { Text } from "@react-three/drei";
 import { getTerrainHeightAt } from "./../../systems/terrain/terrainHeight";
-import { applyGeologyTerrainStamp, setTerrainPreviewStamp, beginTerrainHistory, commitTerrainHistory } from "../../systems/terrain/terrainEdits";
+import { setTerrainPreviewStamp } from "../../systems/terrain/terrainEdits";
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { useWorldStore } from "../../systems/world/worldStore";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
@@ -390,6 +394,7 @@ export default function MeshPlacementSystem() {
   const [placedMeshes, setPlacedMeshes] = useState([]);
   const historyRevision = useHistoryStore((state) => state.revision);
   const [placementRotation, setPlacementRotation] = useState(0);
+  const [geologyFoundation,setGeologyFoundation] = useState(null);
   const selectedPlacedIdRef = useRef(null);
   const draggingObjectRef = useRef(false);
   const crownRefs = useRef(new Map());
@@ -478,7 +483,7 @@ export default function MeshPlacementSystem() {
       if (!cancelled && restored.length) setPlacedMeshes(restored);
     }
     hydrate();
-    return () => { cancelled = true; setTerrainPreviewStamp(null); };
+    return () => { cancelled = true; if(terrainSettings.terrainPreviewStamp)setTerrainPreviewStamp(null); };
   }, [loader, objectScope, historyRevision]);
 
   // --------------------------------------------------
@@ -522,7 +527,8 @@ export default function MeshPlacementSystem() {
       setSelectedMesh(mesh);
 
       if (placementMode) {
-        setPlacementRotation(getPlacementRules(mesh).randomRotation ? Math.random() * Math.PI * 2 : 0);
+        setPlacementRotation(mesh.modelType==='geology'?geologyDefinition(mesh.geologyType,mesh.geologyDefinition).rotation*Math.PI/180:getPlacementRules(mesh).randomRotation ? Math.random() * Math.PI * 2 : 0);
+        if(mesh.modelType==='geology')setGeologyFoundation(captureGeologyFoundation());
         setPreviewPosition(null);
         setLoadedScene(null);
         setProceduralMesh(null);
@@ -552,7 +558,8 @@ export default function MeshPlacementSystem() {
       setSelectedMesh(mesh);
       setPlacementMode(true);
       const rules = getPlacementRules(mesh);
-      setPlacementRotation(rules.randomRotation ? Math.random() * Math.PI * 2 : 0);
+      setPlacementRotation(mesh.modelType==='geology'?geologyDefinition(mesh.geologyType,mesh.geologyDefinition).rotation*Math.PI/180:rules.randomRotation ? Math.random() * Math.PI * 2 : 0);
+      if(mesh.modelType==='geology')setGeologyFoundation(captureGeologyFoundation());
       useInteractionStore.getState().activate({
         target: `object:${mesh.id}`,
         tool: "OBJECT",
@@ -582,7 +589,7 @@ export default function MeshPlacementSystem() {
     }
 
     function handleCancelPlacement() {
-      setTerrainPreviewStamp(null);
+      if(terrainSettings.terrainPreviewStamp)setTerrainPreviewStamp(null);
       setPlacementMode(false);
       setPreviewPosition(null);
       useInteractionStore.getState().clear();
@@ -653,6 +660,30 @@ export default function MeshPlacementSystem() {
       );
     };
   }, [loader, placementMode]);
+
+  useEffect(()=>{
+    if(!placementMode||selectedMesh?.modelType!=='geology')return;
+    const unsubscribe=useInteractionStore.subscribe(state=>{if(state.activeTool!=='OBJECT'||state.activeMode!=='place'){setPlacementMode(false);setPreviewPosition(null)}});
+    const key=event=>{
+      if(event.target?.closest?.('input,select,textarea,button')||!gameplayInputAllowed())return;
+      if(event.code==='KeyR'){event.preventDefault();setPlacementRotation(angle=>(angle+Math.PI/12)%(Math.PI*2))}
+      if(['BracketLeft','BracketRight'].includes(event.code)){event.preventDefault();setSelectedMesh(mesh=>({...mesh,geologyDefinition:geologyDefinition(mesh.geologyType,{...mesh.geologyDefinition,scale:(mesh.geologyDefinition?.scale??1)+(event.code==='BracketRight' ? .1 : -.1)})}))}
+    };
+    window.addEventListener('keydown',key);
+    return()=>{unsubscribe();window.removeEventListener('keydown',key)};
+  },[placementMode,selectedMesh?.modelType]);
+
+  function commitGeologyPlacement(){
+    try{
+      const definition=geologyDefinition(selectedMesh.geologyType,{...selectedMesh.geologyDefinition,rotation:placementRotation*180/Math.PI});
+      const id=createGeologyFeature(selectedMesh.geologyType,definition,previewPosition.toArray(),{foundation:geologyFoundation,name:selectedMesh.name});
+      if(!id)return false;
+      setPreviewPosition(null);
+      window.dispatchEvent(new CustomEvent('tg-mesh-placement-completed'));
+      window.dispatchEvent(new CustomEvent('crash-unit-action',{detail:{action:'worldTransform',duration:620}}));
+      return true;
+    }catch(error){window.dispatchEvent(new CustomEvent('tg-geology-message',{detail:{message:error.message}}));return false}
+  }
 
   function selectPlacedObject(id) {
     selectedPlacedIdRef.current = id;
@@ -841,7 +872,8 @@ export default function MeshPlacementSystem() {
   useEffect(() => {
     function handleTerrainChange(event) {
       const key = event.detail?.key;
-      if (![
+      const bounds = event.type==='geology-terrain-changed'?event.detail?.bounds:null;
+      if (event.type!=='geology-terrain-changed' && ![
         "terrainEditVersion",
         "terrainVertexEditVersion",
         "terrainPreviewVersion",
@@ -856,6 +888,8 @@ export default function MeshPlacementSystem() {
 
         let changed = false;
         const next = placedMeshes.map((entry) => {
+          const p=entry.type==='scene'?entry.object?.position:entry.position;
+          if(bounds&&p&&(p.x<bounds.minX||p.x>bounds.maxX||p.z<bounds.minZ||p.z>bounds.maxZ))return entry;
           const nextY = getTerrainAnchoredObjectY(entry);
           if (nextY == null) return entry;
           const currentY = entry.type === "scene"
@@ -883,7 +917,8 @@ export default function MeshPlacementSystem() {
     }
 
     window.addEventListener("terrain-settings-changed", handleTerrainChange);
-    return () => window.removeEventListener("terrain-settings-changed", handleTerrainChange);
+    window.addEventListener("geology-terrain-changed", handleTerrainChange);
+    return () => {window.removeEventListener("terrain-settings-changed", handleTerrainChange);window.removeEventListener("geology-terrain-changed", handleTerrainChange)};
   }, [placedMeshes]);
 
   // --------------------------------------------------
@@ -918,9 +953,6 @@ export default function MeshPlacementSystem() {
             hit.userData = { ...(hit.userData || {}), blockHeightLevel: stacked.heightLevel };
           }
         }
-        if (selectedMesh?.modelType === "geology") {
-          setTerrainPreviewStamp({ x: hit.x, z: hit.z, rotation: placementRotation, type: selectedMesh.geologyType, width: selectedMesh.geologyType === "canyon-wall" ? 60 : selectedMesh.geologyType === "cliff-face" ? 30 : 36, height: selectedMesh.geologyType === "canyon-wall" ? 30 : selectedMesh.geologyType === "giant-rock" ? 9 : 12, depth: selectedMesh.geologyType === "canyon-wall" ? 5 : selectedMesh.geologyType === "giant-rock" ? 18 : 10 });
-        }
         setPreviewPosition(hit);
       }
     }
@@ -941,7 +973,14 @@ export default function MeshPlacementSystem() {
     }
 
     function handlePointerDown(event) {
-  if (!placementMode) return;
+  if (!placementMode) {
+    if(event.button===0&&!useInteractionStore.getState().activeTool&&gameplayInputAllowed()){
+      const rect=gl.domElement.getBoundingClientRect();mouse.set(((event.clientX-rect.left)/rect.width)*2-1,-((event.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(mouse,camera);
+      const point=findTerrainHit(raycaster.ray),feature=point?pickGeologyFeatureAt(point.x,point.z):null;
+      if(feature)useInteractionStore.getState().setTarget('object:'+feature.id);
+    }
+    return;
+  }
   if (event.button !== 0) return;
   if (!previewPosition) return;
 
@@ -955,26 +994,7 @@ export default function MeshPlacementSystem() {
   event.preventDefault();
 
   if (selectedMesh?.modelType === "geology") {
-    beginTerrainHistory("PLACE GEOLOGY");
-    setTerrainPreviewStamp(null);
-    applyGeologyTerrainStamp({
-      x: previewPosition.x,
-      z: previewPosition.z,
-      rotation: placementRotation,
-      type: selectedMesh.geologyType,
-      width: selectedMesh.geologyType === "canyon-wall" ? 60 : selectedMesh.geologyType === "cliff-face" ? 30 : 36,
-      height: selectedMesh.geologyType === "canyon-wall" ? 30 : selectedMesh.geologyType === "giant-rock" ? 9 : 12,
-      depth: selectedMesh.geologyType === "canyon-wall" ? 5 : selectedMesh.geologyType === "giant-rock" ? 18 : 10,
-    });
-    commitTerrainHistory();
-    setPreviewPosition(null);
-    useInteractionStore.getState().activate({
-      target: `object:${selectedMesh.id}`,
-      tool: "OBJECT",
-      mode: "PLACE",
-    });
-    window.dispatchEvent(new CustomEvent("tg-mesh-placement-completed"));
-    window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: "worldTransform", duration: 620 } }));
+    commitGeologyPlacement();
     return;
   }
 
@@ -1090,21 +1110,7 @@ export default function MeshPlacementSystem() {
       if (!hasLoadedScene && !hasProceduralMesh) return;
 
       if (selectedMesh?.modelType === "geology") {
-        beginTerrainHistory("PLACE GEOLOGY");
-        setTerrainPreviewStamp(null);
-        applyGeologyTerrainStamp({
-          x: previewPosition.x,
-          z: previewPosition.z,
-          rotation: placementRotation,
-          type: selectedMesh.geologyType,
-          width: selectedMesh.geologyType === "canyon-wall" ? 60 : selectedMesh.geologyType === "cliff-face" ? 30 : 36,
-          height: selectedMesh.geologyType === "canyon-wall" ? 30 : selectedMesh.geologyType === "giant-rock" ? 9 : 12,
-          depth: selectedMesh.geologyType === "canyon-wall" ? 5 : selectedMesh.geologyType === "giant-rock" ? 18 : 10,
-        });
-        commitTerrainHistory();
-        setPreviewPosition(null);
-        useInteractionStore.getState().activate({ target: `object:${selectedMesh.id}`, tool: "OBJECT", mode: "PLACE" });
-        window.dispatchEvent(new CustomEvent("tg-mesh-placement-completed"));
+        commitGeologyPlacement();
         return;
       }
 
@@ -1158,7 +1164,7 @@ export default function MeshPlacementSystem() {
 
     function handleContextMenu(event) {
       if (!placementMode) return;
-      setTerrainPreviewStamp(null);
+      if(terrainSettings.terrainPreviewStamp)setTerrainPreviewStamp(null);
 
       event.preventDefault();
 
@@ -1217,6 +1223,7 @@ export default function MeshPlacementSystem() {
   proceduralMesh,
   selectedMesh,
   placementRotation,
+  geologyFoundation,
   placedMeshes.length,
 ]);
 
@@ -1357,6 +1364,7 @@ useFrame((state) => {
 
 return (
   <group>
+    {placementMode&&selectedMesh?.modelType==='geology'&&previewPosition&&<GeologyPlacementGhost mesh={selectedMesh} point={previewPosition} rotation={placementRotation} foundation={geologyFoundation}/>}
     {placementMode &&
       loadedScene &&
       previewPosition && (

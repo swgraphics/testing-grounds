@@ -41,6 +41,7 @@ export function createSavedObject(object, overrides = {}) {
     modelType: object.modelType,
     blockType: object.blockType,
     geologyType: object.geologyType,
+    geologyDefinition: object.geologyDefinition,
     treeDefinition: object.treeDefinition,
     editSettings: object.editSettings,
     modelPath: object.modelPath,

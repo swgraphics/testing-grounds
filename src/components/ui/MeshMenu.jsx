@@ -6,12 +6,14 @@ import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import TreeProperties from "./TreeProperties";
 import ObjectTransformProperties from "./ObjectTransformProperties";
 import ObjectEditHistory from "./ObjectEditHistory";
+import GeologyEditor from './GeologyEditor';
+import GeologyThumbnail from './GeologyThumbnail';
 import { mergeTreeProperties } from "../../systems/objects/treeProperties";
 import { resolveObjectTarget, editObjectTarget } from "../../systems/objects/objectEditing";
 import { useEditorStore } from "../../systems/editor/editorStore";
 import { returnToWorldView, openObjectLibrary } from "../../systems/ui/navigationActions";
 import { useNavigationStore } from "../../systems/ui/navigationStore";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CrimsonTreeModel from "../world/CrimsonTreeModel";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
@@ -287,7 +289,10 @@ function LeafVertexEditor({ vertices, onSave, onCancel }) {
   );
 }
 
-function MeshEditModal({ mesh, live, onChange, onSave, onCancel }) {
+function MeshEditModal(props) {
+  return props.mesh.modelType === 'geology' ? <GeologyEditor {...props}/> : <StandardMeshEditModal {...props}/>;
+}
+function StandardMeshEditModal({ mesh, live, onChange, onSave, onCancel }) {
   useEffect(()=>{
     if(!live)return;
     const finish=()=>{if(useInteractionStore.getState().gestureOwner==='object-editor')useInteractionStore.getState().setGestureOwner(null)};
@@ -384,9 +389,27 @@ export default function MeshMenu({ host }) {
     gallery?.scrollBy({ left: direction * gallery.clientWidth * 0.85, behavior: "auto" });
   }
   const libraryPosition = useRef({ mode: "select", scrollTop: 0, galleryScrollLeft: 0 });
+  const attachGallery = useCallback(element => {
+    galleryRef.current = element;
+    if (element) element.scrollLeft = libraryPosition.current.galleryScrollLeft;
+  }, []);
   function rememberLibraryPosition(browsingMode = mode) {
-    libraryPosition.current = captureLibraryPosition(browsingMode);
+    if (southVisible) libraryPosition.current = captureLibraryPosition(browsingMode);
+    else libraryPosition.current.mode = browsingMode === "place" ? "select" : browsingMode;
   }
+  useEffect(() => {
+    const content = host?.closest('.tg-directional-content');
+    if (!content) return;
+    const rememberScroll = () => {
+      if (useEditorStore.getState().visiblePanels.south) libraryPosition.current.scrollTop = content.scrollTop;
+    };
+    content.addEventListener('scroll', rememberScroll);
+    return () => content.removeEventListener('scroll', rememberScroll);
+  }, [host]);
+  useEffect(() => {
+    const content = host?.closest('.tg-directional-content');
+    if (southVisible && content) content.scrollTop = libraryPosition.current.scrollTop;
+  }, [host, southVisible]);
   useEffect(() => {
     function selectFromLibrary(event) {
       const mesh = event.detail?.mesh;
@@ -423,6 +446,7 @@ export default function MeshMenu({ host }) {
         treeDefinition:
           edited?.treeDefinition ??
           mesh.treeDefinition,
+        geologyDefinition: edited?.geologyDefinition ?? mesh.geologyDefinition,
       };
     }),
   [uploadedMeshes, editedMeshes, savedMeshes, scatterProfiles]
@@ -731,10 +755,11 @@ function getDefaultCrimsonProfile() {
           {[["select","LIBRARY"],["selected","SELECTED OBJECT"],["scatter","SCATTER / POPULATIONS"],["animation","ANIMATION ACTIONS"]].map(([id,label]) => <button key={id} className="tg-ui-button" data-object-view={id} aria-pressed={mode === id} onClick={() => setMode(id)}>{label}</button>)}
         </nav>
         <div hidden={mode === "animation"} className="tg-object-browser">
-        {mode === "selected" && <section className="tg-selected-object-context">
+        {southVisible && mode === "selected" && <section className="tg-selected-object-context">
           <label>WORLD OBJECT <select aria-label="Select world object" value={worldTarget?.id ?? ""} onChange={event => setWorldTarget(event.target.value ? { id: event.target.value, chunkId: world.currentChunkId } : null)}>
             <option value="">Library selection</option>
             {Object.values(world.chunks?.[world.currentChunkId]?.objects ?? {}).map(object => <option key={object.id} value={object.id}>{object.name || object.id}</option>)}
+            {Object.values(world.geology?.features ?? {}).map(feature => <option key={feature.id} value={feature.id}>{feature.name}</option>)}
             {worldSelection?.profileId && <option value={worldTarget.id}>{worldSelection.name} / scattered instance</option>}
           </select></label>
           <button className="tg-ui-button" disabled={!currentSelection} onClick={() => setWorldTarget({ id: currentSelectionId, chunkId: world.currentChunkId, scope: "single" })}>USE WORLD SELECTION</button>
@@ -769,7 +794,7 @@ function getDefaultCrimsonProfile() {
         </div>
 
         {uploadError && <p className="tg-upload-error" role="alert">{uploadError}</p>}
-        <div hidden={mode === "selected" || mode === "scatter"} ref={galleryRef} className="tg-mesh-library" role="list" aria-label="Object gallery" tabIndex={0}>
+        {southVisible && <div hidden={mode === "selected" || mode === "scatter"} ref={attachGallery} onScroll={event => { libraryPosition.current.galleryScrollLeft = event.currentTarget.scrollLeft; }} className="tg-mesh-library" role="list" aria-label="Object gallery" tabIndex={0}>
           {meshes.map((mesh) => {
             const renaming = renamingId === mesh.id;
             return (
@@ -793,7 +818,7 @@ function getDefaultCrimsonProfile() {
                   title={mesh.name}
                 >
                   <div className="tg-mesh-card-art">
-                    <PreviewIcon kind={mesh.kind} />
+                    {mesh.modelType==='geology'?<GeologyThumbnail type={mesh.geologyType} definition={mesh.geologyDefinition}/>:<PreviewIcon kind={mesh.kind} />}
                   </div>
                   {mesh.category && <small className="tg-cloud-category">{mesh.category.toUpperCase()}</small>}
                   <span
@@ -825,7 +850,7 @@ function getDefaultCrimsonProfile() {
               </div>
             );
           })}
-        </div>
+        </div>}
 
         <div className="tg-library-footer">
           <output className="tg-library-selected" aria-label="Selected object" title={selectedMesh?.name}>{selectedMesh?.name || "Select an object, then choose an action"}</output>
@@ -834,8 +859,8 @@ function getDefaultCrimsonProfile() {
           <details className="tg-placement-help"><summary>PLACEMENT CONTROLS</summary><p>Choose Place to enter the world. Escape / B returns here. Placed objects: R rotates; [ / ] changes scale.</p></details>
         </div>
         </div>
-        <div hidden={mode !== "animation"} className="tg-object-animation-host"><AnimationActions /></div>
-        {mode === "scatter" && (
+        {southVisible && <div hidden={mode !== "animation"} className="tg-object-animation-host"><AnimationActions /></div>}
+        {southVisible && mode === "scatter" && (
           <div className="tg-mesh-scatter-panel tg-mesh-scatter-manager">
             <div className="tg-mesh-scatter-manager-title">SCATTER / POPULATIONS</div>
             <div className="tg-panel-actions tg-population-add">
@@ -920,7 +945,11 @@ function getDefaultCrimsonProfile() {
           onChange={patch => editObjectTarget(worldTarget, patch)} onCancel={closeEditor}
           onSave={settings => {
             if (selectedMesh.file && !selectedMesh.modelPath) return;
-            const updatedMesh = { ...selectedMesh, treeDefinition: settings.treeDefinition ?? selectedMesh.treeDefinition, editSettings: settings.fireflySettings ?? selectedMesh.editSettings };
+            if (settings.geologyDefinition && settings.applyTemplate) {
+              setEditedMeshes(current => ({...current,[selectedMesh.id]:{...current[selectedMesh.id],geologyDefinition:settings.geologyDefinition}}));
+              setEditOpen(false);return;
+            }
+            const updatedMesh = { ...selectedMesh, treeDefinition: settings.treeDefinition ?? selectedMesh.treeDefinition, editSettings: settings.fireflySettings ?? selectedMesh.editSettings, geologyDefinition: settings.geologyDefinition ?? selectedMesh.geologyDefinition };
             const savedObject = createSavedObject(updatedMesh, { id: selectedMesh.id + "-saved-" + Date.now() });
             setSavedMeshes(current => { const next = [savedObject, ...current]; localStorage.setItem("testingGroundsSavedObjects", JSON.stringify(next)); return next; });
             setSelectedId(savedObject.id); setEditOpen(false);

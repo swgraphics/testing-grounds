@@ -101,7 +101,6 @@ export default function LivingVaporSystem() {
       cloud.root.scale.set(...cloud.dims.map((value, i) => value * record.scale[i]));
       cloud.fillPoint = [...record.fillPoint];
       cloud.cageVisible = record.cage;
-      cloud.uploadedVersion = -1;
     }
     const selected = useCloudUI.getState().selectedId;
     if (selected && !records[selected]) { useCloudUI.setState({ selectedId: null, panelOpen: false }); close(); }
@@ -285,7 +284,7 @@ export default function LivingVaporSystem() {
     const owner = useInteractionStore.getState();
     T.ray.setFromCamera(new THREE.Vector2(0, 0), camera);
     if (S.frames % 4 === 0) {
-      const candidate = !owner.activeTool || owner.activeTool === 'CLOUD' ? pickLivingCloud(arr(T.ray.ray.origin), arr(T.ray.ray.direction)) : null;
+      const candidate = gameplayInputAllowed() && (!owner.activeTool || owner.activeTool === 'CLOUD') ? pickLivingCloud(arr(T.ray.ray.origin), arr(T.ray.ray.direction)) : null;
       const foreground = candidate ? T.ray.intersectObjects(scene.children, true).find(hit => hit.object.isMesh && !hit.object.material?.transparent) : null;
       sensed.current = candidate && (!foreground || foreground.distance >= candidate.hit.t) ? candidate : null;
     }

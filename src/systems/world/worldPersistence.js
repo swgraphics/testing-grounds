@@ -10,6 +10,7 @@ import {
 import { parseGridCoordinate } from "./worldGrid";
 import { clearHistory } from "../history/historyStore";
 import { captureLivingVapor, normalizeLivingVapor } from '../atmosphere/livingVapor/cloudPersistence.js';
+import { normalizeGeologyLayer } from '../geology/geologyField';
 
 export const WORLD_STORAGE_KEY = "testingGroundsWorld";
 export const LEGACY_WORLD_STORAGE_KEY = "testingGroundsWorldState";
@@ -102,6 +103,7 @@ function migrateWorld(input) {
     atmosphere: { ...(input.atmosphere ?? {}) },
     terrainVertexEdits: { ...(input.terrainVertexEdits ?? {}) },
     livingVapor: normalizeLivingVapor(input.livingVapor),
+    geology: normalizeGeologyLayer(input.geology),
   };
 
   const inputChunks = input.chunks ?? {};

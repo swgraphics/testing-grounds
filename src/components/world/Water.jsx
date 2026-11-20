@@ -7,6 +7,7 @@ import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
 import { useWorldStore } from "../../systems/world/worldStore";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import { createLivingWaterMaterial, updateLivingWater } from '../../systems/atmosphere/livingVapor/waterMaterial.js';
+import { terrainHeightChanged } from '../../systems/terrain/terrainRenderState';
 
 const WATER_SIZE = 900;
 const WATER_DEPTH = 100;
@@ -161,7 +162,8 @@ export default function Water() {
   const [terrainRevision, refresh] = useState(0);
 
   useEffect(() => {
-    function handleTerrainChange() {
+    function handleTerrainChange(event) {
+      if (event.type === 'terrain-settings-changed' && !terrainHeightChanged(event) && !['waterHeight', 'waterSubdivisions'].includes(event.detail?.key)) return;
       refresh((value) => value + 1);
     }
     window.addEventListener("terrain-settings-changed", handleTerrainChange);

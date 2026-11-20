@@ -4,6 +4,7 @@ import { columnToLetter } from "../../systems/world/worldGrid";
 import {
   useEffect,
   useState,
+  memo,
 } from "react";
 
 import { RigidBody } from "@react-three/rapier";
@@ -11,9 +12,9 @@ import { Billboard, Text } from "@react-three/drei";
 
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import { useWorldGuideStore } from "../../systems/ui/worldGuideStore";
+import { terrainHeightChanged, terrainHeightKey } from '../../systems/terrain/terrainRenderState';
 
 const SIZE = 300;
-const MINOR_STEP = 10;
 const MAJOR_STEP = 50;
 const CELL_STEP = 100;
 
@@ -84,7 +85,7 @@ function getLabelTerrainHeight(
  * Oswald keeps them technical and readable
  * without competing with the larger region IDs.
  */
-function DistanceLabel({ children, x, z }) {
+const DistanceLabel = memo(function DistanceLabel({ children, x, z }) {
   const terrainHeight = getLabelTerrainHeight(x, z, 5, 2.5);
 
   return (
@@ -104,14 +105,14 @@ function DistanceLabel({ children, x, z }) {
       {children}
     </Text>
   );
-}
+});
 
 /*
  * Large A1–F6 world-region labels.
  * They stand upright and billboard toward the camera
  * instead of lying flat on the terrain.
  */
-function SectorLabel({ children, x, z }) {
+const SectorLabel = memo(function SectorLabel({ children, x, z }) {
   const terrainHeight = getLabelTerrainHeight(x, z, 8, 5);
 
   return (
@@ -135,10 +136,11 @@ function SectorLabel({ children, x, z }) {
       </Text>
     </Billboard>
   );
-}
+});
 
 export default function GridFloor() {
   const world=useWorldStore(state=>state.world);
+  const heightKey = terrainHeightKey(world);
   const expanded=Boolean(world.terrainSurface);
   const guidesVisible = useWorldGuideStore((state) => state.visible);
   /*
@@ -148,7 +150,8 @@ export default function GridFloor() {
   const [, refreshLabels] = useState(0);
 
   useEffect(() => {
-    function handleTerrainChange() {
+    function handleTerrainChange(event) {
+      if (!terrainHeightChanged(event)) return;
       refreshLabels(
         (value) => value + 1
       );
@@ -167,96 +170,7 @@ export default function GridFloor() {
     };
   }, []);
 
-  /*
-   * Keep the original flat grid-line generation
-   * code available for possible use beyond the
-   * 600 × 600 terrain later.
-   *
-   * It remains hidden for Terrain Grid V1.
-   */
-  const lines = [];
-
-  for (
-    let i = -SIZE;
-    i <= SIZE;
-    i += MINOR_STEP
-  ) {
-    const isMajor =
-      i % MAJOR_STEP === 0;
-
-    const isAxis =
-      i === 0;
-
-    const color = isAxis
-      ? "#dfefff"
-      : isMajor
-        ? "#9ca8b3"
-        : "#3b4654";
-
-    const opacity = isAxis
-      ? 0.9
-      : isMajor
-        ? 0.62
-        : 0.32;
-
-    lines.push(
-      <line key={`x-${i}`}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={2}
-            array={
-              new Float32Array([
-                -SIZE,
-                0.02,
-                i,
-
-                SIZE,
-                0.02,
-                i,
-              ])
-            }
-            itemSize={3}
-          />
-        </bufferGeometry>
-
-        <lineBasicMaterial
-          color={color}
-          transparent
-          opacity={opacity}
-        />
-      </line>
-    );
-
-    lines.push(
-      <line key={`z-${i}`}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={2}
-            array={
-              new Float32Array([
-                i,
-                0.02,
-                -SIZE,
-
-                i,
-                0.02,
-                SIZE,
-              ])
-            }
-            itemSize={3}
-          />
-        </bufferGeometry>
-
-        <lineBasicMaterial
-          color={color}
-          transparent
-          opacity={opacity}
-        />
-      </line>
-    );
-  }
+  // Terrain-conforming lines belong to GridTerrain; only labels are built here.
 
   const distanceMarkers = [];
 
@@ -277,21 +191,23 @@ export default function GridFloor() {
 
     distanceMarkers.push(
       <DistanceLabel
+        heightKey={heightKey}
         key={`x-label-${value}`}
         x={value}
         z={-18}
       >
-        {Math.abs(value)}m
+        {`${Math.abs(value)}m`}
       </DistanceLabel>
     );
 
     distanceMarkers.push(
       <DistanceLabel
+        heightKey={heightKey}
         key={`z-label-${value}`}
         x={-18}
         z={value}
         >
-        {Math.abs(value)}m
+        {`${Math.abs(value)}m`}
       </DistanceLabel>
     );
   }
@@ -328,6 +244,7 @@ export default function GridFloor() {
     ) {
       coordinateLabels.push(
         <SectorLabel
+          heightKey={heightKey}
           key={
             `cell-${rowIndex}` +
             `${columnIndex}`
@@ -335,8 +252,7 @@ export default function GridFloor() {
           x={x}
           z={z}
         >
-          {columnToLetter(columnIndex-1)}
-          {rowIndex+1}
+          {`${columnToLetter(columnIndex-1)}${rowIndex+1}`}
         </SectorLabel>
       );
 
@@ -384,7 +300,7 @@ export default function GridFloor() {
         <>
           <group>{distanceMarkers}</group>
           <group>{coordinateLabels}</group>
-          {getTerrainRegions(world).slice(1).map(region=>{const chunk=world.chunks[region.id];return <SectorLabel key={region.id} x={chunk.position[0]} z={chunk.position[2]}>{chunk.grid}</SectorLabel>})}
+          {getTerrainRegions(world).slice(1).map(region=>{const chunk=world.chunks[region.id];return <SectorLabel key={region.id} heightKey={heightKey} x={chunk.position[0]} z={chunk.position[2]}>{chunk.grid}</SectorLabel>})}
         </>
       )}
     </>

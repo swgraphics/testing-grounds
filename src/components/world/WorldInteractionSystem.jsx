@@ -9,8 +9,6 @@ import { gamepadState } from "../../systems/input/gamepadState";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import {
   applyTerrainBrush,
-  analyzeTerrainWallAt,
-  applyCanyonWallExpansion,
   beginTerrainHistory,
   commitTerrainHistory,
 } from "../../systems/terrain/terrainEdits";
@@ -52,20 +50,6 @@ function toolToTerrainOperation(tool) {
   return ["RAISE", "LOWER", "SMOOTH", "FLATTEN", "SLOPE"].includes(tool) ? tool.toLowerCase() : null;
 }
 
-function controllerDirection(camera) {
-  const x = Number(gamepadState.leftStickX) || 0;
-  const y = Number(gamepadState.leftStickY) || 0;
-  const length = Math.hypot(x, y);
-  if (length < 0.12) return null;
-  const forward = new THREE.Vector3();
-  camera.getWorldDirection(forward);
-  forward.y = 0;
-  if (forward.lengthSq() < 0.001) forward.set(0, 0, -1);
-  forward.normalize();
-  const right = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
-  return forward.multiplyScalar(-y / length).add(right.multiplyScalar(x / length)).normalize();
-}
-
 export default function WorldInteractionSystem() {
   const { camera } = useThree();
   const paintingRef = useRef(false);
@@ -74,14 +58,9 @@ export default function WorldInteractionSystem() {
   const lastSpellRef = useRef(0);
   const [brushPoint, setBrushPoint] = useState(null);
   const [waterPreviewPoints, setWaterPreviewPoints] = useState([]);
-  const [canyonPreviewPoints, setCanyonPreviewPoints] = useState([]);
-  const [canyonExpansionPreviewPoints, setCanyonExpansionPreviewPoints] = useState([]);
   const heightDirectionRef = useRef(0);
   const heightPointerLastYRef = useRef(null);
   const lockedBrushPointRef = useRef(null);
-  const canyonLastPointRef = useRef(null);
-  const canyonSelectionRef = useRef(null);
-  const controllerCanyonRef = useRef(null);
   const controllerActionWasHeldRef = useRef(false);
 
   function signalWorldAction() {
@@ -139,119 +118,11 @@ export default function WorldInteractionSystem() {
     });
   }
 
-  function buildCanyonSelectionPreview(selection, cursorPoint = null) {
-    if (!selection) {
-      setCanyonPreviewPoints([]);
-      setCanyonExpansionPreviewPoints([]);
-      return;
-    }
-
-    const center = selection.point.clone();
-    const span = selection.wallSpan;
-    const start = center.clone().add(new THREE.Vector3(
-      selection.normal.x * -span,
-      0,
-      selection.normal.y * -span,
-    ));
-    const end = center.clone().add(new THREE.Vector3(
-      selection.normal.x * span,
-      0,
-      selection.normal.y * span,
-    ));
-
-    const points = [
-      new THREE.Vector3(start.x, getTerrainHeightAt(start.x, start.z) + 0.22, start.z),
-      new THREE.Vector3(center.x, center.y + 0.28, center.z),
-      new THREE.Vector3(end.x, getTerrainHeightAt(end.x, end.z) + 0.22, end.z),
-    ];
-
-    if (cursorPoint) {
-      const endPoint = projectCanyonExpansion(selection, cursorPoint);
-      if (endPoint) {
-        setCanyonExpansionPreviewPoints([
-          new THREE.Vector3(center.x, center.y + 0.3, center.z),
-          new THREE.Vector3(
-            endPoint.x,
-            getTerrainHeightAt(endPoint.x, endPoint.z) + 0.3,
-            endPoint.z,
-          ),
-        ]);
-      } else {
-        setCanyonExpansionPreviewPoints([]);
-      }
-    } else {
-      setCanyonExpansionPreviewPoints([]);
-    }
-
-    setCanyonPreviewPoints(points);
-  }
-
-  function getCanyonSelection(point) {
-    if (!point) return null;
-    return analyzeTerrainWallAt(point.x, point.z);
-  }
-
-  function projectCanyonExpansion(selection, point) {
-    if (!selection || !point) return null;
-    const relX = point.x - selection.point.x;
-    const relZ = point.z - selection.point.z;
-    const along = relX * selection.tangent.x + relZ * selection.tangent.y;
-    if (Math.abs(along) < 5) return null;
-    return selection.point.clone().add(new THREE.Vector3(
-      selection.tangent.x * along,
-      0,
-      selection.tangent.y * along,
-    ));
-  }
-
-  function commitCanyonExpansion(selection, endPoint) {
-    if (!selection || !endPoint) return false;
-    const length = selection.point.distanceTo(endPoint);
-    if (length < 5) return false;
-
-    beginTerrainHistory("CANYON EDGE");
-    const changed = applyCanyonWallExpansion({
-      anchor: selection.point,
-      end: endPoint,
-      normal: selection.normal,
-      tangent: selection.tangent,
-      height: 12,
-      width: Math.max(10, selection.wallSpan * 0.55),
-      irregularity: 0.24,
-    });
-    if (changed) commitTerrainHistory();
-    else commitTerrainHistory();
-    return changed;
-  }
-
-  function clearCanyonSelection() {
-    canyonSelectionRef.current = null;
-    canyonLastPointRef.current = null;
-    controllerCanyonRef.current = null;
-    setCanyonPreviewPoints([]);
-    setCanyonExpansionPreviewPoints([]);
-  }
-
   function beginPointerTool(state, event) {
     const point = findTerrainPoint(camera);
     if (!point) return false;
 
-    if (state.activeTool === "CANYON_EDGE") {
-      const existing = canyonSelectionRef.current;
-      if (!existing) {
-        const selection = getCanyonSelection(point);
-        if (!selection) return false;
-        canyonSelectionRef.current = selection;
-        buildCanyonSelectionPreview(selection);
-      } else {
-        const endPoint = projectCanyonExpansion(existing, point);
-        if (endPoint) commitCanyonExpansion(existing, endPoint);
-        clearCanyonSelection();
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      return true;
-    }
+
 
     if (toolToTerrainOperation(state.activeTool) || state.activeTool === "HEIGHT") {
       beginTerrainHistory(state.activeTool === "HEIGHT" ? "TERRAIN HEIGHT" : `${state.activeTool} TERRAIN`);
@@ -310,6 +181,7 @@ export default function WorldInteractionSystem() {
 
     function onPointerMove(event) {
       const state = useInteractionStore.getState();
+      if (state.activeTool === "CANYON_EDGE") return;
       const point = findTerrainPoint(camera);
       if (state.activeTool === "RIVER" && point) {
         if (paintingRef.current) {
@@ -325,19 +197,7 @@ export default function WorldInteractionSystem() {
       }
       if (!paintingRef.current) return;
 
-      if (state.activeTool === "CANYON_EDGE") {
-        const selection = canyonSelectionRef.current;
-        if (selection) {
-          const endPoint = projectCanyonExpansion(selection, point);
-          buildCanyonSelectionPreview(selection, point);
-          canyonLastPointRef.current = endPoint;
-        } else if (point) {
-          const hover = getCanyonSelection(point);
-          if (hover) buildCanyonSelectionPreview(hover);
-          else setCanyonPreviewPoints([]);
-        }
-        return;
-      }
+
       if (state.activeTool === "HEIGHT") {
         const previousY = heightPointerLastYRef.current;
         heightPointerLastYRef.current = event.clientY;
@@ -358,8 +218,6 @@ export default function WorldInteractionSystem() {
       lockedBrushPointRef.current = null;
       heightPointerLastYRef.current = null;
       lastWaterPointRef.current = null;
-      canyonLastPointRef.current = null;
-      controllerCanyonRef.current = null;
       setWaterPreviewPoints([]);
     }
 
@@ -375,6 +233,7 @@ export default function WorldInteractionSystem() {
 
   useFrame(() => {
     const state = useInteractionStore.getState();
+    if (state.activeTool === "CANYON_EDGE") return;
     const point = paintingRef.current
       ? (lockedBrushPointRef.current ?? findTerrainPoint(camera))
       : findTerrainPoint(camera);
@@ -394,10 +253,7 @@ export default function WorldInteractionSystem() {
         lastWaterPointRef.current = null;
         setWaterPreviewPoints([]);
       }
-      if (controllerCanyonRef.current) {
-        controllerCanyonRef.current = null;
-        canyonLastPointRef.current = null;
-      }
+
     }
     controllerActionWasHeldRef.current = rightTriggerHeld;
 
@@ -406,30 +262,7 @@ export default function WorldInteractionSystem() {
     const stickX = Number(gamepadState.leftStickX) || 0;
     if (Math.abs(stickX) < 0.12 && Math.abs(stickY) < 0.12) return;
 
-    if (state.activeTool === "CANYON_EDGE") {
-      const currentPoint = findTerrainPoint(camera);
-      const direction = controllerDirection(camera);
-      if (!currentPoint) return;
 
-      if (!canyonSelectionRef.current) {
-        const selection = getCanyonSelection(currentPoint);
-        if (!selection) return;
-        canyonSelectionRef.current = selection;
-        controllerCanyonRef.current = { active: true };
-        buildCanyonSelectionPreview(selection);
-        return;
-      }
-
-      if (!direction) return;
-      const projectedPoint = currentPoint.clone().add(direction.multiplyScalar(18));
-      const endPoint = projectCanyonExpansion(canyonSelectionRef.current, projectedPoint);
-      if (!endPoint) return;
-      buildCanyonSelectionPreview(canyonSelectionRef.current, endPoint);
-      canyonLastPointRef.current = endPoint;
-      commitCanyonExpansion(canyonSelectionRef.current, endPoint);
-      clearCanyonSelection();
-      return;
-    }
 
     if (state.activeTool === "POND") {
       const diameter = useInteractionStore.getState().waterDiameter || 24;
@@ -479,7 +312,7 @@ export default function WorldInteractionSystem() {
   const showBrush = Boolean(
     brushPoint &&
     activeTool &&
-    (activeTool === "HEIGHT" || toolToTerrainOperation(activeTool) || activeTool === "CANYON_EDGE")
+    (activeTool === "HEIGHT" || toolToTerrainOperation(activeTool))
   );
 
   return (
@@ -489,26 +322,6 @@ export default function WorldInteractionSystem() {
           <ringGeometry args={[10.5, 11, 48]} />
           <meshBasicMaterial color="#2a8fff" transparent opacity={0.78} depthWrite={false} />
         </mesh>
-      )}
-      {activeTool === "CANYON_EDGE" && canyonPreviewPoints.length > 1 && (
-        <Line
-          points={canyonPreviewPoints}
-          color="#2a8fff"
-          lineWidth={4}
-          transparent
-          opacity={0.98}
-          depthWrite={false}
-        />
-      )}
-      {activeTool === "CANYON_EDGE" && canyonExpansionPreviewPoints.length > 1 && (
-        <Line
-          points={canyonExpansionPreviewPoints}
-          color="#2a8fff"
-          lineWidth={3}
-          transparent
-          opacity={0.72}
-          depthWrite={false}
-        />
       )}
       {activeTool === "RIVER" && waterPreviewPoints.length > 1 && (
         <Line

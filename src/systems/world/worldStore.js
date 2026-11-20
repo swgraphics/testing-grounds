@@ -2,7 +2,7 @@ import { terrainChunkAt } from "./terrainRegions";
 import { create } from "zustand";
 import { gridToWorldPosition, parseGridCoordinate } from "./worldGrid";
 
-export const WORLD_SCHEMA_VERSION = 7;
+export const WORLD_SCHEMA_VERSION = 8;
 
 export const WORLD_GRID = Object.freeze({
   chunkSize: 100,

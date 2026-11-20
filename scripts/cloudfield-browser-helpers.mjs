@@ -5,7 +5,7 @@ import net from 'node:net';
 import assert from 'node:assert/strict';
 export const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 export async function browserSession(directory) {
-  const artifact = path.resolve(directory); await fs.mkdir(artifact, { recursive: true });
+  const artifact = path.resolve(process.env.TG_CLOUD_ARTIFACT_ROOT ? path.join(process.env.TG_CLOUD_ARTIFACT_ROOT, path.basename(directory)) : directory); await fs.mkdir(artifact, { recursive: true });
   const port = await new Promise(resolve => { const listener = net.createServer(); listener.listen(0, '127.0.0.1', () => { const chosen = listener.address().port; listener.close(() => resolve(chosen)); }); });
   const chrome = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', ['--headless=new', '--disable-extensions', '--disable-background-networking', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=' + port, '--user-data-dir=' + path.resolve('node_modules/.cache/cloudfield-' + process.pid), '--enable-unsafe-swiftshader', '--window-size=1440,1000', 'about:blank'], { windowsHide: true, stdio: 'ignore' });
   await fs.writeFile(path.join(artifact, 'live-debugger.json'), JSON.stringify({ port, pid: process.pid, chromePid: chrome.pid }));
@@ -71,6 +71,7 @@ export async function enterWorld(B, blank = true, loadSaved = false) {
     window.__positions=[];window.addEventListener('player-position-changed',e=>__positions.push(e.detail));
     window.__pin={ref:{current:()=>{}},priority:0,store:window.__root};window.__root.getState().internal.subscribers.push(window.__pin);
   })()`);
+  await B.waitFor("__scene.getObjectByName('Living Vapor')?.userData.livingVaporStats", 'Living Vapor mounted and updating');
   await pause(1000);
 }
 

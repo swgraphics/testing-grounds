@@ -139,6 +139,7 @@ function applyHistorySnapshot(snapshot, metadata = {}) {
     window.dispatchEvent(new CustomEvent("tg-world-history-applied", {
       detail: { chunkId: nextWorld.currentChunkId, paths },
     }));
+    if (metadata.geology) window.dispatchEvent(new CustomEvent('geology-terrain-changed', { detail: { bounds: metadata.geologyBounds, history: true } }));
   }
 }
 

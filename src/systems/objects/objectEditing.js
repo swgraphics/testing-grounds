@@ -2,6 +2,7 @@ import { useWorldStore } from "../world/worldStore";
 import { beginHistoryTransaction, commitHistoryTransaction, getHistoryPathSnapshot } from "../history/historyStore";
 import { createCrimsonTreeDefinition } from "../../components/world/treeGenerator";
 import { mergeTreeProperties } from "./treeProperties";
+import { geologyFeatures, updateGeologyFeature } from '../geology/geologyFeatures';
 
 export function resolveTreeProfileId(treeId,world,chunkId=world.currentChunkId) {
  const anchor=id=>world.terrainSurface ? world.scatterProfiles?.[id]?.chunkId ?? world.terrainSurface.baseChunkId : chunkId;
@@ -9,6 +10,8 @@ export function resolveTreeProfileId(treeId,world,chunkId=world.currentChunkId) 
 }
 export function resolveObjectTarget(target, world = useWorldStore.getState().world) {
   if (!target?.id) return null;
+  const feature = geologyFeatures(world)[target.id];
+  if (feature) return {...feature,geologyId:feature.id,geologyDefinition:feature.definition,scale:feature.definition.scale,rotationY:feature.definition.rotation*Math.PI/180};
   const object = world.chunks?.[target.chunkId ?? world.currentChunkId]?.objects?.[target.id] ?? (world.terrainSurface ? Object.values(world.chunks).find(c=>c.objects?.[target.id])?.objects[target.id] : null);
   if (object) return object;
   const profileId = resolveTreeProfileId(target.id,world,target.chunkId ?? world.currentChunkId);
@@ -23,6 +26,7 @@ export function editObjectTarget(target, patch) {
   const store = useWorldStore.getState(), world = store.world;
   const object = resolveObjectTarget(target, world);
   if (!object) return false;
+  if (object.geologyId) return updateGeologyFeature(object.id, patch);
   const chunkId = (world.terrainSurface ? Object.values(world.chunks).find(c=>c.objects?.[target.id])?.id : null) ?? target.chunkId ?? world.currentChunkId;
   const paths = object.profileId ? [["scatterProfiles", object.profileId]] : [["chunks", chunkId, "objects", target.id]];
   const started = beginHistoryTransaction("EDIT OBJECT", getHistoryPathSnapshot(paths), { paths });
