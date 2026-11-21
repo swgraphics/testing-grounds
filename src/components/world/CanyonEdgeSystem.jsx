@@ -4,52 +4,47 @@ import {Line} from '@react-three/drei';
 import * as THREE from 'three';
 import {useInteractionStore} from '../../systems/interaction/interactionStore';
 import {clearGameplayInput,gameplayInputAllowed} from '../../systems/input/inputOwnership';
-import {useWorldStore} from '../../systems/world/worldStore';
-import {hasTerrainAt} from '../../systems/world/terrainRegions';
+import {raycastCommittedTerrain} from '../../systems/terrain/raycastTerrain';
 import {getCommittedTerrainHeightAt as heightAt} from '../../systems/terrain/terrainHeight';
 import {useCanyonEdgeStore} from '../../systems/geology/canyonEdgeStore';
-import {analyzeCanyonWallAt,prepareCanyonOperation,canyonChangeProposal,newCanyonEdgeProposal,commitCanyonProposal} from '../../systems/geology/canyonEdgeOperations';
+import {analyzeCanyonWallAt,canyonBankGuide,canyonSelectionParameters,prepareCanyonOperation,canyonChangeProposal,newCanyonEdgeProposal,commitCanyonProposal} from '../../systems/geology/canyonEdgeOperations';
 import {captureGeologyFoundation} from '../../systems/geology/geologyFeatures';
-import {compileGeologyField} from '../../systems/geology/geologyField';
+import {compileGeologyField,GEOLOGY_SHAPE_KEYS} from '../../systems/geology/geologyField';
 import GeologyPlacementGhost from './GeologyPlacementGhost';
 
 const UP=new THREE.Vector3(0,1,0);
 const limited=n=>Math.max(-120,Math.min(120,n));
 function rayTerrain(camera,raycaster){
   raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
-  const ray=raycaster.ray,p=new THREE.Vector3();let previous=0,old=ray.origin.y-heightAt(ray.origin.x,ray.origin.z);
-  for(let distance=2;distance<=900;distance+=Math.min(5,Math.max(2,distance*.015))){
-    ray.at(distance,p);const value=p.y-heightAt(p.x,p.z);
-    if(old>=0&&value<=0&&hasTerrainAt(p.x,p.z,useWorldStore.getState().world)){
-      let low=previous,high=distance;for(let i=0;i<14;i++){const middle=(low+high)/2;ray.at(middle,p);if(p.y-heightAt(p.x,p.z)>0)low=middle;else high=middle}ray.at((low+high)/2,p);return p.toArray();
-    }
-    previous=distance;old=value;
-  }
-  return null;
+  return raycastCommittedTerrain(raycaster.ray)?.toArray()??null;
 }
 function previewHeight(x,z,proposal){
   if(!proposal)return heightAt(x,z);
   return heightAt(x,z)+compileGeologyField(proposal.record).heightAt(x,z)-(proposal.previous?compileGeologyField(proposal.previous).heightAt(x,z):0);
 }
 function operationFor(ui,selection){return ui.operation==='auto'?(selection.mode==='END'?'extend':'widen'):ui.operation}
-function axisFor(selection,operation){const sign=selection.endpoint==='start'?-1:1;return operation==='widen'?selection.normal:selection.tangent.map(v=>v*sign)}
+function axisFor(selection,operation){const sign=selection.endpoint==='start'?-1:1;return operation==='extend'?selection.tangent.map(v=>v*sign):selection.normal}
 
 export default function CanyonEdgeSystem(){
   const {camera,gl}=useThree(),active=useInteractionStore(s=>s.activeTool==='CANYON_EDGE'),ui=useCanyonEdgeStore();
-  const stroke=useRef(null),pending=useRef(null),lastHover=useRef(0),padPrevious=useRef({rt:false,b:false,x:false});
+  const stroke=useRef(null),pending=useRef(null),lastHover=useRef(0),padPrevious=useRef({rt:false,b:false,a:false});
   const raycaster=useRef(new THREE.Raycaster());
+  const committing=useRef(false);
   function releaseOwner(){if(useInteractionStore.getState().gestureOwner==='canyon-edge')useInteractionStore.getState().setGestureOwner(null);clearGameplayInput()}
-  function cancel(){stroke.current=null;pending.current=null;useCanyonEdgeStore.setState({selection:null,proposal:null,held:false});releaseOwner()}
+  function cancel(){stroke.current=null;pending.current=null;useCanyonEdgeStore.setState({hover:null,selection:null,draftParameters:null,proposal:null,held:false});releaseOwner()}
   function commit(proposal){
-    let id=null;try{id=commitCanyonProposal(proposal)}catch(error){useCanyonEdgeStore.setState({message:error.message})}
+    let id=null;committing.current=true;try{id=commitCanyonProposal(proposal)}catch(error){useCanyonEdgeStore.setState({message:error.message})}finally{committing.current=false}
     if(id){window.dispatchEvent(new CustomEvent('crash-unit-action',{detail:{action:'worldTransform',duration:620}}));useCanyonEdgeStore.setState({message:'COMMITTED — select a wall to continue.'})}
     else useCanyonEdgeStore.setState({message:'Drag farther to change this wall.'});
-    stroke.current=null;pending.current=null;useCanyonEdgeStore.setState({selection:null,proposal:null,held:false});releaseOwner();
+    stroke.current=null;pending.current=null;useCanyonEdgeStore.setState({hover:null,selection:null,draftParameters:null,proposal:null,held:false});releaseOwner();
   }
   function proposalFor(g){
-    const parameters=useCanyonEdgeStore.getState().parameters;
+    const parameters=g.parameters;
     if(g.mode==='new'){const proposal=newCanyonEdgeProposal(g.selection.point,g.end,parameters,g.prepared.foundation);return proposal?{...proposal,guideEnd:g.end}:null}
-    return canyonChangeProposal(g.selection,g.distance,g.operation,g.prepared,parameters);
+    const changed=['height','width','edgeDeformation','seed'].some(key=>parameters[key]!==g.sourceParameters[key]);
+    if(!changed&&(g.operation==='extend'?g.distance<4:Math.abs(g.distance)<.5))return null;
+    const proposal=canyonChangeProposal(g.selection,g.distance,g.operation,g.prepared,parameters);
+    return proposal?.existing&&JSON.stringify(proposal.record.definition)===JSON.stringify(proposal.previous.definition)?null:proposal;
   }
   function update(g){try{useCanyonEdgeStore.setState({proposal:proposalFor(g),held:true,message:''})}catch(error){useCanyonEdgeStore.setState({message:error.message,proposal:null})}}
   function begin(input,screen={x:gl.domElement.clientWidth/2,y:gl.domElement.clientHeight/2}){
@@ -58,20 +53,23 @@ export default function CanyonEdgeSystem(){
     const selection=state.selection??(state.mode==='new'?{mode:'NEW',point:hit,side:state.parameters.side}:analyzeCanyonWallAt(hit[0],hit[2]));
     if(!selection){useCanyonEdgeStore.setState({message:'No raised wall here. Choose NEW EDGE to create a wall.'});return false}
     const operation=state.mode==='new'?'new':operationFor(state,selection);
-    const prepared=pending.current?.prepared??(state.mode==='new'?{foundation:captureGeologyFoundation()}:prepareCanyonOperation(selection,operation,state.parameters));
-    const g={mode:state.mode,selection,prepared,operation,input,start:screen,distance:input==='gamepad'?(state.proposal?.distance??0):0,end:state.proposal?.guideEnd??selection.point.slice()};
-    stroke.current=g;pending.current={...g};useCanyonEdgeStore.setState({selection,held:true,message:''});useInteractionStore.getState().setGestureOwner('canyon-edge');clearGameplayInput();return true;
+    const sourceParameters=pending.current?.sourceParameters??(state.mode==='new'?{...state.parameters}:canyonSelectionParameters(selection));
+    const parameters={...(state.draftParameters??sourceParameters)};
+    const prepared=pending.current?.prepared??(state.mode==='new'?{foundation:captureGeologyFoundation()}:prepareCanyonOperation(selection,operation,parameters));
+    const g={mode:state.mode,selection,prepared,parameters,sourceParameters,operation,input,start:screen,aim:hit,distance:input==='gamepad'?(state.proposal?.distance??0):0,end:state.proposal?.guideEnd??selection.point.slice()};
+    stroke.current=g;pending.current={...g};useCanyonEdgeStore.setState({hover:null,selection,draftParameters:parameters,held:true,message:''});useInteractionStore.getState().setGestureOwner('canyon-edge');clearGameplayInput();return true;
   }
   function finish(valid){
     const g=stroke.current;if(!g)return;
     if(!valid){cancel();return}
     const proposal=useCanyonEdgeStore.getState().proposal;
-    if(proposal&&(g.mode==='new'?proposal.distance>=4:g.operation==='extend'?g.distance>=4:Math.abs(g.distance)>=.5)){commit(proposal);return}
+    if(proposal){commit(proposal);return}
     pending.current={...g};stroke.current=null;useCanyonEdgeStore.setState({proposal:null,held:false});releaseOwner();
   }
 
   useEffect(()=>{
     if(!active)return;
+    const pad=navigator.getGamepads?.().find(p=>p?.connected);padPrevious.current={rt:Boolean(pad?.buttons[7]?.pressed),b:Boolean(pad?.buttons[1]?.pressed),a:Boolean(pad?.buttons[0]?.pressed)};
     useCanyonEdgeStore.getState().reset();
     const down=event=>{
       if(event.target!==gl.domElement||event.button!==0)return;document.activeElement?.blur?.();if(!gameplayInputAllowed())return;
@@ -96,17 +94,40 @@ export default function CanyonEdgeSystem(){
       update(g);event.preventDefault();
     };
     const up=event=>{if(stroke.current?.input==='pointer')finish(event.isTrusted&&event.target===gl.domElement)};
+    const previewParameters=()=>{
+      const g=pending.current;if(!g||stroke.current)return;
+      const state=useCanyonEdgeStore.getState();g.parameters={...(state.draftParameters??g.sourceParameters)};
+      try{useCanyonEdgeStore.setState({proposal:proposalFor(g),held:false})}catch(error){useCanyonEdgeStore.setState({proposal:null,message:error.message})}
+    };
+    const changeOperation=()=>{
+      const g=pending.current;if(!g||stroke.current)return;
+      g.operation=operationFor(useCanyonEdgeStore.getState(),g.selection);g.distance=0;
+      g.prepared=prepareCanyonOperation(g.selection,g.operation,g.parameters);previewParameters();
+    };
+    const confirm=()=>{const proposal=useCanyonEdgeStore.getState().proposal;if(proposal&&!stroke.current)commit(proposal)};
+    const contextualCancel=event=>{if(stroke.current||pending.current){event.preventDefault();cancel()}};
     const unsubscribe=useInteractionStore.subscribe(state=>{if(state.activeTool!=='CANYON_EDGE')cancel()});
+    const invalidate=event=>{
+      if(event.type==='terrain-settings-changed'&&![...GEOLOGY_SHAPE_KEYS,'terrainEditVersion','terrainVertexEditVersion'].includes(event.detail?.key))return;
+      if(!committing.current&&(stroke.current||pending.current)){cancel();useCanyonEdgeStore.setState({message:'Terrain changed — select the wall again.'})}
+    };
+    const sourceEvents=['tg-world-replaced','geology-terrain-changed','terrain-settings-changed','tg-current-chunk-changed'];
+    sourceEvents.forEach(name=>window.addEventListener(name,invalidate));
+    window.addEventListener('tg-canyon-parameters-preview',previewParameters);window.addEventListener('tg-canyon-operation-changed',changeOperation);window.addEventListener('tg-canyon-confirm-preview',confirm);window.addEventListener('tg-cancel-tool-preview',contextualCancel);
     window.addEventListener('pointerdown',down,true);window.addEventListener('pointermove',move,true);window.addEventListener('pointerup',up,true);window.addEventListener('pointercancel',cancel,true);window.addEventListener('blur',cancel);window.addEventListener('tg-canyon-cancel-preview',cancel);window.addEventListener('tg-return-to-world',cancel);
-    return()=>{window.removeEventListener('pointerdown',down,true);window.removeEventListener('pointermove',move,true);window.removeEventListener('pointerup',up,true);window.removeEventListener('pointercancel',cancel,true);window.removeEventListener('blur',cancel);window.removeEventListener('tg-canyon-cancel-preview',cancel);window.removeEventListener('tg-return-to-world',cancel);unsubscribe();cancel();useCanyonEdgeStore.getState().reset()};
+    return()=>{window.removeEventListener('pointerdown',down,true);window.removeEventListener('pointermove',move,true);window.removeEventListener('pointerup',up,true);window.removeEventListener('pointercancel',cancel,true);window.removeEventListener('blur',cancel);window.removeEventListener('tg-canyon-cancel-preview',cancel);window.removeEventListener('tg-return-to-world',cancel);window.removeEventListener('tg-canyon-parameters-preview',previewParameters);window.removeEventListener('tg-canyon-operation-changed',changeOperation);window.removeEventListener('tg-canyon-confirm-preview',confirm);window.removeEventListener('tg-cancel-tool-preview',contextualCancel);sourceEvents.forEach(name=>window.removeEventListener(name,invalidate));unsubscribe();cancel();useCanyonEdgeStore.getState().reset()};
   // Active sessions read canonical stores and gesture refs; camera/canvas identities are stable.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[active,camera,gl]);
 
   useFrame((_,delta)=>{
     if(!active)return;
-    const pad=navigator.getGamepads?.().find(p=>p?.connected),rt=Boolean(pad?.buttons[7]?.pressed),b=Boolean(pad?.buttons[1]?.pressed),previous=padPrevious.current;
-    if(b&&!previous.b){cancel();padPrevious.current={rt,b};return}
+    const pad=navigator.getGamepads?.().find(p=>p?.connected),rt=Boolean(pad?.buttons[7]?.pressed),b=Boolean(pad?.buttons[1]?.pressed),a=Boolean(pad?.buttons[0]?.pressed),previous=padPrevious.current;
+    if(b){if(!previous.b)cancel();padPrevious.current={rt,b,a};return}
+    if(a&&!previous.a&&gameplayInputAllowed()){
+      const proposal=useCanyonEdgeStore.getState().proposal;
+      if(proposal)commit(proposal);else if(begin('gamepad-select'))finish(true);
+    }
     if(rt&&!previous.rt&&gameplayInputAllowed())begin('gamepad');
     const g=stroke.current;
     if(g?.input==='gamepad'&&rt){
@@ -119,20 +140,20 @@ export default function CanyonEdgeSystem(){
       }
     }
     if(!rt&&previous.rt&&stroke.current?.input==='gamepad')finish(true);
-    padPrevious.current={rt,b};
+    padPrevious.current={rt,b,a};
     const now=performance.now();if(stroke.current||now-lastHover.current<90||!gameplayInputAllowed())return;lastHover.current=now;
     const aim=rayTerrain(camera,raycaster.current);if(!aim)return;
     const state=useCanyonEdgeStore.getState();
     if(pending.current&&state.selection){
       const p=pending.current;
       if(p.mode==='new')p.end=aim;
-      else{const axis=axisFor(p.selection,p.operation);p.distance=limited((aim[0]-p.selection.point[0])*axis[0]+(aim[2]-p.selection.point[2])*axis[1])}
-      try{const proposal=proposalFor(p);useCanyonEdgeStore.setState({proposal:proposal&&(p.mode==='new'?proposal.distance>=4:p.operation==='extend'?p.distance>=4:Math.abs(p.distance)>=.5)?proposal:null})}catch(error){useCanyonEdgeStore.setState({proposal:null,message:error.message})}
+      else{const axis=axisFor(p.selection,p.operation);p.distance=limited((aim[0]-p.aim[0])*axis[0]+(aim[2]-p.aim[2])*axis[1])}
+      try{useCanyonEdgeStore.setState({proposal:proposalFor(p)})}catch(error){useCanyonEdgeStore.setState({proposal:null,message:error.message})}
     }else if(state.mode==='select'){
       const hover=analyzeCanyonWallAt(aim[0],aim[2]);const old=state.hover;
       if((hover?.featureId??'')!==(old?.featureId??'')||hover?.mode!==old?.mode||hover?.side!==old?.side||Boolean(hover)!==Boolean(old)||hover&&old&&Math.hypot(hover.point[0]-old.point[0],hover.point[2]-old.point[2])>1)useCanyonEdgeStore.setState({hover});
     }
-  });
+  },-1); // Claim raw A/RT before default-priority player and camera subscribers.
 
   if(!active)return null;
   const selection=ui.selection??ui.hover,proposal=ui.proposal,guide=[];
@@ -146,14 +167,16 @@ export default function CanyonEdgeSystem(){
     }
   }
   const state=proposal?'PREVIEW':ui.selection?'SELECTED':'HOVER',end=guide.at(-1);
+  const rim=selection?.mode!=='NEW'?(proposal?.existing?canyonBankGuide(proposal.record,selection.side).map(([x,z])=>[x,previewHeight(x,z,proposal)+.55,z]):selection?.path??[]):[];
   const radius=end?Math.max(.12,camera.position.distanceTo(new THREE.Vector3(...end))*Math.tan(camera.fov*Math.PI/360)*12/gl.domElement.clientHeight):.2;
   return <>
     {proposal&&<group userData={{tgCanyonPreview:true,operation:proposal.operation}}><GeologyPlacementGhost proposal={proposal.record} replaceRecord={proposal.previous}/></group>}
     {guide.length>1&&<group userData={{tgCanyonGuide:true,state,selection}}>
+      {rim.length>1&&<><Line points={rim} color="#08121c" lineWidth={6} depthTest={false} depthWrite={false} renderOrder={497}/><Line points={rim} color="#2a8fff" lineWidth={ui.selection?3:2} depthTest={false} depthWrite={false} dashed={!ui.selection} dashSize={2} gapSize={1} renderOrder={498}/></>}
       <Line points={guide} color="#08121c" lineWidth={ui.selection?8:6} depthTest={false} depthWrite={false} renderOrder={500} dashed={!ui.selection} dashSize={2} gapSize={1}/>
       <Line points={guide} color="#2a8fff" lineWidth={ui.selection?5:3.5} depthTest={false} depthWrite={false} renderOrder={501} dashed={!ui.selection} dashSize={2} gapSize={1}/>
       <Line points={guide} color="white" lineWidth={1.2} depthTest={false} depthWrite={false} renderOrder={502} dashed={!ui.selection} dashSize={2} gapSize={1}/>
-      {[guide[0],end].map((p,i)=><mesh key={i} position={p} renderOrder={503}><sphereGeometry args={[radius,10,8]}/><meshBasicMaterial color={i===1?'white':'#2a8fff'} depthTest={false} depthWrite={false} wireframe={!ui.selection}/></mesh>)}
+      {[guide[0],end].map((p,i)=><mesh key={i} position={p} rotation={[0,0,Math.PI/4]} renderOrder={503}>{ui.selection?<octahedronGeometry args={[radius*1.5,0]}/>:<sphereGeometry args={[radius,10,8]}/>}<meshBasicMaterial color={i===1?'white':'#2a8fff'} depthTest={false} depthWrite={false} wireframe={!ui.selection}/></mesh>)}
     </group>}
   </>;
 }

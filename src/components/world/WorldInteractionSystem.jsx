@@ -51,7 +51,7 @@ function toolToTerrainOperation(tool) {
 }
 
 export default function WorldInteractionSystem() {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const paintingRef = useRef(false);
   const lastApplyRef = useRef(0);
   const lastWaterPointRef = useRef(null);
@@ -118,11 +118,28 @@ export default function WorldInteractionSystem() {
     });
   }
 
+  function placePond(point) {
+    const diameter = useInteractionStore.getState().waterDiameter || 24;
+    beginWaterHistory("ADD WATER");
+    // Gently form a basin beneath the water surface; the outer edge remains
+    // higher so the circular surface reads as a shoreline rather than a decal.
+    const radius = diameter / 2;
+    for (let ring = 0; ring < 3; ring += 1) {
+      const ringRadius = radius * (0.25 + ring * 0.28);
+      const count = Math.max(12, Math.ceil((Math.PI * 2 * ringRadius) / 5));
+      for (let i = 0; i < count; i += 1) {
+        const angle = (i / count) * Math.PI * 2;
+        applyTerrainBrush({ x: point.x + Math.cos(angle) * ringRadius, z: point.z + Math.sin(angle) * ringRadius, tool: "lower", radius: Math.max(4, radius * 0.42), strength: 0.16 + ring * 0.06 });
+      }
+    }
+    addWaterBody({ x: point.x, z: point.z, y: point.y - Math.max(0.8, diameter * 0.035), diameter, createdAt: Date.now() });
+    commitWaterHistory();
+  }
+
   function beginPointerTool(state, event) {
+    if(state.activeTool==='CANYON_EDGE')return false;
     const point = findTerrainPoint(camera);
     if (!point) return false;
-
-
 
     if (toolToTerrainOperation(state.activeTool) || state.activeTool === "HEIGHT") {
       beginTerrainHistory(state.activeTool === "HEIGHT" ? "TERRAIN HEIGHT" : `${state.activeTool} TERRAIN`);
@@ -136,21 +153,7 @@ export default function WorldInteractionSystem() {
     }
 
     if (state.activeTool === "POND") {
-      const diameter = useInteractionStore.getState().waterDiameter || 24;
-      beginWaterHistory("ADD WATER");
-      // Gently form a basin beneath the water surface; the outer edge remains
-      // higher so the circular surface reads as a shoreline rather than a decal.
-      const radius = diameter / 2;
-      for (let ring = 0; ring < 3; ring += 1) {
-        const ringRadius = radius * (0.25 + ring * 0.28);
-        const count = Math.max(12, Math.ceil((Math.PI * 2 * ringRadius) / 5));
-        for (let i = 0; i < count; i += 1) {
-          const angle = (i / count) * Math.PI * 2;
-          applyTerrainBrush({ x: point.x + Math.cos(angle) * ringRadius, z: point.z + Math.sin(angle) * ringRadius, tool: "lower", radius: Math.max(4, radius * 0.42), strength: 0.16 + ring * 0.06 });
-        }
-      }
-      addWaterBody({ x: point.x, z: point.z, y: point.y - Math.max(0.8, diameter * 0.035), diameter, createdAt: Date.now() });
-      commitWaterHistory();
+      placePond(point);
       event.preventDefault();
       event.stopPropagation();
       return true;
@@ -172,7 +175,8 @@ export default function WorldInteractionSystem() {
 
   useEffect(() => {
     function onPointerDown(event) {
-      if (event.target?.tagName === "CANVAS") document.activeElement?.blur?.();
+      if (event.target!==gl.domElement) return;
+      document.activeElement?.blur?.();
       if (event.button !== 0 || !gameplayInputAllowed()) return;
       const target = event.target;
       if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-interaction-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view, [data-input-context='panel']")) return;
@@ -180,6 +184,7 @@ export default function WorldInteractionSystem() {
     }
 
     function onPointerMove(event) {
+      if(event.target!==gl.domElement)return;
       const state = useInteractionStore.getState();
       if (state.activeTool === "CANYON_EDGE") return;
       const point = findTerrainPoint(camera);
@@ -229,7 +234,7 @@ export default function WorldInteractionSystem() {
       window.removeEventListener("pointermove", onPointerMove, true);
       window.removeEventListener("pointerup", onPointerUp, true);
     };
-  }, [camera]);
+  }, [camera,gl]);
 
   useFrame(() => {
     const state = useInteractionStore.getState();
@@ -246,6 +251,7 @@ export default function WorldInteractionSystem() {
     });
 
     const rightTriggerHeld = Boolean(gamepadState.connected && gamepadState.rightTrigger);
+    const justPressed=rightTriggerHeld&&!controllerActionWasHeldRef.current;
     if (!rightTriggerHeld && controllerActionWasHeldRef.current) {
       if (paintingRef.current && !lockedBrushPointRef.current) {
         commitTerrainHistory();
@@ -258,32 +264,10 @@ export default function WorldInteractionSystem() {
     controllerActionWasHeldRef.current = rightTriggerHeld;
 
     if (!rightTriggerHeld) return;
+    if(state.activeTool==='POND'){if(justPressed&&point)placePond(point);return;}
     const stickY = Number(gamepadState.leftStickY) || 0;
     const stickX = Number(gamepadState.leftStickX) || 0;
     if (Math.abs(stickX) < 0.12 && Math.abs(stickY) < 0.12) return;
-
-
-
-    if (state.activeTool === "POND") {
-      const diameter = useInteractionStore.getState().waterDiameter || 24;
-      beginWaterHistory("ADD WATER");
-      // Gently form a basin beneath the water surface; the outer edge remains
-      // higher so the circular surface reads as a shoreline rather than a decal.
-      const radius = diameter / 2;
-      for (let ring = 0; ring < 3; ring += 1) {
-        const ringRadius = radius * (0.25 + ring * 0.28);
-        const count = Math.max(12, Math.ceil((Math.PI * 2 * ringRadius) / 5));
-        for (let i = 0; i < count; i += 1) {
-          const angle = (i / count) * Math.PI * 2;
-          applyTerrainBrush({ x: point.x + Math.cos(angle) * ringRadius, z: point.z + Math.sin(angle) * ringRadius, tool: "lower", radius: Math.max(4, radius * 0.42), strength: 0.16 + ring * 0.06 });
-        }
-      }
-      addWaterBody({ x: point.x, z: point.z, y: point.y - Math.max(0.8, diameter * 0.035), diameter, createdAt: Date.now() });
-      commitWaterHistory();
-      event.preventDefault();
-      event.stopPropagation();
-      return true;
-    }
 
     if (state.activeTool === "RIVER") {
       const currentPoint = findTerrainPoint(camera);
@@ -304,11 +288,14 @@ export default function WorldInteractionSystem() {
     }
 
     if (state.activeTool === "HEIGHT" || toolToTerrainOperation(state.activeTool)) {
+      if(!paintingRef.current){beginTerrainHistory(state.activeTool+' TERRAIN');paintingRef.current=true;}
       applyActiveTerrainTool(false);
     }
   });
 
   const activeTool = useInteractionStore((state) => state.activeTool);
+  const waterDiameter=useInteractionStore(state=>state.waterDiameter);
+  const pondPreview=activeTool==='POND'&&brushPoint?Array.from({length:65},(_,i)=>{const angle=i/64*Math.PI*2,x=brushPoint.x+Math.cos(angle)*waterDiameter/2,z=brushPoint.z+Math.sin(angle)*waterDiameter/2;return [x,getTerrainHeightAt(x,z)+.15,z]}):null;
   const showBrush = Boolean(
     brushPoint &&
     activeTool &&
@@ -317,6 +304,7 @@ export default function WorldInteractionSystem() {
 
   return (
     <>
+      {pondPreview&&<group userData={{tgPondPreview:true,diameter:waterDiameter}}><Line points={pondPreview} color="#08121c" lineWidth={5} depthWrite={false}/><Line points={pondPreview} color="#2a8fff" lineWidth={2.5} depthWrite={false}/></group>}
       {showBrush && activeTool !== "CANYON_EDGE" && (
         <mesh position={[brushPoint.x, brushPoint.y + 0.09, brushPoint.z]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[10.5, 11, 48]} />

@@ -290,6 +290,7 @@ function LeafVertexEditor({ vertices, onSave, onCancel }) {
 }
 
 function MeshEditModal(props) {
+  if(props.live&&props.mesh.modelType==='geology'&&!props.mesh.geologyId)return <div className="tg-mesh-edit-backdrop" role="dialog" aria-modal="true" data-input-context="panel"><div className="tg-mesh-edit-window"><div className="tg-mesh-edit-controls"><h2>LEGACY GEOLOGY</h2><p>This formation has no editable terrain feature record. Use the terrain tools to refine its baked surface, or place a new editable geology formation.</p><button type="button" className="tg-ui-button" onClick={props.onCancel}>BACK TO SOUTH</button></div></div></div>;
   return props.mesh.modelType === 'geology' ? <GeologyEditor {...props}/> : <StandardMeshEditModal {...props}/>;
 }
 function StandardMeshEditModal({ mesh, live, onChange, onSave, onCancel }) {

@@ -3,6 +3,7 @@ import { gameplayInputAllowed } from '../../systems/input/inputOwnership';
 import {captureGeologyFoundation,createGeologyFeature,pickGeologyFeatureAt} from '../../systems/geology/geologyFeatures';
 import {geologyDefinition} from '../../systems/geology/geologyDefinition';
 import GeologyPlacementGhost from './GeologyPlacementGhost';
+import {raycastCommittedTerrain} from '../../systems/terrain/raycastTerrain';
 import { hasTerrainAt, terrainChunkAt } from "../../systems/world/terrainRegions";
 import { mergeTreeProperties } from "../../systems/objects/treeProperties";
 // MeshPlacementSystem.jsx
@@ -395,6 +396,7 @@ export default function MeshPlacementSystem() {
   const historyRevision = useHistoryStore((state) => state.revision);
   const [placementRotation, setPlacementRotation] = useState(0);
   const [geologyFoundation,setGeologyFoundation] = useState(null);
+  const geologySelectionPad=useRef(false);
   const selectedPlacedIdRef = useRef(null);
   const draggingObjectRef = useRef(false);
   const crownRefs = useRef(new Map());
@@ -1230,6 +1232,20 @@ export default function MeshPlacementSystem() {
 // --------------------------------------------------
 // PLACEMENT PREVIEW + TREE WIND
 // --------------------------------------------------
+
+// Consume world selection before the gameplay poll can interpret A as Jump.
+useFrame(() => {
+  const padA=Boolean(navigator.getGamepads?.().find(p=>p?.connected)?.buttons[0]?.pressed);
+  const interaction=useInteractionStore.getState();
+  if(interaction.gestureOwner==='geology-selection'&&!padA){interaction.setGestureOwner(null);clearGameplayInput()}
+  if(padA&&!geologySelectionPad.current&&!placementMode&&!useInteractionStore.getState().activeTool&&gameplayInputAllowed()&&Object.keys(useWorldStore.getState().world.geology?.features??{}).length){
+    raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+    const point=raycastCommittedTerrain(raycaster.ray),feature=point?pickGeologyFeatureAt(point.x,point.z):null;
+    if(feature){interaction.setTarget('object:'+feature.id);interaction.setGestureOwner('geology-selection');clearGameplayInput()}
+  }
+  geologySelectionPad.current=padA;
+},-1);
+useEffect(()=>()=>{if(useInteractionStore.getState().gestureOwner==='geology-selection'){useInteractionStore.getState().setGestureOwner(null);clearGameplayInput()}},[]);
 
 useFrame((state) => {
   /*

@@ -3,6 +3,7 @@ import { COMPASS_MENUS, DIRECTIONS, useNavigationStore } from "./navigationStore
 import { clearGameplayInput } from "../input/inputOwnership";
 import { useEditorStore } from "../editor/editorStore";
 import { useInteractionStore } from "../interaction/interactionStore";
+import { worldTool, worldToolForAction } from '../interaction/worldTools';
 import { useWorldStore } from "../world/worldStore";
 import { useTerrainExportStore } from "../terrain/terrainExportStore";
 import { endAdjustment } from "./controlAdjustment";
@@ -22,7 +23,6 @@ export function returnToWorldView() {
   useNavigationStore.getState().setHelp(false);
   useEditorStore.getState().close();
   useTerrainExportStore.getState().setOpen(false);
-  useInteractionStore.getState().closePanel();
   // Hide interfaces only: never cancel placement, clear tools, or reset settings.
   emit("tg-mesh-menu-close");
   clearGameplayInput();
@@ -53,10 +53,11 @@ export function openWorkspace(workspace = "terrain") {
   useNavigationStore.getState().setWorkspace(workspace);
   useEditorStore.getState().open();
 }
-export function activateWorldTool(tool, mode = "sculpt") {
+export function activateWorldTool(tool, mode, {retainFocus=false} = {}) {
+  const definition=worldTool(tool);
   useNavigationStore.getState().setPlacementOrigin(null);
-  useInteractionStore.getState().activate({ target: tool === "SUN" ? "sun" : ["RIVER","POND"].includes(tool) ? "water" : "terrain", tool, mode });
-  document.activeElement?.blur?.();
+  useInteractionStore.getState().activate({ target: definition?.target ?? 'terrain', tool, mode:mode??definition?.mode??'sculpt' });
+  if(!retainFocus)document.activeElement?.blur?.();
 }
 export function openObjectLibrary(mode = "place") {
   useNavigationStore.getState().setWorkspace(mode === "scatter" ? "scatter" : "objects");
@@ -89,16 +90,16 @@ export function runNavigationAction(action) {
   if (action === 'compass-tools') { returnToWorldView();useNavigationStore.getState().openCompass();useNavigationStore.getState().enterMenu('tools');return; }
   if (action === "devtools" || action === "clouds") { openIndependentDevTools(action === "clouds" ? "clouds" : undefined); return; }
   if (action.startsWith("brush-") || ["terrain","river","sun","lake"].includes(action)) {
-    const tool = action.startsWith("brush-") ? action.slice(6).toUpperCase() : { terrain: "HEIGHT", river: "RIVER", sun: "SUN", lake: "POND" }[action];
+    const definition=worldToolForAction(action);
+    const tool = definition?.id ?? (action.startsWith("brush-") ? action.slice(6).replaceAll('-','_').toUpperCase() : null);
     returnToWorldView();
-    activateWorldTool(tool, ["RIVER","SUN","POND"].includes(tool) ? "grab" : "sculpt");
+    activateWorldTool(tool);
     return;
   }
   if (action.startsWith("panel-")) {
     const direction = action.slice(6);
     useEditorStore.getState().togglePanel(direction);
     useTerrainExportStore.getState().setOpen(false);
-    useInteractionStore.getState().closePanel();
     if (useEditorStore.getState().visiblePanels[direction]) focusPanel(direction);
     else document.activeElement?.blur?.();
     return;

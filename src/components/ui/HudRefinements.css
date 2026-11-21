@@ -1,5 +1,6 @@
 /* Task 04: scoped HUD refinements; shared assets and the title keep their branding. */
 .tg-canvas-shell.world-overlay { inset: 0; border: 0; }
+.tg-canvas-shell > .tg-adaptive-reticle { position:absolute; }
 .tg-canvas-shell.world-overlay canvas { border: 0; }
 .tg-directional-layout.world { background: transparent; }
 .tg-directional-layout.world .tg-panel-expand { color: #fff; background: rgb(0 0 0 / .28); border-color: rgb(255 255 255 / .45); box-shadow: none; }

@@ -1,5 +1,5 @@
 import { getProceduralTerrainHeightAt, smoothStep } from '../terrain/terrainBase';
-import { geologyBounds, geologyDefinition, geologyLocalPoint, geologyNoise, geologyProfile, GEOLOGY_GRID } from './geologyDefinition';
+import { geologyBounds, geologyDefinition, geologyEdgeDeformation, geologyLocalPoint, geologyNoise, geologyProfile, GEOLOGY_GRID } from './geologyDefinition';
 
 export const GEOLOGY_SHAPE_KEYS = ['heightMultiplier', 'mountainHeight', 'cliffSharpness', 'rollingHills', 'ridgeStrength', 'plateauAmount', 'geometryStrength'];
 export const MAX_GEOLOGY_FEATURES = 128;
@@ -71,11 +71,11 @@ export function compileGeologyField(record) {
     if(profile.weight<=0&&record.refinement?.kind!=='widen')continue;
     const reference=record.refinement?.samples[`${x0+ix},${z0+iz}`]??sampleGeologyFoundation(record.foundation,x,z);
     if(record.refinement?.kind==='widen'){
-      const offset=d.sides.right.offset,faceWidth=Math.max(1.5,Math.min(8,d.width*.12)),band=Math.max(7,faceWidth*2+3),lo=Math.min(0,offset)-band,hi=Math.max(0,offset)+band;
+      const side=d.sides.right,deformation=geologyEdgeDeformation(side,local.x),offset=side.offset,faceWidth=Math.max(1.5,Math.min(8,(side.width??d.width)*.12)),band=Math.max(7,faceWidth*2+3)+18*(side.deformations??[]).reduce((sum,item)=>sum+Math.abs(item.amount),0),lo=Math.min(0,offset)-band,hi=Math.max(0,offset)+band;
       const mask=smoothStep(lo,lo+4,local.z)*(1-smoothStep(hi-4,hi,local.z))*smoothStep(-d.length/2,-d.length/2+6,local.x)*(1-smoothStep(d.length/2-6,d.length/2,local.x));
       if(mask<=0)continue;
-      const edge=offset+d.edgeDeformation*2*geologyNoise(local.x*.13,0,d.seed);
-      const face=smoothStep(edge-faceWidth,edge+faceWidth,local.z),target=record.position[1]+d.height*d.scale*face*(1+d.edgeDeformation*.04*geologyNoise(local.x*.055,0,d.seed+101));
+      const e=side.edgeDeformation??d.edgeDeformation,seed=side.seed??d.seed,edge=offset+e*2*geologyNoise(local.x*.13,0,seed)+deformation.offset;
+      const face=smoothStep(edge-faceWidth,edge+faceWidth,local.z),target=record.position[1]+(side.height??d.height)*d.scale*face*(1+e*.04*geologyNoise(local.x*.055,0,seed+101)+deformation.rim);
       values[iz*nx+ix]=(target-reference)*mask;continue;
     }
     if (profile.weight <= 0) continue;

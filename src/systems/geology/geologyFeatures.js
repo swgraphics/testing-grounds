@@ -80,8 +80,8 @@ export function createGeologyFeature(type, definition, position, options = {}) {
 export function updateGeologyFeature(id, patch = {}, options = {}) {
   const previous = geologyFeatures()[id];
   if (!previous) return false;
-  const input = patch.definition ?? patch.geologyDefinition ?? {};
-  const definition = { ...previous.definition, ...input, sides: {
+  const input = {...(patch.definition ?? patch.geologyDefinition ?? {}),...(patch.scale!=null?{scale:patch.scale}:{}),...(patch.rotationY!=null?{rotation:patch.rotationY*180/Math.PI}:{})};
+  const definition = input.version===1?input:{ ...previous.definition, ...input, sides: {
     left: { ...previous.definition.sides.left, ...input.sides?.left }, right: { ...previous.definition.sides.right, ...input.sides?.right },
   } };
   const record = normalizeGeologyRecord({ ...previous, ...patch, definition });

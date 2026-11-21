@@ -12,7 +12,7 @@ import TestingGrounds from "./scenes/TestingGrounds";
 import InputHUD from "./components/ui/InputHUD";
 import TitleScreen from "./components/ui/TitleScreen";
 import EditorView from "./components/ui/EditorView";
-import InteractionPanel from "./components/ui/InteractionPanel";
+import WorldToolLifecycle from "./components/ui/WorldToolLifecycle";
 import CrimsonTreeInteractionPanel from "./components/ui/CrimsonTreeInteractionPanel";
 import AdaptiveReticle from "./components/ui/AdaptiveReticle";
 import CloudInteractionPanel from './components/ui/CloudInteractionPanel';
@@ -72,6 +72,7 @@ export default function App() {
       if (event.key !== "Escape") return;
       if (useNavigationStore.getState().compassOpen || useNavigationStore.getState().helpOpen) return;
       if (endAdjustment()) { event.preventDefault(); event.stopImmediatePropagation(); return; }
+      if(!window.dispatchEvent(new Event('tg-cancel-tool-preview',{cancelable:true}))){event.preventDefault();event.stopImmediatePropagation();return;}
       if (document.querySelector('.tg-leaf-editor-window')) {
         window.dispatchEvent(new CustomEvent('tg-leaf-editor-close'));
         event.preventDefault(); event.stopImmediatePropagation(); return;
@@ -96,10 +97,6 @@ export default function App() {
       if (document.querySelector(".tg-chunk-dialog,.tg-mesh-edit-backdrop")) return;
       if (backFromObjectPlacement()) { event.preventDefault(); event.stopImmediatePropagation(); return; }
       const editor = useEditorStore.getState();
-      if (useInteractionStore.getState().panelOpen) {
-        useInteractionStore.getState().closePanel();
-        event.preventDefault(); event.stopImmediatePropagation(); return;
-      }
       if (Object.values(editor.visiblePanels).some(Boolean)) {
         const direction = event.target?.closest?.("[data-directional-panel]")?.dataset.directionalPanel;
         if (direction) {
@@ -121,7 +118,9 @@ export default function App() {
     }
 
     function onWorldPointerDown(event) {
-      if (event.target?.tagName !== 'CANVAS' || !useNavigationStore.getState().compassOpen) return;
+      if (event.target !== document.querySelector('.tg-canvas-shell canvas')) return;
+      endAdjustment();document.activeElement?.blur?.();
+      if (!useNavigationStore.getState().compassOpen) return;
       useNavigationStore.getState().closeCompass();
       clearGameplayInput(); document.activeElement?.blur?.();
       window.requestAnimationFrame(() => { if (!useNavigationStore.getState().compassOpen) document.activeElement?.blur?.(); });
@@ -231,22 +230,21 @@ export default function App() {
             />
           </Physics>
         </Canvas>
+        {!showTitleScreen && !placeMode && <AdaptiveReticle />}
       </div>
 
       {!showTitleScreen && !placeMode && (
         <>
           {(worldType !== "blank" || spatialTerrain) && <AreaDiscovery />}
-          <InteractionPanel />
           <CrimsonTreeInteractionPanel />
           <LeafVertexEditorWindow />
-          <AdaptiveReticle />
           <CloudInteractionPanel />
           <GeologySelectionActions />
           <CanyonEdgeControls />
         </>
       )}
 
-      {!showTitleScreen && <><InputHUD devToolsHost={devToolsHost} /><EditorView onDevToolsHost={setDevToolsHost} onLibraryHost={setLibraryHost} /><MeshMenu host={libraryHost} /></>}
+      {!showTitleScreen && <><WorldToolLifecycle /><InputHUD devToolsHost={devToolsHost} /><EditorView onDevToolsHost={setDevToolsHost} onLibraryHost={setLibraryHost} /><MeshMenu host={libraryHost} /></>}
       {!showTitleScreen && <NavigationShell />}
       <GamepadMenuNavigator />
 

@@ -289,7 +289,7 @@ export default function GamepadMenuNavigator() {
         return;
       }
       // Contextual Back also works while placement owns the world input.
-      if (back && (menuOpen || useInteractionStore.getState().activeMode === "place")) {
+      if (back && (menuOpen || useInteractionStore.getState().activeTool)) {
         if (!endAdjustment()) (document.activeElement || window).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
         previousButtonsRef.current.rt = Boolean(gamepad.buttons[7]?.pressed);
         aHoldRef.current = { startedAt: 0, locked: false, consumed: true };

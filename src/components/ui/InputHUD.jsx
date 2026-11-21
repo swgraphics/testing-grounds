@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import WorldToolControls from './WorldToolControls';
 import CloudControls from './CloudControls';
 import "./HudRefinements.css";
 import { characterRegistry, activeCharacterId } from "../character/characterRegistry";
@@ -457,6 +458,7 @@ export default function InputHUD({ devToolsHost }) {
 
   const [openDevSections, setOpenDevSections] = useState({
     character: false,
+    tools: false,
     terrain: false,
     camera: false,
     physics: false,
@@ -1154,6 +1156,12 @@ function handleSectionLockChange(event) {
                 </div>
               )}
             </div>
+
+{/* TOOLS */}
+<div className="tg-dev-section" data-dev-tools-section>
+  <DevSectionHeader label="TOOLS" sectionName="tools" isOpen={openDevSections.tools} onToggle={toggleDevSection}/>
+  {openDevSections.tools && <div className="tg-dev-section-content"><WorldToolControls/></div>}
+</div>
 
 {/* TERRAIN */}
 <div className="tg-dev-section">

@@ -15,7 +15,19 @@ export function geologyDefinition(type, input = {}) {
   const width = finite(input.width, defaults.width, 8, 160);
   const floorWidth=finite(input.floorWidth,Math.min(defaults.floorWidth,width-8),4,width-4);
   const minimumOffset=type==='canyon-edge'?-120:Math.min(0,3-floorWidth/2);
-  const side = value => ({ offset: finite(value?.offset, 0, minimumOffset, 120), start: finite(value?.start, 0, 0, 120), end: finite(value?.end, 0, 0, 120) });
+  const side = value => {
+    const result={offset:finite(value?.offset,0,minimumOffset,120),start:finite(value?.start,0,0,120),end:finite(value?.end,0,0,120)};
+    for(const [key,low,high] of [['height',1,100],['width',4,160],['edgeDeformation',0,1],['seed',1,199999]])if(value?.[key]!=null)result[key]=finite(value[key],defaults[key]??24,low,high);
+    if(result.seed!=null)result.seed=Math.round(result.seed);
+    if(value?.deformations!=null){
+      if(!Array.isArray(value.deformations)||value.deformations.length>64)throw Error('Invalid canyon deformation list');
+      result.deformations=value.deformations.map(item=>{
+        if(!item||!['center','length','amount','seed'].every(key=>Number.isFinite(item[key])))throw Error('Invalid canyon deformation');
+        return {center:finite(item.center,0,-360,360),length:finite(item.length,48,8,160),amount:finite(item.amount,0,-1,1),seed:Math.round(finite(item.seed,173,1,199999))};
+      });
+    }
+    return result;
+  };
   return { version: GEOLOGY_VERSION, height: finite(input.height, defaults.height, 1, 100), width,
     length: finite(input.length, defaults.length, 8, 240), floorWidth,
     seed: Math.round(finite(input.seed, defaults.seed, 1, 99999)), edgeDeformation: finite(input.edgeDeformation, defaults.edgeDeformation, 0, 1),
@@ -35,6 +47,20 @@ export function geologyNoise(x, z, seed) {
   return (a + (b - a) * tx) * (1 - tz) + (c + (d - c) * tx) * tz;
 }
 const detail = (x, z, seed) => .58 * geologyNoise(x * .055, z * .055, seed) + .28 * geologyNoise(x * .17, z * .17, seed + 11) + .14 * geologyNoise(x * .51, z * .51, seed + 29);
+
+// Local refinements have compact support: both the value and its derivative fade
+// to zero at the section ends, preserving the rest of this bank and its neighbor.
+export function geologyEdgeDeformation(settings,x){
+  let offset=0,rim=0;
+  for(const edit of settings.deformations??[]){
+    const distance=Math.abs(x-edit.center)/(edit.length/2);
+    if(distance>=1)continue;
+    const weight=1-smooth(.45,1,distance),noise=detail(x-edit.center+17,31,edit.seed);
+    offset+=12*edit.amount*weight*(.45+noise);
+    rim+=.18*edit.amount*weight*detail(x-edit.center+47,83,edit.seed+97);
+  }
+  return {offset,rim};
+}
 
 // Returns a target elevation above the frozen foundation and a transition weight.
 // It never reads manual sculpt/vertex fields or any other geology feature.
@@ -61,14 +87,18 @@ export function geologyProfile(type, definition, x, z) {
     return { height: h * (1 - .13 * ledge + e * .12 * detail(x, z, d.seed)), weight };
   }
   const bank = (sign, settings, seed, inner, thickness) => {
-    const edge = inner + settings.offset + e * Math.min(3.5, thickness * .15) * detail(x, 0, seed);
+    thickness=settings.width??thickness;
+    const deformation=geologyEdgeDeformation(settings,x),bankE=settings.edgeDeformation??e,bankH=settings.height??h,bankSeed=settings.seed??seed;
+    const edge = inner + settings.offset + bankE * Math.min(3.5, thickness * .15) * detail(x, 0, bankSeed)+deformation.offset;
     const across = sign * z - edge;
     const faceWidth = Math.max(2, Math.min(4, thickness * .18));
     const face = smooth(-faceWidth * .25, faceWidth * .75, across);
     const outer = 1 - smooth(thickness * .72, thickness, across);
     const start = -d.length / 2 - settings.start, end = d.length / 2 + settings.end;
     const caps = smooth(start, start + 6, x) * (1 - smooth(end - 6, end, x));
-    return { height: h * (1 + e * (.07 * detail(x, sign * 27, seed) + .025 * geologyNoise(x * .4, 0, seed + 43))), weight: face * outer * caps };
+    const refined=deformation.offset!==0||deformation.rim!==0||settings.height!=null||settings.width!=null||settings.edgeDeformation!=null||settings.seed!=null;
+    const sideMask=type==='canyon-wall'&&refined?smooth(0,2,sign*z):1;
+    return { height: bankH * (1 + bankE * (.07 * detail(x, sign * 27, bankSeed) + .025 * geologyNoise(x * .4, 0, bankSeed + 43))+deformation.rim), weight: face * outer * caps * sideMask };
   };
   if (type === 'canyon-edge') return bank(1, d.sides.right, d.seed, 0, d.width);
   const thickness = Math.max(2, (d.width - d.floorWidth) / 2);
@@ -89,7 +119,8 @@ export function geologyWorldPoint(record, x, z) {
 export function geologyBounds(record) {
   const d = record.definition;
   const along = d.length / 2 + Math.max(d.sides.left.start, d.sides.left.end, d.sides.right.start, d.sides.right.end);
-  const across = record.geologyType === 'canyon-edge' ? d.width + Math.abs(d.sides.right.offset) + 12 : d.width * .6 + Math.max(d.sides.left.offset, d.sides.right.offset);
+  const displacement=side=>(side.deformations??[]).reduce((sum,edit)=>sum+18*Math.abs(edit.amount),0);
+  const across = record.geologyType === 'canyon-edge' ? (d.sides.right.width??d.width) + Math.abs(d.sides.right.offset) + 12+displacement(d.sides.right) : Math.max(d.width*.6,...['left','right'].map(side=>d.floorWidth/2+(d.sides[side].width??(d.width-d.floorWidth)/2)+d.sides[side].offset+displacement(d.sides[side])));
   const points = [[-along, -across], [-along, across], [along, -across], [along, across]].map(([x, z]) => geologyWorldPoint(record, x, z));
   // Rocks/cliffs use WIDTH along X and LENGTH along Z.
   if (record.geologyType === 'giant-rock' || record.geologyType === 'cliff-face') {

@@ -14,7 +14,6 @@ const IDLE_STATE = {
   activeTarget: null,
   activeTool: null,
   activeMode: null,
-  panelOpen: false,
   gestureOwner: null,
   waterDiameter: 24,
 };
@@ -24,14 +23,6 @@ export const useInteractionStore = create((set) => ({
 
   activate({ target = null, tool = null, mode = null }) {
     set({ activeTarget: target, activeTool: tool, activeMode: typeof mode === "string" ? mode.toLowerCase() : mode });
-  },
-
-  openPanel() {
-    set({ panelOpen: true });
-  },
-
-  closePanel() {
-    set({ panelOpen: false });
   },
 
   setGestureOwner(gestureOwner) { set({gestureOwner}); },
@@ -46,7 +37,7 @@ export const useInteractionStore = create((set) => ({
   },
 
   clear() {
-    set({ ...IDLE_STATE });
+    set(state=>({ ...IDLE_STATE, waterDiameter:state.waterDiameter }));
   },
 
   setWaterDiameter(value) { set({ waterDiameter: Math.max(8, Math.min(120, Number(value) || 24)) }); },
@@ -65,8 +56,5 @@ export const interactionState = {
   },
   get activeMode() {
     return useInteractionStore.getState().activeMode;
-  },
-  get panelOpen() {
-    return useInteractionStore.getState().panelOpen;
   },
 };

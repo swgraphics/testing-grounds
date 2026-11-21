@@ -15,13 +15,16 @@ export async function browserSession(directory) {
     assert.ok(pages?.length, 'Chrome debugger connected');
     socket = new WebSocket(pages.find(page => page.type === 'page').webSocketDebuggerUrl);
     await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
-    const errors = [], failures = [], pending = new Map(); let requestId = 0;
+    const errors = [], failures = [], pending = new Map(), requests = new Map(); let requestId = 0;
     socket.onmessage = event => {
       const value = JSON.parse(event.data);
       if (value.id) { const entry = pending.get(value.id); if (entry) { pending.delete(value.id); clearTimeout(entry.timer); value.error ? entry.reject(Error(JSON.stringify(value.error))) : entry.resolve(value.result); } }
       if (value.method === 'Runtime.exceptionThrown' && errors.length < 100) errors.push(value.params.exceptionDetails.exception?.description ?? value.params.exceptionDetails.text);
       if (value.method === 'Runtime.consoleAPICalled' && value.params.type === 'error' && errors.length < 100) errors.push(value.params.args.map(arg => arg.value ?? arg.description).join(' '));
       if (value.method === 'Network.responseReceived' && value.params.response.status >= 400) failures.push({ url: value.params.response.url, status: value.params.response.status });
+      if (value.method === 'Network.requestWillBeSent') requests.set(value.params.requestId,value.params.request.url);
+      if (value.method === 'Network.loadingFailed' && !value.params.canceled && value.params.errorText!=='net::ERR_ABORTED') failures.push({url:requests.get(value.params.requestId),error:value.params.errorText});
+      if (['Network.loadingFinished','Network.loadingFailed'].includes(value.method)) requests.delete(value.params.requestId);
     };
     const cdp = (method, params = {}) => new Promise((resolve, reject) => { const id = ++requestId; const timer = setTimeout(() => { pending.delete(id); reject(Error('CDP timeout: ' + method)); }, 90000); pending.set(id, { resolve, reject, timer }); socket.send(JSON.stringify({ id, method, params })); });
     const evaluate = async expression => { const value = await cdp('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }); if (value.exceptionDetails) throw Error(value.exceptionDetails.exception?.description ?? value.exceptionDetails.text); return value.result.value; };
@@ -66,7 +69,7 @@ export async function enterWorld(B, blank = true, loadSaved = false) {
     window.__colors=await import('/src/systems/atmosphere/clouds/CloudSettings.js');
     const source=await(await fetch('/src/App.jsx')).text();
     const url=source.match(/from\\s+[\\x22\\x27]([^\\x22\\x27]*deps\\/@react-three_fiber[^\\x22\\x27]*)[\\x22\\x27]/)?.[1];
-    const m=await import(url);window.__root=m._roots.get(document.querySelector('canvas')).store;
+    const m=await import(url);window.__fiberRoot=m._roots.get(document.querySelector('canvas'));window.__root=__fiberRoot.store;
     window.__camera=window.__root.getState().camera;window.__scene=window.__root.getState().scene;
     window.__positions=[];window.addEventListener('player-position-changed',e=>__positions.push(e.detail));
     window.__pin={ref:{current:()=>{}},priority:0,store:window.__root};window.__root.getState().internal.subscribers.push(window.__pin);
