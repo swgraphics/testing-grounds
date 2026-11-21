@@ -1,3 +1,11 @@
+import { clearGameplayInput } from '../../systems/input/inputOwnership';
+import { gameplayInputAllowed } from '../../systems/input/inputOwnership';
+import {captureGeologyFoundation,createGeologyFeature,pickGeologyFeatureAt} from '../../systems/geology/geologyFeatures';
+import {geologyDefinition} from '../../systems/geology/geologyDefinition';
+import GeologyPlacementGhost from './GeologyPlacementGhost';
+import {raycastCommittedTerrain} from '../../systems/terrain/raycastTerrain';
+import { hasTerrainAt, terrainChunkAt } from "../../systems/world/terrainRegions";
+import { mergeTreeProperties } from "../../systems/objects/treeProperties";
 // MeshPlacementSystem.jsx
 
 import {
@@ -13,7 +21,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { Text } from "@react-three/drei";
 import { getTerrainHeightAt } from "./../../systems/terrain/terrainHeight";
-import { applyGeologyTerrainStamp, setTerrainPreviewStamp, beginTerrainHistory, commitTerrainHistory } from "../../systems/terrain/terrainEdits";
+import { setTerrainPreviewStamp } from "../../systems/terrain/terrainEdits";
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 import { useWorldStore } from "../../systems/world/worldStore";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
@@ -365,16 +373,21 @@ function findTerrainHit(ray) {
 
   const distance = (low + high) / 2;
 
-  return ray.origin
-    .clone()
-    .add(direction.multiplyScalar(distance));
+  const hit=ray.origin.clone().add(direction.multiplyScalar(distance));
+  return hasTerrainAt(hit.x,hit.z,useWorldStore.getState().world)?hit:null;
 }
 
+function placedObjectChunkId(id) {
+ const world=useWorldStore.getState().world;return Object.values(world.chunks).find(c=>c.objects?.[id])?.id ?? world.currentChunkId;
+}
+function placementChunkAt(position) {
+ const world=useWorldStore.getState().world;return world.terrainSurface?terrainChunkAt(position.x,position.z,world)?.id:world.currentChunkId;
+}
 export default function MeshPlacementSystem() {
   const { camera, gl } = useThree();
 
   const [selectedMesh, setSelectedMesh] = useState(null);
-  const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
+  const objectScope = useWorldStore((state) => state.world.terrainSurface ? "all" : state.world.currentChunkId);
   const [placementMode, setPlacementMode] = useState(false);
   const [previewPosition, setPreviewPosition] = useState(null);
   const [loadedScene, setLoadedScene] = useState(null);
@@ -382,6 +395,8 @@ export default function MeshPlacementSystem() {
   const [placedMeshes, setPlacedMeshes] = useState([]);
   const historyRevision = useHistoryStore((state) => state.revision);
   const [placementRotation, setPlacementRotation] = useState(0);
+  const [geologyFoundation,setGeologyFoundation] = useState(null);
+  const geologySelectionPad=useRef(false);
   const selectedPlacedIdRef = useRef(null);
   const draggingObjectRef = useRef(false);
   const crownRefs = useRef(new Map());
@@ -420,8 +435,8 @@ export default function MeshPlacementSystem() {
 
   useEffect(() => {
     setPlacedMeshes([]);
-    const chunk = useWorldStore.getState().world.chunks[currentChunkId];
-    const objects = Object.values(chunk?.objects ?? {});
+    const world=useWorldStore.getState().world;
+    const objects = objectScope==="all" ? Object.values(world.chunks).flatMap(c=>Object.values(c.objects ?? {})) : Object.values(world.chunks[objectScope]?.objects ?? {});
     if (!objects.length) return;
 
     let cancelled = false;
@@ -470,8 +485,8 @@ export default function MeshPlacementSystem() {
       if (!cancelled && restored.length) setPlacedMeshes(restored);
     }
     hydrate();
-    return () => { cancelled = true; setTerrainPreviewStamp(null); };
-  }, [loader, currentChunkId, historyRevision]);
+    return () => { cancelled = true; if(terrainSettings.terrainPreviewStamp)setTerrainPreviewStamp(null); };
+  }, [loader, objectScope, historyRevision]);
 
   // --------------------------------------------------
   // MESH MENU EVENTS
@@ -514,7 +529,8 @@ export default function MeshPlacementSystem() {
       setSelectedMesh(mesh);
 
       if (placementMode) {
-        setPlacementRotation(getPlacementRules(mesh).randomRotation ? Math.random() * Math.PI * 2 : 0);
+        setPlacementRotation(mesh.modelType==='geology'?geologyDefinition(mesh.geologyType,mesh.geologyDefinition).rotation*Math.PI/180:getPlacementRules(mesh).randomRotation ? Math.random() * Math.PI * 2 : 0);
+        if(mesh.modelType==='geology')setGeologyFoundation(captureGeologyFoundation());
         setPreviewPosition(null);
         setLoadedScene(null);
         setProceduralMesh(null);
@@ -544,7 +560,8 @@ export default function MeshPlacementSystem() {
       setSelectedMesh(mesh);
       setPlacementMode(true);
       const rules = getPlacementRules(mesh);
-      setPlacementRotation(rules.randomRotation ? Math.random() * Math.PI * 2 : 0);
+      setPlacementRotation(mesh.modelType==='geology'?geologyDefinition(mesh.geologyType,mesh.geologyDefinition).rotation*Math.PI/180:rules.randomRotation ? Math.random() * Math.PI * 2 : 0);
+      if(mesh.modelType==='geology')setGeologyFoundation(captureGeologyFoundation());
       useInteractionStore.getState().activate({
         target: `object:${mesh.id}`,
         tool: "OBJECT",
@@ -574,7 +591,7 @@ export default function MeshPlacementSystem() {
     }
 
     function handleCancelPlacement() {
-      setTerrainPreviewStamp(null);
+      if(terrainSettings.terrainPreviewStamp)setTerrainPreviewStamp(null);
       setPlacementMode(false);
       setPreviewPosition(null);
       useInteractionStore.getState().clear();
@@ -646,6 +663,30 @@ export default function MeshPlacementSystem() {
     };
   }, [loader, placementMode]);
 
+  useEffect(()=>{
+    if(!placementMode||selectedMesh?.modelType!=='geology')return;
+    const unsubscribe=useInteractionStore.subscribe(state=>{if(state.activeTool!=='OBJECT'||state.activeMode!=='place'){setPlacementMode(false);setPreviewPosition(null)}});
+    const key=event=>{
+      if(event.target?.closest?.('input,select,textarea,button')||!gameplayInputAllowed())return;
+      if(event.code==='KeyR'){event.preventDefault();setPlacementRotation(angle=>(angle+Math.PI/12)%(Math.PI*2))}
+      if(['BracketLeft','BracketRight'].includes(event.code)){event.preventDefault();setSelectedMesh(mesh=>({...mesh,geologyDefinition:geologyDefinition(mesh.geologyType,{...mesh.geologyDefinition,scale:(mesh.geologyDefinition?.scale??1)+(event.code==='BracketRight' ? .1 : -.1)})}))}
+    };
+    window.addEventListener('keydown',key);
+    return()=>{unsubscribe();window.removeEventListener('keydown',key)};
+  },[placementMode,selectedMesh?.modelType]);
+
+  function commitGeologyPlacement(){
+    try{
+      const definition=geologyDefinition(selectedMesh.geologyType,{...selectedMesh.geologyDefinition,rotation:placementRotation*180/Math.PI});
+      const id=createGeologyFeature(selectedMesh.geologyType,definition,previewPosition.toArray(),{foundation:geologyFoundation,name:selectedMesh.name});
+      if(!id)return false;
+      setPreviewPosition(null);
+      window.dispatchEvent(new CustomEvent('tg-mesh-placement-completed'));
+      window.dispatchEvent(new CustomEvent('crash-unit-action',{detail:{action:'worldTransform',duration:620}}));
+      return true;
+    }catch(error){window.dispatchEvent(new CustomEvent('tg-geology-message',{detail:{message:error.message}}));return false}
+  }
+
   function selectPlacedObject(id) {
     selectedPlacedIdRef.current = id;
     useInteractionStore.getState().activate({
@@ -655,10 +696,18 @@ export default function MeshPlacementSystem() {
     });
   }
 
+  // Focused South editing selects the same world target used by existing R/[ / ] controls.
+  useEffect(() => useInteractionStore.subscribe(state => {
+    if (state.activeTool !== "OBJECT" || state.activeMode !== "select") return;
+    const id = state.activeTarget?.startsWith("object:") ? state.activeTarget.slice(7) : null;
+    const world = useWorldStore.getState().world;
+    if (id && Object.values(world.chunks).some(c=>c.objects?.[id])) selectedPlacedIdRef.current = id;
+  }), []);
+
   function beginObjectDrag(id, event) {
     if (placementMode) return;
 
-    // Crimson Tree has its own direct-interaction state. Do not let the
+    // Default Tree has its own direct-interaction state. Do not let the
     // generic Object drag handler steal the same click and switch the HUD
     // to OBJECT // EDIT/SELECT.
     let hitObject = event.object ?? event.eventObject ?? null;
@@ -667,14 +716,15 @@ export default function MeshPlacementSystem() {
       hitObject = hitObject.parent;
     }
     event.stopPropagation();
-    event.preventDefault();
+    // R3F pointer handlers are passive; stopPropagation is the supported API.
     selectPlacedObject(id);
-    const chunkId = useWorldStore.getState().world.currentChunkId;
+    const chunkId = placedObjectChunkId(id);
     const object = useWorldStore.getState().world.chunks?.[chunkId]?.objects?.[id];
     beginHistoryTransaction("MOVE OBJECT", { chunks: { [chunkId]: { objects: { [id]: object } } } }, {
       paths: [["chunks", chunkId, "objects", id]],
     });
     draggingObjectRef.current = true;
+    useInteractionStore.getState().setGestureOwner('object-drag');clearGameplayInput();
     useInteractionStore.getState().activate({
       target: `object:${id}`,
       tool: "OBJECT",
@@ -688,6 +738,10 @@ export default function MeshPlacementSystem() {
     if (!id) return;
     const point = findTerrainHit(raycaster.ray);
     if (!point) return;
+    const entry = placedMeshes.find((object) => object.id === id);
+    if (entry?.mesh?.modelType === "building-block") {
+      point.y = getTerrainAnchoredObjectY({ ...entry, position: point }) ?? point.y;
+    }
     setPlacedMeshes((current) => current.map((entry) => {
       if (entry.id !== id) return entry;
       if (entry.type === "scene") {
@@ -710,7 +764,7 @@ export default function MeshPlacementSystem() {
       if (!current) return;
 
       let changed = false;
-      const chunkId = useWorldStore.getState().world.currentChunkId;
+      const chunkId = placedObjectChunkId(id);
       const beforeObject = useWorldStore.getState().world.chunks?.[chunkId]?.objects?.[id];
       let rotationY = current.rotationY ?? current.object?.rotation.y ?? 0;
       let scale = current.scale ?? current.object?.scale.x ?? 1;
@@ -772,21 +826,26 @@ export default function MeshPlacementSystem() {
       if (!draggingObjectRef.current) return;
       const id = selectedPlacedIdRef.current;
       if (!id) return;
-      const chunkId = useWorldStore.getState().world.currentChunkId;
+      const chunkId = placedObjectChunkId(id);
       const afterObject = useWorldStore.getState().world.chunks?.[chunkId]?.objects?.[id];
       commitHistoryTransaction({ chunks: { [chunkId]: { objects: { [id]: afterObject } } } }, { paths: [["chunks", chunkId, "objects", id]] });
       draggingObjectRef.current = false;
+      if(useInteractionStore.getState().gestureOwner==='object-drag')useInteractionStore.getState().setGestureOwner(null);
+      const interaction=useInteractionStore.getState();
+      if(interaction.activeTool==='OBJECT'&&interaction.activeMode==='edit')interaction.activate({target:`object:${id}`,tool:'OBJECT',mode:'select'});
     }
     window.addEventListener("pointerup", finishObjectHistory, true);
     window.addEventListener("pointercancel", finishObjectHistory, true);
+    window.addEventListener("blur", finishObjectHistory, true);
     return () => {
       window.removeEventListener("pointerup", finishObjectHistory, true);
       window.removeEventListener("pointercancel", finishObjectHistory, true);
+      window.removeEventListener("blur", finishObjectHistory, true);
     };
   }, []);
 
   // --------------------------------------------------
-  // CRIMSON TREE DIRECT EDITING
+  // DEFAULT TREE DIRECT EDITING
   // --------------------------------------------------
 
   useEffect(() => {
@@ -795,31 +854,13 @@ export default function MeshPlacementSystem() {
       const patch = event.detail?.patch;
       if (!treeId || !patch) return;
 
-      setPlacedMeshes((current) => current.map((entry) => {
-        if (entry.id !== treeId || entry.type !== "procedural" || entry.mesh?.modelType !== "crimson-tree") {
-          return entry;
-        }
-
-        // Always merge against the full Crimson baseline. A saved/scattered
-        // tree may carry only a partial definition; replacing that with a
-        // trunk-only patch would make branches/leaves disappear.
-        const currentDefinition = createCrimsonTreeDefinition(entry.mesh.treeDefinition ?? {});
-        const nextDefinition = createCrimsonTreeDefinition({
-          ...currentDefinition,
-          trunk: { ...(currentDefinition.trunk ?? {}), ...(patch.trunk ?? {}) },
-          branches: {
-            ...(currentDefinition.branches ?? {}),
-            ...(patch.branches ?? {}),
-            overrides: { ...(currentDefinition.branches?.overrides ?? {}), ...(patch.branches?.overrides ?? {}) },
-            secondary: { ...(currentDefinition.branches?.secondary ?? {}), ...(patch.branches?.secondary ?? {}) },
-          },
-          leaves: { ...(currentDefinition.leaves ?? {}), ...(patch.leaves ?? {}) },
-        });
-
-        const nextMesh = { ...entry.mesh, treeDefinition: nextDefinition };
-        useWorldStore.getState().updateObject(entry.id, { treeDefinition: nextDefinition });
-        return { ...entry, mesh: nextMesh };
-      }));
+      const world = useWorldStore.getState().world;
+      const object = world.chunks?.[placedObjectChunkId(treeId)]?.objects?.[treeId];
+      if (!object || object.modelType !== "crimson-tree") return;
+      const nextDefinition = event.detail.applied ? object.treeDefinition : mergeTreeProperties(createCrimsonTreeDefinition(object.treeDefinition ?? {}), patch);
+      // Store mutation belongs to the event, never a React state updater.
+      if (!event.detail.applied) useWorldStore.getState().updateObject(treeId, { treeDefinition: nextDefinition });
+      setPlacedMeshes(current => current.map(entry => entry.id === treeId ? { ...entry, mesh: { ...entry.mesh, treeDefinition: nextDefinition } } : entry));
     }
 
     window.addEventListener("crimson-tree-edit-change", handleTreeEditChange);
@@ -833,7 +874,8 @@ export default function MeshPlacementSystem() {
   useEffect(() => {
     function handleTerrainChange(event) {
       const key = event.detail?.key;
-      if (![
+      const bounds = event.type==='geology-terrain-changed'?event.detail?.bounds:null;
+      if (event.type!=='geology-terrain-changed' && ![
         "terrainEditVersion",
         "terrainVertexEditVersion",
         "terrainPreviewVersion",
@@ -846,9 +888,10 @@ export default function MeshPlacementSystem() {
         "geometryStrength",
       ].includes(key)) return;
 
-      setPlacedMeshes((current) => {
         let changed = false;
-        const next = current.map((entry) => {
+        const next = placedMeshes.map((entry) => {
+          const p=entry.type==='scene'?entry.object?.position:entry.position;
+          if(bounds&&p&&(p.x<bounds.minX||p.x>bounds.maxX||p.z<bounds.minZ||p.z>bounds.maxZ))return entry;
           const nextY = getTerrainAnchoredObjectY(entry);
           if (nextY == null) return entry;
           const currentY = entry.type === "scene"
@@ -872,13 +915,13 @@ export default function MeshPlacementSystem() {
           });
           return { ...entry, position };
         });
-        return changed ? next : current;
-      });
+        if (changed) setPlacedMeshes(next);
     }
 
     window.addEventListener("terrain-settings-changed", handleTerrainChange);
-    return () => window.removeEventListener("terrain-settings-changed", handleTerrainChange);
-  }, []);
+    window.addEventListener("geology-terrain-changed", handleTerrainChange);
+    return () => {window.removeEventListener("terrain-settings-changed", handleTerrainChange);window.removeEventListener("geology-terrain-changed", handleTerrainChange)};
+  }, [placedMeshes]);
 
   // --------------------------------------------------
   // POINTER / ESC / RIGHT-CLICK CONTROLS
@@ -912,9 +955,6 @@ export default function MeshPlacementSystem() {
             hit.userData = { ...(hit.userData || {}), blockHeightLevel: stacked.heightLevel };
           }
         }
-        if (selectedMesh?.modelType === "geology") {
-          setTerrainPreviewStamp({ x: hit.x, z: hit.z, rotation: placementRotation, type: selectedMesh.geologyType, width: selectedMesh.geologyType === "canyon-wall" ? 60 : selectedMesh.geologyType === "cliff-face" ? 30 : 36, height: selectedMesh.geologyType === "canyon-wall" ? 30 : selectedMesh.geologyType === "giant-rock" ? 9 : 12, depth: selectedMesh.geologyType === "canyon-wall" ? 5 : selectedMesh.geologyType === "giant-rock" ? 18 : 10 });
-        }
         setPreviewPosition(hit);
       }
     }
@@ -935,7 +975,14 @@ export default function MeshPlacementSystem() {
     }
 
     function handlePointerDown(event) {
-  if (!placementMode) return;
+  if (!placementMode) {
+    if(event.button===0&&!useInteractionStore.getState().activeTool&&gameplayInputAllowed()){
+      const rect=gl.domElement.getBoundingClientRect();mouse.set(((event.clientX-rect.left)/rect.width)*2-1,-((event.clientY-rect.top)/rect.height)*2+1);raycaster.setFromCamera(mouse,camera);
+      const point=findTerrainHit(raycaster.ray),feature=point?pickGeologyFeatureAt(point.x,point.z):null;
+      if(feature)useInteractionStore.getState().setTarget('object:'+feature.id);
+    }
+    return;
+  }
   if (event.button !== 0) return;
   if (!previewPosition) return;
 
@@ -949,32 +996,13 @@ export default function MeshPlacementSystem() {
   event.preventDefault();
 
   if (selectedMesh?.modelType === "geology") {
-    beginTerrainHistory("PLACE GEOLOGY");
-    setTerrainPreviewStamp(null);
-    applyGeologyTerrainStamp({
-      x: previewPosition.x,
-      z: previewPosition.z,
-      rotation: placementRotation,
-      type: selectedMesh.geologyType,
-      width: selectedMesh.geologyType === "canyon-wall" ? 60 : selectedMesh.geologyType === "cliff-face" ? 30 : 36,
-      height: selectedMesh.geologyType === "canyon-wall" ? 30 : selectedMesh.geologyType === "giant-rock" ? 9 : 12,
-      depth: selectedMesh.geologyType === "canyon-wall" ? 5 : selectedMesh.geologyType === "giant-rock" ? 18 : 10,
-    });
-    commitTerrainHistory();
-    setPreviewPosition(null);
-    useInteractionStore.getState().activate({
-      target: `object:${selectedMesh.id}`,
-      tool: "OBJECT",
-      mode: "PLACE",
-    });
-    window.dispatchEvent(new CustomEvent("tg-mesh-placement-completed"));
-    window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: "worldTransform", duration: 620 } }));
+    commitGeologyPlacement();
     return;
   }
 
   if (hasLoadedScene) {
     const object = cloneScene(loadedScene);
-    const placementChunkId = useWorldStore.getState().world.currentChunkId;
+    const placementChunkId = placementChunkAt(previewPosition);
     const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
     beginHistoryTransaction("PLACE OBJECT", { chunks: { [placementChunkId]: { objects: { [objectId]: undefined } } } }, {
       paths: [["chunks", placementChunkId, "objects", objectId]],
@@ -1024,7 +1052,7 @@ export default function MeshPlacementSystem() {
   }
 
   const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
-  const placementChunkId = useWorldStore.getState().world.currentChunkId;
+  const placementChunkId = placementChunkAt(previewPosition);
   const windPhase = placedMeshes.length * 1.73;
   beginHistoryTransaction("PLACE OBJECT", { chunks: { [placementChunkId]: { objects: { [objectId]: undefined } } } }, {
     paths: [["chunks", placementChunkId, "objects", objectId]],
@@ -1084,21 +1112,7 @@ export default function MeshPlacementSystem() {
       if (!hasLoadedScene && !hasProceduralMesh) return;
 
       if (selectedMesh?.modelType === "geology") {
-        beginTerrainHistory("PLACE GEOLOGY");
-        setTerrainPreviewStamp(null);
-        applyGeologyTerrainStamp({
-          x: previewPosition.x,
-          z: previewPosition.z,
-          rotation: placementRotation,
-          type: selectedMesh.geologyType,
-          width: selectedMesh.geologyType === "canyon-wall" ? 60 : selectedMesh.geologyType === "cliff-face" ? 30 : 36,
-          height: selectedMesh.geologyType === "canyon-wall" ? 30 : selectedMesh.geologyType === "giant-rock" ? 9 : 12,
-          depth: selectedMesh.geologyType === "canyon-wall" ? 5 : selectedMesh.geologyType === "giant-rock" ? 18 : 10,
-        });
-        commitTerrainHistory();
-        setPreviewPosition(null);
-        useInteractionStore.getState().activate({ target: `object:${selectedMesh.id}`, tool: "OBJECT", mode: "PLACE" });
-        window.dispatchEvent(new CustomEvent("tg-mesh-placement-completed"));
+        commitGeologyPlacement();
         return;
       }
 
@@ -1107,7 +1121,7 @@ export default function MeshPlacementSystem() {
         object.position.copy(previewPosition);
         object.rotation.y = placementRotation;
         const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
-        const placementChunkId = useWorldStore.getState().world.currentChunkId;
+        const placementChunkId = placementChunkAt(previewPosition);
         beginHistoryTransaction("PLACE OBJECT", { chunks: { [placementChunkId]: { objects: { [objectId]: undefined } } } }, {
           paths: [["chunks", placementChunkId, "objects", objectId]],
         });
@@ -1123,7 +1137,7 @@ export default function MeshPlacementSystem() {
         });
       } else {
         const objectId = `placed-mesh-${Date.now()}-${placedMeshes.length}`;
-        const placementChunkId = useWorldStore.getState().world.currentChunkId;
+        const placementChunkId = placementChunkAt(previewPosition);
         beginHistoryTransaction("PLACE OBJECT", { chunks: { [placementChunkId]: { objects: { [objectId]: undefined } } } }, {
           paths: [["chunks", placementChunkId, "objects", objectId]],
         });
@@ -1152,7 +1166,7 @@ export default function MeshPlacementSystem() {
 
     function handleContextMenu(event) {
       if (!placementMode) return;
-      setTerrainPreviewStamp(null);
+      if(terrainSettings.terrainPreviewStamp)setTerrainPreviewStamp(null);
 
       event.preventDefault();
 
@@ -1211,12 +1225,27 @@ export default function MeshPlacementSystem() {
   proceduralMesh,
   selectedMesh,
   placementRotation,
+  geologyFoundation,
   placedMeshes.length,
 ]);
 
 // --------------------------------------------------
 // PLACEMENT PREVIEW + TREE WIND
 // --------------------------------------------------
+
+// Consume world selection before the gameplay poll can interpret A as Jump.
+useFrame(() => {
+  const padA=Boolean(navigator.getGamepads?.().find(p=>p?.connected)?.buttons[0]?.pressed);
+  const interaction=useInteractionStore.getState();
+  if(interaction.gestureOwner==='geology-selection'&&!padA){interaction.setGestureOwner(null);clearGameplayInput()}
+  if(padA&&!geologySelectionPad.current&&!placementMode&&!useInteractionStore.getState().activeTool&&gameplayInputAllowed()&&Object.keys(useWorldStore.getState().world.geology?.features??{}).length){
+    raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+    const point=raycastCommittedTerrain(raycaster.ray),feature=point?pickGeologyFeatureAt(point.x,point.z):null;
+    if(feature){interaction.setTarget('object:'+feature.id);interaction.setGestureOwner('geology-selection');clearGameplayInput()}
+  }
+  geologySelectionPad.current=padA;
+},-1);
+useEffect(()=>()=>{if(useInteractionStore.getState().gestureOwner==='geology-selection'){useInteractionStore.getState().setGestureOwner(null);clearGameplayInput()}},[]);
 
 useFrame((state) => {
   /*
@@ -1351,6 +1380,7 @@ useFrame((state) => {
 
 return (
   <group>
+    {placementMode&&selectedMesh?.modelType==='geology'&&previewPosition&&<GeologyPlacementGhost mesh={selectedMesh} point={previewPosition} rotation={placementRotation} foundation={geologyFoundation}/>}
     {placementMode &&
       loadedScene &&
       previewPosition && (

@@ -1,3 +1,4 @@
+import { hasTerrainAt } from "../world/terrainRegions";
 import { create } from "zustand";
 import * as THREE from "three";
 import { terrainSettings } from "./terrainSettings";
@@ -50,6 +51,7 @@ export const useTerrainVertexStore = create((set) => ({
 }));
 
 export function snapTerrainVertex(value) {
+  if (useWorldStore.getState().world.terrainSurface) return Math.round(value/TERRAIN_VERTEX_GRID)*TERRAIN_VERTEX_GRID;
   return THREE.MathUtils.clamp(
     Math.round(value / TERRAIN_VERTEX_GRID) * TERRAIN_VERTEX_GRID,
     TERRAIN_VERTEX_MIN,
@@ -58,6 +60,7 @@ export function snapTerrainVertex(value) {
 }
 
 export function makeTerrainVertex(x, z) {
+  if (!hasTerrainAt(snapTerrainVertex(x),snapTerrainVertex(z),useWorldStore.getState().world)) return null;
   return {
     x: snapTerrainVertex(x),
     z: snapTerrainVertex(z),
@@ -90,8 +93,9 @@ export function getTerrainVertexEditDelta(x, z) {
   const tz = gz - z0;
 
   const sample = (ix, iz) => {
-    const px = THREE.MathUtils.clamp(ix * TERRAIN_VERTEX_GRID, TERRAIN_VERTEX_MIN, TERRAIN_VERTEX_MAX);
-    const pz = THREE.MathUtils.clamp(iz * TERRAIN_VERTEX_GRID, TERRAIN_VERTEX_MIN, TERRAIN_VERTEX_MAX);
+    const spatial=useWorldStore.getState().world.terrainSurface;
+    const px = spatial ? ix*TERRAIN_VERTEX_GRID : THREE.MathUtils.clamp(ix * TERRAIN_VERTEX_GRID, TERRAIN_VERTEX_MIN, TERRAIN_VERTEX_MAX);
+    const pz = spatial ? iz*TERRAIN_VERTEX_GRID : THREE.MathUtils.clamp(iz * TERRAIN_VERTEX_GRID, TERRAIN_VERTEX_MIN, TERRAIN_VERTEX_MAX);
     return Number(edits[vertexKey(px, pz)]) || 0;
   };
 
@@ -118,10 +122,11 @@ function writeVertexEdits(edits) {
   state.replaceWorld({
     ...state.world,
     terrainVertexEdits: { ...edits },
+    ...(state.world.terrainSurface?{terrainSurface:{...state.world.terrainSurface,revision:Number(state.world.terrainSurface.revision||0)+1}}:{}),
   });
 
   const currentChunk = state.world.chunks[state.world.currentChunkId];
-  if (currentChunk) {
+  if (currentChunk && !state.world.terrainSurface) {
     state.updateCurrentChunk({
       terrain: {
         ...currentChunk.terrain,
@@ -177,6 +182,7 @@ export function moveSelectedTerrainVertices(deltaY) {
 
 export function setTerrainVertexEdit(x, z, deltaY) {
   const vertex = makeTerrainVertex(x, z);
+  if (!vertex) return;
   const edits = { ...readVertexEdits() };
   edits[vertexKey(vertex.x, vertex.z)] = THREE.MathUtils.clamp(
     Number(deltaY) || 0,

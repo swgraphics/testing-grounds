@@ -159,10 +159,10 @@ export function createCrimsonTreeDefinition(overrides = {}) {
       size: 32,
       density: 90,
       clustering: 75,
-      color: "#fc0303",
-      outlineColor: "#fc0303",
+      color: "#8BCF6A",
+      outlineColor: "#3A8C0E",
       gradientEnabled: false,
-      gradientColor: "#fc0303",
+      gradientColor: "#8BCF6A",
       distribution: 90,
 
       ...(overrides.leaves || {}),

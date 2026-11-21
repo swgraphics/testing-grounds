@@ -1,4 +1,4 @@
-import { CRASH_TESTER_VARIANTS } from "../../config/crashTesterConfig";
+import { CRASH_TESTER_VARIANTS, CRASH_TESTER_2 } from "../../config/crashTesterConfig.js";
 
 function createCrashTesterCharacter(variant) {
   return {
@@ -17,6 +17,7 @@ function createCrashTesterCharacter(variant) {
 }
 
 export const characterRegistry = {
+  [CRASH_TESTER_2.id]: createCrashTesterCharacter(CRASH_TESTER_2),
   ...Object.fromEntries(
     CRASH_TESTER_VARIANTS.map((variant) => [variant.id, createCrashTesterCharacter(variant)])
   ),
@@ -85,4 +86,4 @@ export const characterRegistry = {
   },
 };
 
-export const activeCharacterId = "crashTester01";
+export const activeCharacterId = "crashTester20";

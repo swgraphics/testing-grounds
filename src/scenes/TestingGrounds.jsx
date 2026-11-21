@@ -1,3 +1,4 @@
+import TerrainExportPreview from '../components/world/TerrainExportPreview';
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import XboxController from "../systems/input/XboxController";
@@ -7,12 +8,14 @@ import Lighting from "../components/world/Lighting";
 import GridTerrain from "../components/world/GridTerrain";
 import GridFloor from "../components/world/GridFloor";
 import Water from "../components/world/Water";
+import LivingVaporSystem from '../components/world/LivingVaporSystem';
 import Landscape from "../components/world/Landscape";
 import WorldGizmos from "../components/world/WorldGizmos";
 import TestCourse from "../components/world/TestCourse";
 import CameraTelemetry from "../components/ui/CameraTelemetry";
 import MeshPlacementSystem from "../components/world/MeshPlacementSystem";
 import WorldInteractionSystem from "../components/world/WorldInteractionSystem";
+import CanyonEdgeSystem from "../components/world/CanyonEdgeSystem";
 import TerrainVertexEditor from "../components/world/TerrainVertexEditor";
 import SunReticleSensor from "../components/world/SunReticleSensor";
 import CrimsonTreeInteractionSystem from "../components/world/CrimsonTreeInteractionSystem";
@@ -49,14 +52,17 @@ export default function TestingGrounds({ titleMode = false }) {
       <XboxController />
       <CameraTelemetry />
       <MeshPlacementSystem />
+      {!titleMode && <LivingVaporSystem />}
       {!titleMode && <SunReticleSensor />}
       {!titleMode && <CrimsonTreeInteractionSystem />}
       {!titleMode && <WorldInteractionSystem />}
+      {!titleMode && <CanyonEdgeSystem />}
       {!titleMode && <TerrainVertexEditor />}
       <Atmosphere titleMode={titleMode} />
       <Lighting />
 
       <GridTerrain />
+      {!titleMode && <TerrainExportPreview />}
       <GridFloor />
       <Water />
 

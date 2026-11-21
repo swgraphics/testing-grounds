@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { getTerrainRegions, getExpansionCandidates, containsPoint, spatialGrid } from "../../systems/world/terrainRegions";
+import { useEffect, useRef, useState } from "react";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import { useWorldStore } from "../../systems/world/worldStore";
+import { useEditorStore } from '../../systems/editor/editorStore';
+import { terrainHeightKey } from '../../systems/terrain/terrainRenderState';
 
 const SIZE = 300;
 const CONTOUR_STEP = 5;
@@ -10,7 +13,8 @@ const MAP_STEP = 148;
 
 
 
-function getTerrainMapBounds(chunks) {
+function getTerrainMapBounds(chunks,world,mapBounds) {
+  if(world.terrainSurface){const size=world.grid.chunkSize;return {minX:-300+mapBounds.minX*size,maxX:-300+(mapBounds.maxX+1)*size,minZ:-300+mapBounds.minY*size,maxZ:-300+(mapBounds.maxY+1)*size}}
   let minX = -250;
   let maxX = 250;
   let minZ = -250;
@@ -29,7 +33,8 @@ function getTerrainMapBounds(chunks) {
   return { minX, maxX, minZ, maxZ };
 }
 
-function getMapBounds(chunks) {
+function getMapBounds(chunks,world) {
+  if(world.terrainSurface){const size=world.grid.chunkSize,r=getTerrainRegions(world);return {minX:Math.floor((Math.min(...r.map(b=>b.minX))+300)/size)-1,maxX:Math.ceil((Math.max(...r.map(b=>b.maxX))+300)/size),minY:Math.floor((Math.min(...r.map(b=>b.minZ))+300)/size)-1,maxY:Math.ceil((Math.max(...r.map(b=>b.maxZ))+300)/size)}}
   let minX = MAP_MIN_BASE;
   let maxX = MAP_MAX_BASE;
   let minY = MAP_MIN_BASE;
@@ -47,7 +52,18 @@ function getMapBounds(chunks) {
   return { minX, maxX, minY, maxY };
 }
 
-function buildMapSlots(chunks, bounds) {
+function buildMapSlots(chunks, bounds, world) {
+  if(world.terrainSurface) {
+    const size=world.grid.chunkSize,regions=getTerrainRegions(world),candidates=getExpansionCandidates(world),result=[];
+    for(let y=bounds.minY;y<=bounds.maxY;y++)for(let x=bounds.minX;x<=bounds.maxX;x++){
+      const wx=-300+(x+.5)*size,wz=-300+(y+.5)*size,region=regions.find(r=>containsPoint(r,wx,wz));
+      const grid=spatialGrid(x,y+1),base=region?.id==='base-terrain';
+      const chunk=region?(base?chunks[world.terrainSurface.baseChunkId]:chunks[region.id]):null;
+      const candidate=candidates.find(c=>c.grid===grid);
+      result.push({x,y,chunk,grid,base,disabled:!region&&!candidate});
+    }
+    return result;
+  }
   const byPosition = new Map();
   Object.values(chunks ?? {}).forEach((chunk) => {
     if (!Array.isArray(chunk.mapPosition)) return;
@@ -79,93 +95,103 @@ export default function WorldMap({ onAddChunk, onSelectChunk }) {
   const chunks = useWorldStore((state) => state.world.chunks);
   const currentChunkId = useWorldStore((state) => state.world.currentChunkId);
   const world = useWorldStore((state) => state.world);
+  const visible = useEditorStore(state => state.visiblePanels.west);
+  const heightKey = terrainHeightKey(world);
   const currentChunk = world.chunks?.[currentChunkId];
-  const mapBounds = useMemo(() => getMapBounds(chunks), [chunks]);
-  const terrainMapBounds = useMemo(() => getTerrainMapBounds(chunks), [chunks]);
-  const cells = useMemo(() => buildMapSlots(chunks, mapBounds), [chunks, mapBounds]);
+  const mapBounds = getMapBounds(chunks,world);
+  const terrainMapBounds = getTerrainMapBounds(chunks,world,mapBounds);
+  const cells = buildMapSlots(chunks,mapBounds,world);
   const mapColumns = mapBounds.maxX - mapBounds.minX + 1;
   const mapRows = mapBounds.maxY - mapBounds.minY + 1;
   const mapWidth = mapColumns * MAP_STEP;
   const mapHeight = mapRows * MAP_STEP;
-  const occupiedCount = cells.filter((cell) => cell.chunk).length;
+  const occupiedCount = Object.keys(chunks).length;
+  const { minX: mapMinX, maxX: mapMaxX, minZ: mapMinZ, maxZ: mapMaxZ } = terrainMapBounds;
+  const centerX=world.terrainSurface&&currentChunk?((mapBounds.minX+mapBounds.maxX)/2-((currentChunk.position[0]+300)/world.grid.chunkSize-.5))*MAP_STEP:0;
+  const centerY=world.terrainSurface&&currentChunk?((mapBounds.minY+mapBounds.maxY)/2-((currentChunk.position[2]+300)/world.grid.chunkSize-.5))*MAP_STEP:0;
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.imageSmoothingEnabled = false;
+    if (!visible) return;
+    // The map is a derived overview. Coalesce sculpt notifications so its
+    // 90,000-sample raster does not block each live viewport update.
+    const redraw = () => {
+      const world = useWorldStore.getState().world;
+      const terrainMapBounds = { minX: mapMinX, maxX: mapMaxX, minZ: mapMinZ, maxZ: mapMaxZ };
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.imageSmoothingEnabled = false;
 
-    const heights = new Float32Array(SIZE * SIZE);
-    let minHeight = Infinity;
-    let maxHeight = -Infinity;
-    for (let py = 0; py < SIZE; py += 1) {
-      for (let px = 0; px < SIZE; px += 1) {
-        const x = terrainMapBounds.minX + (px / (SIZE - 1)) * (terrainMapBounds.maxX - terrainMapBounds.minX);
-        const z = terrainMapBounds.minZ + (py / (SIZE - 1)) * (terrainMapBounds.maxZ - terrainMapBounds.minZ);
-        const h = getTerrainHeightAt(x, z);
-        heights[py * SIZE + px] = h;
-        minHeight = Math.min(minHeight, h);
-        maxHeight = Math.max(maxHeight, h);
-      }
-    }
-
-    const image = ctx.createImageData(SIZE, SIZE);
-    const range = Math.max(1, maxHeight - minHeight);
-    for (let py = 0; py < SIZE; py += 1) {
-      for (let px = 0; px < SIZE; px += 1) {
-        const h = heights[py * SIZE + px];
-        const normalized = (h - minHeight) / range;
-        const shade = Math.round(22 + normalized * 115);
-        const index = (py * SIZE + px) * 4;
-        image.data[index] = shade;
-        image.data[index + 1] = shade + 4;
-        image.data[index + 2] = shade + 8;
-        image.data[index + 3] = 255;
-      }
-    }
-    ctx.putImageData(image, 0, 0);
-
-    ctx.lineWidth = 1.15;
-    for (
-      let level = Math.ceil(minHeight / CONTOUR_STEP) * CONTOUR_STEP;
-      level <= maxHeight;
-      level += CONTOUR_STEP
-    ) {
-      ctx.beginPath();
-      for (let py = 1; py < SIZE; py += 1) {
-        for (let px = 1; px < SIZE; px += 1) {
-          const a = heights[(py - 1) * SIZE + (px - 1)];
-          const b = heights[(py - 1) * SIZE + px];
-          const c = heights[py * SIZE + px];
-          const d = heights[py * SIZE + (px - 1)];
-          const highA = a >= level;
-          const highB = b >= level;
-          const highC = c >= level;
-          const highD = d >= level;
-          const points = [];
-          if (highA !== highB) points.push([px - 0.5, py - 1]);
-          if (highB !== highC) points.push([px, py - 0.5]);
-          if (highC !== highD) points.push([px - 0.5, py]);
-          if (highD !== highA) points.push([px - 1, py - 0.5]);
-          if (points.length === 2) {
-            ctx.moveTo(points[0][0], points[0][1]);
-            ctx.lineTo(points[1][0], points[1][1]);
-          }
+      const regions=getTerrainRegions(world);
+      const heights = new Float32Array(SIZE * SIZE);
+      let minHeight = Infinity;
+      let maxHeight = -Infinity;
+      for (let py = 0; py < SIZE; py += 1) {
+        for (let px = 0; px < SIZE; px += 1) {
+          const x = terrainMapBounds.minX + (px / (SIZE - 1)) * (terrainMapBounds.maxX - terrainMapBounds.minX);
+          const z = terrainMapBounds.minZ + (py / (SIZE - 1)) * (terrainMapBounds.maxZ - terrainMapBounds.minZ);
+          const h = getTerrainHeightAt(x, z);
+          heights[py * SIZE + px] = h;
+          minHeight = Math.min(minHeight, h);
+          maxHeight = Math.max(maxHeight, h);
         }
       }
-      ctx.strokeStyle = "rgba(235, 242, 248, 0.62)";
-      ctx.stroke();
-    }
 
-    baseMapRef.current = ctx.getImageData(0, 0, SIZE, SIZE);
-  }, [
-    world.schemaVersion,
-    JSON.stringify(world.chunks ?? {}),
-    JSON.stringify(world.terrainVertexEdits ?? {}),
-    world.chunks?.[world.currentChunkId]?.terrain?.terrainEditVersion ?? 0,
-  ]);
+      const image = ctx.createImageData(SIZE, SIZE);
+      const range = Math.max(1, maxHeight - minHeight);
+      for (let py = 0; py < SIZE; py += 1) {
+        for (let px = 0; px < SIZE; px += 1) {
+          const h = heights[py * SIZE + px];
+          const normalized = (h - minHeight) / range;
+          const shade = Math.round(22 + normalized * 115);
+          const index = (py * SIZE + px) * 4;
+          image.data[index] = shade;
+          image.data[index + 1] = shade + 4;
+          image.data[index + 2] = shade + 8;
+          const x=terrainMapBounds.minX+px/(SIZE-1)*(terrainMapBounds.maxX-terrainMapBounds.minX),z=terrainMapBounds.minZ+py/(SIZE-1)*(terrainMapBounds.maxZ-terrainMapBounds.minZ);
+          image.data[index + 3] = !world.terrainSurface||regions.some(r=>containsPoint(r,x,z))?255:0;
+        }
+      }
+      ctx.putImageData(image, 0, 0);
 
+      ctx.lineWidth = 1.15;
+      for (
+        let level = Math.ceil(minHeight / CONTOUR_STEP) * CONTOUR_STEP;
+        level <= maxHeight;
+        level += CONTOUR_STEP
+      ) {
+        ctx.beginPath();
+        for (let py = 1; py < SIZE; py += 1) {
+          for (let px = 1; px < SIZE; px += 1) {
+            const a = heights[(py - 1) * SIZE + (px - 1)];
+            const b = heights[(py - 1) * SIZE + px];
+            const c = heights[py * SIZE + px];
+            const d = heights[py * SIZE + (px - 1)];
+            const highA = a >= level;
+            const highB = b >= level;
+            const highC = c >= level;
+            const highD = d >= level;
+            const points = [];
+            if (highA !== highB) points.push([px - 0.5, py - 1]);
+            if (highB !== highC) points.push([px, py - 0.5]);
+            if (highC !== highD) points.push([px - 0.5, py]);
+            if (highD !== highA) points.push([px - 1, py - 0.5]);
+            if (points.length === 2) {
+              ctx.moveTo(points[0][0], points[0][1]);
+              ctx.lineTo(points[1][0], points[1][1]);
+            }
+          }
+        }
+        ctx.strokeStyle = "rgba(235, 242, 248, 0.62)";
+        ctx.stroke();
+      }
+
+      baseMapRef.current = ctx.getImageData(0, 0, SIZE, SIZE);
+    };
+    const timer = window.setTimeout(redraw, 200);
+    return () => window.clearTimeout(timer);
+  }, [visible, heightKey, mapMinX, mapMaxX, mapMinZ, mapMaxZ]);
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -239,7 +265,7 @@ export default function WorldMap({ onAddChunk, onSelectChunk }) {
     <div className="tg-world-map-shell">
       <div className="tg-world-map-heading">
         <span>WORLD MAP</span>
-        <small>{occupiedCount} CHUNKS // WORLD GRID // DRAG TO PAN</small>
+        <small>{occupiedCount} AREAS // {world.terrainSurface ? "SPATIAL TERRAIN GRID" : "WORLD GRID"} // DRAG TO PAN</small>
       </div>
 
       <div
@@ -257,7 +283,7 @@ export default function WorldMap({ onAddChunk, onSelectChunk }) {
           style={{
             width: `${mapWidth}px`,
             height: `${mapHeight}px`,
-            transform: `translate3d(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px), 0)`,
+            transform: `translate3d(calc(-50% + ${offset.x+centerX}px), calc(-50% + ${offset.y+centerY}px), 0)`,
           }}
         >
           <canvas
@@ -271,23 +297,26 @@ export default function WorldMap({ onAddChunk, onSelectChunk }) {
           <div
             className="tg-world-map-grid-surface"
             style={{ gridTemplateColumns: `repeat(${mapColumns}, 1fr)`, gridTemplateRows: `repeat(${mapRows}, 1fr)` }}
-            aria-hidden="true"
           >
             {cells.map((cell) => {
               const occupied = Boolean(cell.chunk);
-              const active = cell.chunk?.id === currentChunkId;
+              const active = cell.chunk?.id === currentChunkId && (!cell.base || (Math.floor((currentChunk.position[0]+300)/world.grid.chunkSize)===cell.x && Math.floor((currentChunk.position[2]+300)/world.grid.chunkSize)===cell.y));
               return (
                 <button
                   key={`${cell.x},${cell.y}`}
                   type="button"
+                  data-terrain-grid={cell.grid}
+                  disabled={cell.base || cell.disabled}
+                  aria-pressed={occupied ? active : undefined}
+                  title={cell.grid ? (cell.base ? "EXISTING TERRAIN / " : "")+cell.grid : undefined}
                   className={`tg-world-map-grid-cell ${occupied ? "occupied" : "empty"} ${active ? "active" : ""}`}
-                  onClick={() => occupied ? onSelectChunk?.(cell.chunk) : onAddChunk?.(null, [cell.x, cell.y])}
-                  aria-label={occupied
+                  onClick={() => occupied ? onSelectChunk?.(cell.chunk) : onAddChunk?.(cell.grid ?? null, [cell.x, cell.y])}
+                  aria-label={cell.base ? `Existing terrain ${cell.grid}; use area markers to navigate` : occupied
                     ? `Select ${cell.chunk.grid} ${cell.chunk.name}`
-                    : `Add world chunk at map position ${cell.x}, ${cell.y}`}
+                    : cell.grid ? `Add terrain ${cell.grid}` : `Add world chunk at map position ${cell.x}, ${cell.y}`}
                 >
                   {occupied ? (
-                    <span className="tg-world-map-major-label" aria-hidden="true">{cell.chunk.mapLabel ?? "?"}</span>
+                    <span className="tg-world-map-major-label" aria-hidden="true">{cell.base ? cell.grid : cell.chunk.mapLabel ?? "?"}</span>
                   ) : (
                     <span className="tg-world-map-empty-add" aria-hidden="true">+</span>
                   )}
@@ -295,6 +324,7 @@ export default function WorldMap({ onAddChunk, onSelectChunk }) {
               );
             })}
           </div>
+          {world.terrainSurface&&Object.values(chunks).filter(chunk=>!chunk.terrainRegion&&Math.abs(chunk.position[0])<300&&Math.abs(chunk.position[2])<300).map(chunk=><button key={'area-'+chunk.id} className="tg-ui-button" data-area-marker={chunk.id} aria-label={'Select area '+chunk.name} aria-pressed={chunk.id===currentChunkId} title={chunk.name+' / X '+chunk.position[0]+' / Z '+chunk.position[2]} onClick={()=>onSelectChunk?.(chunk)} style={{position:'absolute',left:((chunk.position[0]+300)/world.grid.chunkSize-mapBounds.minX)*MAP_STEP,top:((chunk.position[2]+300)/world.grid.chunkSize-mapBounds.minY)*MAP_STEP,transform:'translate(-50%,-50%)',padding:4,minWidth:36,zIndex:2}}>{chunk.mapLabel ?? chunk.name}</button>)}
         </div>
         <div className="tg-world-map-pan-hint">DRAG MAP // MOVE CURSOR TO EDGE TO PAN</div>
       </div>

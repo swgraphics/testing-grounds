@@ -1,0 +1,154 @@
+/* Title-only overlay. The existing canvas remains visible across the viewport. */
+.tg-title-screen.tg-title-v3 {
+  --title-inset-x: clamp(18px, 2.65vw, 56px);
+  --title-inset-y: clamp(18px, 4vh, 44px);
+  --title-left: clamp(44px, 9.4vw, 184px);
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding: clamp(64px, 14vh, 152px) var(--title-left) calc(var(--title-inset-y) + 100px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  color: #fff;
+  background: linear-gradient(90deg, rgb(0 0 0 / .94) 0%, rgb(0 0 0 / .69) 32%, rgb(0 0 0 / .23) 70%, rgb(0 0 0 / .08) 100%),
+    linear-gradient(0deg, rgb(0 0 0 / .36), transparent 40%);
+}
+.tg-title-v3::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--tg-halftone), var(--tg-raster);
+  background-size: 4px 4px, auto;
+  opacity: .3;
+}
+.tg-title-frame {
+  position: fixed;
+  inset: max(var(--title-inset-y), env(safe-area-inset-top)) max(var(--title-inset-x), env(safe-area-inset-right)) max(var(--title-inset-y), env(safe-area-inset-bottom)) max(var(--title-inset-x), env(safe-area-inset-left));
+  border: clamp(3px, .3vw, 6px) solid #fff;
+  pointer-events: none;
+}
+.tg-title-content {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(100%, 700px);
+}
+.tg-title-brand {
+  display: block;
+  width: clamp(224px, 18.6vw, 360px);
+  max-width: 100%;
+  height: auto;
+  margin-bottom: clamp(28px, 4vh, 48px);
+}
+.tg-title-v3 h1 {
+  margin: 0;
+  font: 400 clamp(52px, 5.1vw, 98px)/1.05 var(--tg-font-heading);
+  letter-spacing: -.055em;
+  color: #fff;
+}
+.tg-title-intro {
+  max-width: 44ch;
+  margin: 20px 0 0;
+  font: 400 clamp(16px, 1.15vw, 22px)/1.45 var(--tg-font-copy);
+  color: #f5f5f2;
+}
+.tg-title-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(18px, 2.2vw, 42px);
+  margin-top: clamp(28px, 4.5vh, 48px);
+}
+.tg-title-actions button {
+  min-height: 46px;
+  padding: 7px 13px;
+  border: 2px solid var(--tg-orange);
+  border-radius: 0;
+  font: 400 clamp(19px, 1.45vw, 28px)/1 var(--tg-font-display);
+  letter-spacing: 0;
+  cursor: pointer;
+}
+.tg-title-enter { background: var(--tg-orange); color: #fff; }
+.tg-title-blank { background: rgb(0 0 0 / .3); color: var(--tg-orange); }
+.tg-title-actions button:hover { box-shadow: var(--tg-glow-selected); }
+.tg-title-load {
+  display: block;
+  width: fit-content;
+  min-height: 44px;
+  padding: 10px 0;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--tg-orange);
+  font: 500 clamp(11px, .75vw, 14px)/1.3 var(--tg-font-copy);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 10px;
+  cursor: pointer;
+}
+.tg-title-v3 button:focus-visible { outline: 2px solid #fff; outline-offset: 5px; }
+.tg-title-v3 button:disabled { opacity: .5; cursor: not-allowed; }
+.tg-title-credits {
+  position: absolute;
+  left: var(--title-left);
+  right: calc(var(--title-inset-x) + 22px);
+  bottom: calc(var(--title-inset-y) + 18px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  font: 500 clamp(9px, .55vw, 11px)/1.4 var(--tg-font-copy);
+  color: #fff;
+}
+.tg-title-credits > span { align-self: flex-start; padding-top: 10px; }
+.tg-title-signature { display: grid; justify-items: center; gap: 7px; }
+.tg-title-compass { display: block; width: clamp(46px, 4vw, 76px); height: auto; }
+.tg-title-version { font-size: 9px; white-space: nowrap; }
+
+/* Portrait composition: clear upper world view, content gathered below. */
+@media (max-width: 700px) and (orientation: portrait) {
+  .tg-title-screen.tg-title-v3 {
+    --title-inset-x: 20px;
+    --title-inset-y: 20px;
+    --title-left: max(36px, calc(env(safe-area-inset-left) + 16px));
+    padding: max(78px, calc(env(safe-area-inset-top) + 54px)) max(36px, calc(env(safe-area-inset-right) + 16px)) max(38px, calc(env(safe-area-inset-bottom) + 18px)) var(--title-left);
+    background: linear-gradient(0deg, rgb(0 0 0 / .98) 0%, rgb(0 0 0 / .84) 28%, rgb(0 0 0 / .3) 54%, rgb(0 0 0 / .04) 78%);
+  }
+  .tg-title-frame { border-width: 4px; }
+  .tg-title-content { margin-top: auto; width: 100%; }
+  .tg-title-brand { width: 190px; margin-bottom: 22px; }
+  .tg-title-v3 h1 { font-size: clamp(28px, 12vw, 52px); letter-spacing: -.06em; }
+  .tg-title-intro { margin-top: 16px; max-width: 46ch; font-size: 14px; line-height: 1.45; }
+  .tg-title-actions { margin-top: 22px; gap: 14px; flex-wrap: nowrap; }
+  .tg-title-actions button { font-size: 19px; min-height: 46px; padding: 8px 10px; white-space: nowrap; }
+  .tg-title-load { margin-top: 10px; font-size: 11px; text-underline-offset: 7px; }
+  .tg-title-credits { position: static; margin-top: 24px; font-size: 8px; gap: 10px; }
+  .tg-title-credits > span { align-self: auto; padding-top: 0; }
+  .tg-title-signature { display: block; }
+  .tg-title-compass { position: fixed; top: max(36px, calc(env(safe-area-inset-top) + 16px)); right: max(36px, calc(env(safe-area-inset-right) + 16px)); width: 36px; }
+  .tg-title-version { font-size: 8px; }
+}
+@media (max-width: 400px) and (orientation: portrait) {
+  .tg-title-screen.tg-title-v3 { --title-inset-x: 16px; --title-inset-y: 16px; --title-left: max(30px, calc(env(safe-area-inset-left) + 14px)); padding-right: max(30px, calc(env(safe-area-inset-right) + 14px)); padding-bottom: max(30px, calc(env(safe-area-inset-bottom) + 14px)); }
+  .tg-title-brand { width: 180px; margin-bottom: 18px; }
+  .tg-title-intro { margin-top: 14px; }
+  .tg-title-credits { margin-top: 20px; }
+}
+/* Short landscape screens retain a readable, scrollable title composition. */
+@media (max-height: 640px) and (orientation: landscape) {
+  .tg-title-screen.tg-title-v3 { padding-top: 48px; padding-bottom: 36px; }
+  .tg-title-brand { width: 200px; margin-bottom: 22px; }
+  .tg-title-v3 h1 { font-size: 46px; }
+  .tg-title-intro { font-size: 15px; max-width: 56ch; }
+  .tg-title-actions { margin-top: 20px; }
+  .tg-title-load { margin-top: 12px; }
+  .tg-title-credits { position: static; margin-top: 28px; }
+  .tg-title-compass { width: 36px; }
+}

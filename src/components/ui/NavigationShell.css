@@ -1,0 +1,91 @@
+.tg-compass-activate { position: fixed; top: 18px; right: 20px; width: 52px; height: 52px; padding: 4px; border: 0; background: rgb(0 0 0 / .45); border-radius: 50%; z-index: 390; cursor: pointer; }
+.tg-compass-activate img { width: 100%; height: 100%; }
+.tg-compass-overlay { --tg-compass-accent: #FF4800; --tg-compass-rgb: 255 72 0; --tg-compass-turn: 0deg; position: fixed; inset: 0; z-index: 700; display: flex; flex-direction: column; pointer-events: none; background: transparent; color: #fff; overflow: hidden; text-shadow: 0 1px 4px #000,0 1px 10px #000; }
+.tg-compass-overlay[data-depth="secondary"] { --tg-compass-accent: #2a8fff; --tg-compass-rgb: 42 143 255; --tg-compass-turn: 45deg; }
+.tg-compass-overlay :is(button,input,select,summary) { pointer-events: auto; }
+.tg-compass-overlay .tg-ui-button { color: #fff; border-color: #62666c; background: rgb(5 6 8 / .55); box-shadow: none; }
+.tg-compass-overlay .tg-ui-button:focus-visible { outline: 2px solid var(--tg-compass-accent); outline-offset: 3px; }
+.tg-compass-overlay .tg-ui-button:disabled { opacity: .4; }
+.tg-compass-header, .tg-compass-footer { flex: 0 0 auto; width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 20px; background: rgb(5 6 8 / .84); pointer-events: auto; box-sizing: border-box; }
+.tg-compass-header { min-height: 56px; border-bottom: 1px solid #34383d; }
+.tg-compass-header > img { width: 215px; height: 30px; margin-right: auto; filter: brightness(0) invert(1); }
+.tg-compass-top-actions { display: flex; gap: 8px; margin-left: auto; }
+.tg-compass-top-actions button { white-space: nowrap; }
+.tg-compass-title { position: absolute; left: 20px; top: 78px; margin: 0; font: 18px var(--tg-font-heading); color: var(--tg-orange); }
+.tg-compass-layout { position: relative; width: min(76vw,1100px); min-height: 0; flex: 1; align-self: center; }
+.tg-compass-ring { position: absolute; width: min(39vw,55vh,530px); aspect-ratio: 1; left: 50%; top: 50%; transform: translate(-50%,-50%) rotate(var(--tg-compass-turn)); transition: transform 350ms ease; pointer-events: none; }
+.tg-compass-ring img { width: 100%; height: 100%; filter: brightness(0) invert(1); opacity: .86; }
+.tg-compass-ring::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at var(--tg-point-x,50%) var(--tg-point-y,0%),var(--tg-compass-accent) 0%,rgb(var(--tg-compass-rgb) / .72) 27%,transparent 62%); mask: url('/brand/TCompass.svg') center/contain no-repeat; transition: background-color 120ms ease; }
+.tg-compass-ring span { position: absolute; inset: 27%; border: 1px solid rgb(255 255 255 / .6); border-radius: 50%; }
+.tg-compass-destination { position: absolute; display: flex; align-items: center; gap: 10px; padding: 9px 12px; max-width: 34%; border: 1px solid transparent; background: transparent; color: #fff; text-align: left; cursor: pointer; z-index: 1; transition: color 100ms ease,border-color 100ms ease,background 100ms ease; }
+.tg-compass-destination.north { top: 4%; left: 50%; transform: translateX(-50%); max-width: 70%; }
+.tg-compass-destination.south { bottom: 4%; left: 50%; transform: translateX(-50%); max-width: 70%; }
+.tg-compass-destination.west { left: 0; top: 50%; transform: translateY(-50%); }
+.tg-compass-destination.east { right: 0; top: 50%; transform: translateY(-50%); }
+.tg-compass-icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 1px solid currentColor; border-radius: 50%; }
+.tg-compass-icon img { width: 23px; height: 23px; filter: brightness(0) invert(1); }
+.tg-compass-destination small { display: block; font: 10px var(--tg-font-heading); margin-bottom: 5px; }
+.tg-compass-destination strong { display: block; font: 400 clamp(12px,1.4vw,22px)/1.3 var(--tg-font-heading); letter-spacing: -.04em; overflow-wrap: anywhere; }
+.tg-compass-destination.selected { color: var(--tg-compass-accent); border-color: var(--tg-compass-accent); background: linear-gradient(100deg,rgb(var(--tg-compass-rgb) / .15),transparent); }
+.tg-compass-destination:focus-visible { outline: 2px solid var(--tg-compass-accent); outline-offset: 4px; }
+.tg-compass-quick { position: absolute; right: 16px; top: 27%; display: flex; flex-direction: column; gap: 8px; width: 115px; }
+.tg-compass-quick h2 { margin: 0 0 5px; font: 13px var(--tg-font-display); }
+.tg-compass-quick button { display: flex; align-items: center; gap: 6px; padding: 10px 7px; font-size: 12px; }
+.tg-compass-footer { min-height: 48px; border-top: 1px solid #34383d; justify-content: flex-end; }
+.tg-compass-footer > button:first-child { margin-right: auto; }
+@media(max-width:1000px) { .tg-compass-layout { width: 70%; } .tg-compass-destination { gap: 5px; padding: 8px; } .tg-compass-icon { width: 28px; height: 28px; } .tg-compass-icon img { width: 18px; height: 18px; } .tg-compass-quick { right: 6px; width: 95px; } .tg-compass-header { padding: 8px 12px; } .tg-compass-header > img { width: 160px; } }
+@media(max-width:650px) { .tg-compass-header { flex-wrap: wrap; min-height: 86px; gap: 5px; padding: 6px 8px; } .tg-compass-header > img { width: 140px; } .tg-compass-top-actions { margin-left: 0; width: 100%; justify-content: space-between; } .tg-compass-top-actions .tg-ui-button { padding: 6px; font-size: 12px; } .tg-compass-title { top: 100px; left: 10px; font-size: 13px; } .tg-compass-layout { width: 100%; margin-bottom: 110px; } .tg-compass-ring { width: min(56vw,38vh); } .tg-compass-destination { max-width: 32%; padding: 6px 3px; gap: 4px; } .tg-compass-destination strong { font-size: 10px; } .tg-compass-destination small { font-size: 8px; } .tg-compass-icon { width: 22px; height: 22px; } .tg-compass-destination.north { top: 8%; } .tg-compass-destination.south { bottom: 2%; } .tg-compass-quick { top: auto; bottom: 58px; left: 8px; right: 8px; width: auto; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; } .tg-compass-quick h2 { grid-column: 1/-1; margin: 0; font-size: 11px; } .tg-compass-quick button { font-size: 10px; padding: 6px; justify-content: center; } .tg-compass-footer { padding: 7px 8px; gap: 5px; } }
+@media(max-height:600px) and (min-width:651px) { .tg-compass-ring { width: 44vh; } .tg-compass-destination strong { font-size: 12px; } .tg-compass-title { top: 65px; font-size: 13px; } }
+@media(prefers-reduced-motion:reduce) { .tg-compass-ring,.tg-compass-destination { transition: none; } }
+
+.tg-compass-overlay[data-cardinal-active="false"] .tg-compass-ring::after { opacity: 0; }
+
+
+.tg-compass-overlay[data-depth="secondary"] .tg-compass-title { color: #fff; }
+
+.tg-compass-overlay .tg-shortcut-activate[aria-pressed="true"], .tg-shortcut-picker nav button[aria-pressed="true"] { color: #2a8fff; border-color: #2a8fff; box-shadow: none; }
+
+/* Four local preference slots sit beside the same radial navigation. */
+.tg-compass-layout { width: calc(100% - 380px); max-width: 1100px; }
+.tg-compass-shortcuts { position: absolute; top: 27%; left: 16px; width: 155px; display: flex; flex-direction: column; gap: 8px; }
+.tg-compass-shortcuts h2 { margin: 0 0 5px; font: 13px var(--tg-font-display); }
+.tg-shortcut-slot { display: grid; grid-template-columns: minmax(0,1fr) 23px 23px; gap: 3px; }
+.tg-shortcut-slot .tg-shortcut-activate { min-width: 0; min-height: 43px; text-align: left; font-size: 13px; padding: 8px 6px; white-space: normal; overflow-wrap: anywhere; }
+.tg-shortcut-slot .tg-shortcut-activate:only-child { grid-column: 1/-1; text-align: center; font-size: 21px; }
+.tg-shortcut-slot .tg-shortcut-edit { font-size: 13px; padding: 0; min-height: 28px; align-self: center; }
+.tg-shortcut-activate[aria-disabled="true"] { color: #b8bdc5; border-style: dashed; }
+.tg-compass-feedback { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); margin: 0; padding: 5px 12px; max-width: 55vw; font-size: 11px; background: rgb(0 0 0 / .6); color: #fff; pointer-events: none; }
+.tg-shortcut-picker { position: fixed; top: 10%; bottom: 10%; left: 50%; transform: translateX(-50%); width: min(680px,calc(100% - 32px)); padding: 18px; border: 1px solid #8c939d; pointer-events: auto; display: flex; flex-direction: column; gap: 12px; text-shadow: none; }
+.tg-shortcut-picker header { display: flex; align-items: center; justify-content: space-between; }
+.tg-shortcut-picker h2 { margin: 0; font: 17px var(--tg-font-heading); }
+.tg-shortcut-picker input { padding: 10px; min-width: 0; border: 1px solid #7f858e; background: #14171b; color: white; font: 14px var(--tg-font-copy); }
+.tg-shortcut-picker nav { display: flex; gap: 5px; flex-wrap: wrap; }
+.tg-shortcut-picker nav .tg-ui-button { padding: 5px 8px; font-size: 12px; min-height: 28px; }
+.tg-shortcut-action-list { min-height: 0; flex: 1; overflow: auto; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows:max-content; align-content: start; gap: 7px; }
+.tg-shortcut-action-list .tg-ui-button { text-align: left; min-width: 0; white-space: normal; }
+.tg-shortcut-action-list small { display: block; margin-top: 5px; color: #a3a7af; font: 10px var(--tg-font-copy); }
+@media(max-width:1000px) and (min-width:651px) { .tg-compass-layout { width: calc(100% - 280px); } .tg-compass-shortcuts { left: 8px; width: 120px; } .tg-shortcut-slot { grid-template-columns: minmax(0,1fr) 19px 19px; } .tg-shortcut-slot .tg-shortcut-activate { font-size: 11px; } }
+@media(max-width:650px) { .tg-compass-layout { width: 100%; margin-bottom: 208px; } .tg-compass-shortcuts { top: auto; bottom: 142px; left: 8px; right: 8px; width: auto; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; } .tg-compass-shortcuts h2 { grid-column: 1/-1; font-size: 11px; margin: 0; } .tg-shortcut-slot { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2px; } .tg-shortcut-slot .tg-shortcut-activate { grid-column: 1/-1; font-size: 10px; min-height: 34px; padding: 5px; } .tg-shortcut-slot .tg-shortcut-edit { min-height: 25px; } .tg-shortcut-slot .tg-shortcut-activate:only-child { min-height: 61px; } .tg-compass-feedback { top: 89px; max-width: 90vw; font-size: 10px; } .tg-shortcut-picker { padding: 10px; top: 6%; bottom: 6%; } }
+
+/* Task 05.1: one navigation control and an explicit overlay hierarchy. */
+body { --tg-layer-dialog:600; --tg-layer-compass-backdrop:690; --tg-layer-compass:700; --tg-layer-picker:710; --tg-layer-navigation:720; }
+.tg-compass-activate { z-index:var(--tg-layer-navigation); color:#FF4800; background:rgb(0 0 0 / .35); }
+.tg-compass-activate[data-compass-state="white"] { color:#fff; }
+.tg-compass-activate[data-compass-state="blue"] { color:#2a8fff; }
+.tg-compass-control-mark { display:block; width:100%; height:100%; background:currentColor; mask:url('/brand/TCompass.svg') center/contain no-repeat; }
+.tg-compass-activate:focus-visible { outline:2px solid currentColor; outline-offset:3px; }
+.tg-compass-backdrop { position:fixed; inset:0; z-index:var(--tg-layer-compass-backdrop); background:rgb(0 0 0 / .25); backdrop-filter:blur(3px); pointer-events:auto; }
+.tg-compass-overlay { z-index:var(--tg-layer-compass); }
+.tg-compass-destination { background:transparent; border-color:transparent; }
+.tg-compass-destination.selected { border-color:transparent; background:linear-gradient(100deg,rgb(var(--tg-compass-rgb) / .12),transparent); }
+.tg-compass-quick button { color:#fff; }
+.tg-compass-quick button[aria-pressed="true"]::after { content:''; width:4px; height:4px; margin-left:auto; border-radius:50%; background:#b8bdc5; }
+.tg-compass-quick button:is(:focus,:hover):not(:disabled) { color:#2a8fff; border-color:#2a8fff; }
+.tg-compass-quick button:focus .tg-hud-icon { filter:invert(45%) sepia(98%) saturate(1790%) hue-rotate(190deg) brightness(104%); }
+.tg-shortcut-picker-backdrop { position:fixed; inset:0; z-index:var(--tg-layer-picker); background:rgb(0 0 0 / .48); pointer-events:auto; }
+.tg-shortcut-picker { z-index:1; background-color:#08090b; }
+.tg-compass-overlay[inert] { pointer-events:none; }
+body .tg-help-dialog, body .tg-leaf-editor-window-backdrop, body .tg-chunk-dialog-backdrop { z-index:var(--tg-layer-dialog); }
+@media(prefers-reduced-transparency:reduce) { .tg-compass-backdrop { backdrop-filter:none; background:rgb(0 0 0 / .42); } }
+.tg-quick-icon { width:18px; height:20px; flex:0 0 auto; }
+.tg-compass-header { padding-right:92px; }

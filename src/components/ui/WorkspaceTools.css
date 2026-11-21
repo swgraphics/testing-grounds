@@ -1,0 +1,52 @@
+.tg-editor-view.tg-workspace-v2{inset:8px;display:flex;flex-direction:column;border:1px solid var(--tg-border);box-shadow:none}
+.tg-workspace-v2 .tg-editor-header{min-height:50px;background-color:var(--tg-surface);padding:10px 72px 10px 16px;border-bottom:1px solid var(--tg-border)}
+.tg-workspace-v2 .tg-editor-brand{display:flex;gap:10px;align-items:center;white-space:normal}.tg-workspace-v2 .tg-editor-brand img{width:200px;height:30px}
+.tg-workspace-v2 .tg-editor-area-row{display:flex;flex-wrap:nowrap;overflow-x:auto;min-height:48px;flex-shrink:0;padding:6px 12px;background-color:var(--tg-surface-raised)}
+.tg-workspace-v2 .tg-editor-body{display:grid;grid-template-columns:150px minmax(0,1fr) 104px;flex:1;min-height:0;gap:10px;padding:10px}
+.tg-workspace-v2 .tg-editor-sidebar{width:auto;padding:0;background:transparent;overflow:auto}
+.tg-workspace-v2 .tg-editor-main{display:flex;flex-direction:column;min-width:0;min-height:0;gap:10px}
+.tg-workspace-v2 .tg-editor-viewport{flex:1;min-height:100px;border:1px solid var(--tg-border);background:transparent}
+.tg-workspace-v2 .tg-editor-bottom-bar{display:flex;flex-wrap:wrap;gap:5px;padding:4px;background:var(--tg-surface)}
+.tg-workspace-v2 .tg-editor-bottom-bar button{font-size:11px;flex:1 0 auto;min-height:27px}
+.tg-workspace-tools,.tg-workspace-quick{padding:12px 8px;border:1px solid var(--tg-border);pointer-events:auto;overflow:auto;box-sizing:border-box}
+.tg-workspace-tools{display:flex;flex-direction:column;gap:5px;min-height:100%}.tg-workspace-tools h2,.tg-workspace-quick h2{font-size:11px;margin:10px 0;line-height:1.6}
+.tg-workspace-tools button{text-align:left;font-size:15px;padding:5px 8px}.tg-workspace-tools p{font-size:10px;line-height:1.5;color:var(--tg-muted);margin-top:auto}
+.tg-workspace-quick{display:flex;flex-direction:column;gap:8px}.tg-workspace-quick button{display:flex;flex-direction:column;align-items:center;gap:7px;padding:12px 2px;font-size:13px}
+.tg-workspace-bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px;pointer-events:auto;max-height:190px;min-height:130px}
+.tg-workspace-bottom>section{min-width:0;overflow:auto;border:1px solid var(--tg-border);padding:10px}
+.tg-workspace-bottom h2{font-size:13px;margin:0 0 10px;border-left:4px solid var(--tg-orange);padding-left:10px}.tg-workspace-bottom p{font-size:10px;color:var(--tg-muted);line-height:1.5;margin:8px 0}
+.tg-library-strip{display:flex;gap:6px;overflow-x:auto;margin-bottom:8px}.tg-library-strip button{display:flex;flex-direction:column;gap:5px;align-items:center;min-width:76px;font-size:11px;padding:6px}
+.tg-workspace-actions{display:flex;gap:6px;flex-wrap:wrap}.tg-workspace-bottom .tg-ui-button{font-size:12px;min-height:28px;padding:4px 8px}
+.tg-workspace-footer{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding:3px 12px;background:var(--tg-surface);font-size:9px;color:var(--tg-muted);pointer-events:auto}.tg-workspace-footer button{font-size:11px;min-height:25px;padding:3px 8px}
+.tg-canvas-shell.editor-open{inset:132px 132px 290px 179px!important;border:0!important}
+body.tg-editor-active .tg-mesh-menu{left:180px;right:130px;bottom:65px;max-height:42vh;overflow:auto;z-index:370}
+.tg-mesh-menu h2{font-size:16px;margin:0 0 8px}.tg-library-guidance{font-size:11px;line-height:1.5;color:var(--tg-muted);margin:0 0 10px}
+.tg-workspace-v2 .tg-terrain-export{bottom:55px}
+@media(max-width:1050px){.tg-workspace-v2 .tg-editor-body{grid-template-columns:120px minmax(0,1fr) 86px;gap:6px;padding:6px}.tg-workspace-v2 .tg-editor-brand img{width:150px}.tg-workspace-bottom{max-height:160px;min-height:110px}.tg-canvas-shell.editor-open{inset:132px 109px 265px 145px!important}.tg-workspace-bottom h2{font-size:10px}body.tg-editor-active .tg-mesh-menu{left:145px;right:105px}.tg-workspace-tools h2{font-size:10px}}
+@media(max-width:700px){.tg-workspace-v2 .tg-editor-body{grid-template-columns:92px minmax(0,1fr)}.tg-workspace-quick{display:none}.tg-workspace-bottom{grid-template-columns:1fr;max-height:180px;min-height:120px}.tg-workspace-bottom>section{min-height:70px}.tg-workspace-v2 .tg-editor-header{padding:8px 60px 8px 8px;flex-wrap:wrap}.tg-workspace-v2 .tg-editor-brand img{width:140px}.tg-workspace-v2 .tg-editor-header-actions{flex-wrap:wrap;gap:4px}.tg-workspace-tools{padding:8px 4px}.tg-workspace-tools button{font-size:13px;padding:4px}.tg-canvas-shell.editor-open{inset:170px 25px 310px 115px!important}body.tg-editor-active .tg-mesh-menu{left:22px;right:22px;bottom:60px;max-height:60vh}.tg-editor-header-button{font-size:11px}.tg-workspace-v2 .tg-editor-bottom-bar{max-height:82px;overflow:auto}.tg-workspace-footer{font-size:8px}}
+@media(max-height:620px){.tg-workspace-bottom{min-height:80px;max-height:110px}.tg-canvas-shell.editor-open{bottom:220px!important}.tg-workspace-tools p{display:none}}
+
+/* Task 08.01: Full Editor is the composition of independent, optional panels. */
+body{--tg-left-width:0px;--tg-right-width:0px;--tg-left-reserve:25px;--tg-right-reserve:25px;--tg-bottom-reserve:110px}
+body.tg-panel-left-open{--tg-left-width:150px;--tg-left-reserve:179px}
+body.tg-panel-right-open{--tg-right-width:104px;--tg-right-reserve:132px}
+body.tg-panel-library-open,body.tg-panel-scatter-open{--tg-bottom-reserve:310px}
+.tg-workspace-v2 .tg-editor-body{grid-template-columns:var(--tg-left-width) minmax(0,1fr) var(--tg-right-width)}
+.tg-workspace-v2 .tg-editor-sidebar{grid-column:1}
+.tg-workspace-v2 .tg-editor-main{grid-column:2}
+.tg-workspace-v2 .tg-workspace-quick{display:flex;grid-column:3}
+.tg-canvas-shell.editor-open{inset:132px var(--tg-right-reserve) var(--tg-bottom-reserve) var(--tg-left-reserve)!important}
+.tg-workspace-bottom[data-single="true"]{grid-template-columns:1fr}
+.tg-panel-collapse{display:block;margin:0 0 8px auto;background:transparent;border:1px solid var(--tg-border);color:var(--tg-muted);font:11px var(--tg-font-display);padding:4px 6px;cursor:pointer}
+.tg-panel-collapse:hover{border-color:var(--tg-orange);color:var(--tg-foreground)}
+.tg-panel-switcher{position:fixed;right:20px;top:80px;z-index:390;border:1px solid var(--tg-border);pointer-events:auto;max-width:min(260px,calc(100vw - 40px))}
+.tg-panel-switcher>summary{padding:7px 12px;font:14px var(--tg-font-display);cursor:pointer;list-style:none}
+.tg-panel-switcher>div{display:flex;flex-direction:column;gap:6px;padding:10px}
+.tg-panel-switcher[open]{box-shadow:0 8px 25px #0008}
+.tg-workspace-v2 .tg-workspace-tools{min-height:0}
+.tg-workspace-v2 .tg-editor-sidebar>details{pointer-events:auto}
+.tg-terrain-export{position:fixed;bottom:20px;z-index:410}
+.tg-editor-active .tg-animation-library-ui{top:auto;bottom:40px}
+@media(max-width:1050px){body.tg-panel-left-open{--tg-left-width:120px;--tg-left-reserve:145px}body.tg-panel-right-open{--tg-right-width:86px;--tg-right-reserve:109px}body.tg-panel-library-open,body.tg-panel-scatter-open{--tg-bottom-reserve:290px}}
+@media(max-width:700px){body.tg-panel-left-open{--tg-left-width:92px;--tg-left-reserve:115px}body.tg-panel-right-open{--tg-right-width:76px;--tg-right-reserve:100px}.tg-canvas-shell.editor-open{top:132px!important}.tg-workspace-v2 .tg-workspace-quick{display:flex}.tg-workspace-quick h2{font-size:9px}.tg-workspace-bottom>section{min-height:80px}.tg-workspace-bottom{max-height:200px}.tg-panel-switcher{top:76px}}
+@media(max-height:620px){body.tg-panel-library-open,body.tg-panel-scatter-open{--tg-bottom-reserve:230px}}

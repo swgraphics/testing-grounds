@@ -1,5 +1,10 @@
+import { createPortal } from "react-dom";
+import WorldToolControls from './WorldToolControls';
+import CloudControls from './CloudControls';
+import "./HudRefinements.css";
+import { characterRegistry, activeCharacterId } from "../character/characterRegistry";
+import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 import { useEffect, useRef, useState } from "react";
-import { useEditorStore } from "../../systems/editor/editorStore";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 
 import { inputState } from "../../systems/input/inputState";
@@ -116,7 +121,7 @@ const CLOUD_SLIDERS = [
     ["stretch",        "Cloud Stretch",     0.5, 6.0, 0.05],
     ["rotation",       "Cloud Rotation",    0.0, 6.283, 0.01],
 
-    ["fluffiness",     "Wispy → Thick",     0.2, 4.0, 0.05],
+    ["puffiness",      "Cloud Puffiness",   0.0, 1.0, 0.01],
     ["density",        "Light → Dense",     0.1, 2.0, 0.01],
     ["detail",         "Detail",            0.2, 3.0, 0.05],
 
@@ -247,16 +252,17 @@ function DevSlider({
 }) {
   const value = terrainSettings[settingKey];
   const sliderLocked = isDevSliderLocked(lockId);
-  const effectiveLocked = locked || sliderLocked;
+  const planned = settingKey === "windDirection";
+  const effectiveLocked = locked || sliderLocked || planned;
 
   return (
     <div className="tg-dev-slider-group">
       <div className="tg-dev-slider-heading">
-        <label className="tg-dev-slider-label">{label}</label>
+        <label className="tg-dev-slider-label">{label}{planned ? " (planned)" : ""}</label>
         <span className="tg-dev-slider-value">
           {Number(value).toFixed(step < 0.1 ? 2 : 1)}
         </span>
-        <SliderLockButton sliderId={lockId} onRefresh={onRefresh} />
+        {!planned && <SliderLockButton sliderId={lockId} onRefresh={onRefresh} />}
       </div>
       <input
         className="tg-dev-slider"
@@ -266,6 +272,7 @@ function DevSlider({
         step={step}
         value={value}
         disabled={effectiveLocked}
+        title={planned ? "Directional wind is planned; the current renderer uses wind strength and speed." : undefined}
         onChange={(event) => {
           updateTerrainSetting(settingKey, Number(event.target.value));
           onRefresh();
@@ -435,110 +442,8 @@ function DevSectionLockButton({
   );
 }
 
-function DevToolsPanel({ terrainLocked, onRefresh, onClose }) {
-  const [activeSection, setActiveSection] = useState("terrain");
-  const sections = ["character", "terrain", "camera", "physics", "atmosphere", "world", "materials"];
-
-  function selectSection(section) {
-    setActiveSection(section);
-    window.dispatchEvent(new CustomEvent("tg-dev-panel-section", { detail: { section } }));
-  }
-
-  return (
-    <aside className="tg-dev-panel" aria-label="Dev Tools Panel">
-      <div className="tg-dev-panel-title-row">
-        <div className="tg-side-panel-title">DEV TOOLS</div>
-        <button type="button" className="tg-side-panel-close" onClick={onClose} aria-label="Close Dev Tools Panel">×</button>
-      </div>
-
-      <div className="tg-dev-panel-section-grid">
-        {sections.map((section) => (
-          <button
-            key={section}
-            type="button"
-            className={`tg-dev-panel-section-button ${activeSection === section ? "active" : ""}`}
-            onClick={() => selectSection(section)}
-          >
-            {section.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
-      <div className="tg-dev-panel-module">
-        {activeSection === "terrain" && (
-          <>
-            <div className="tg-dev-panel-module-title">TERRAIN</div>
-            <DevSectionLockButton sectionName="terrain" locked={terrainLocked} onRefresh={onRefresh} />
-            <div className={`tg-dev-section-lockable ${terrainLocked ? "locked" : ""}`}>
-              {TERRAIN_SLIDERS.map(([key, label, min, max, step]) => (
-                <DevSlider key={key} settingKey={key} label={label} min={min} max={max} step={step} locked={terrainLocked} onRefresh={onRefresh} />
-              ))}
-              <button type="button" disabled={terrainLocked} className="tg-side-panel-button" onClick={() => { reshuffleScatter(); onRefresh(); }}>
-                RESHUFFLE SCATTER
-              </button>
-            </div>
-          </>
-        )}
-
-        {activeSection === "atmosphere" && (
-          <>
-            <div className="tg-dev-panel-module-title">ATMOSPHERE</div>
-            <div className="tg-dev-button-row tg-dev-mode-row">
-              {["normal", "rainbow", "aurora"].map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`tg-dev-speed-button ${terrainSettings.atmosphereMode === mode ? "active" : ""}`}
-                  onClick={() => {
-                    const nextMode = terrainSettings.atmosphereMode === mode && mode !== "normal" ? "normal" : mode;
-                    updateTerrainSetting("atmosphereMode", nextMode);
-                    updateTerrainSetting("rainbowEnabled", nextMode === "rainbow");
-                    updateTerrainSetting("auroraEnabled", nextMode === "aurora");
-                    updateTerrainSetting("rainbowIntensity", nextMode === "rainbow" ? Math.max(terrainSettings.rainbowIntensity, 65) : terrainSettings.rainbowIntensity);
-                    updateTerrainSetting("auroraIntensity", nextMode === "aurora" ? Math.max(terrainSettings.auroraIntensity, 70) : terrainSettings.auroraIntensity);
-                    onRefresh();
-                  }}
-                >{mode.toUpperCase()}</button>
-              ))}
-            </div>
-            {ATMOSPHERE_NUMERIC_SLIDERS.map(([key, label, min, max, step]) => (
-              <DevSlider key={key} settingKey={key} label={label} min={min} max={max} step={step} locked={false} onRefresh={onRefresh} lockId={`atmosphere.${key}`} />
-            ))}
-          </>
-        )}
-
-        {activeSection === "character" && (
-          <>
-            <div className="tg-dev-panel-module-title">CHARACTER</div>
-            {[1, 2, 3, 4, 5].map((number) => (
-              <button key={number} type="button" className="tg-side-panel-button" onClick={() => window.dispatchEvent(new CustomEvent("change-character", { detail: { characterId: `crashTester0${number}` } }))}>
-                CRASH TESTER 0{number}
-              </button>
-            ))}
-          </>
-        )}
-
-        {activeSection !== "terrain" && activeSection !== "atmosphere" && activeSection !== "character" && (
-          <>
-            <div className="tg-dev-panel-module-title">{activeSection.toUpperCase()}</div>
-            <div className="tg-dev-panel-hint">SECTION AVAILABLE IN FULL DEV TOOLS</div>
-          </>
-        )}
-      </div>
-
-      <button type="button" className="tg-side-panel-button tg-dev-open-full-button" onClick={() => useEditorStore.getState().openDevToolsMenu()}>
-        OPEN FULL DEV TOOLS
-      </button>
-    </aside>
-  );
-}
-export default function InputHUD() {
+export default function InputHUD({ devToolsHost }) {
   const [, forceUpdate] = useState(0);
-  const editorOpen = useEditorStore((state) => state.isOpen);
-  const devToolsOpen = useEditorStore((state) => state.devToolsOpen);
-  const devToolsPanelOpen = useEditorStore((state) => state.devToolsPanelOpen);
-  const interactionPanelOpen = useInteractionStore((state) => state.panelOpen);
-  const closeDevTools = useEditorStore((state) => state.closeDevTools);
 
   const [stickPosition, setStickPosition] = useState({
     x: 0,
@@ -553,10 +458,12 @@ export default function InputHUD() {
 
   const [openDevSections, setOpenDevSections] = useState({
     character: false,
+    tools: false,
     terrain: false,
     camera: false,
     physics: false,
     atmosphere: false,
+    clouds: false,
     world: false,
     materials: false,
   });
@@ -575,7 +482,7 @@ export default function InputHUD() {
 const [
   currentCharacterId,
   setCurrentCharacterId,
-] = useState("crashTester01");
+] = useState(activeCharacterId);
 
 const [cameraLocked, setCameraLocked] =
   useState(
@@ -615,22 +522,18 @@ const cameraPadRef = useRef({
   startY: 0,
 });
 
-  function handleDevToolsClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (devToolsOpen || devToolsPanelOpen) {
-      closeDevTools();
-    }
-
-    const interaction = useInteractionStore.getState();
-    if (interaction.panelOpen) {
-      interaction.clear();
-    } else {
-      interaction.openPanel();
-    }
-  }
-
+  useEffect(() => {
+    let active = null;
+    const stop = () => { active?.removeAttribute('data-slider-active'); active = null; };
+    const start = event => {
+      if (!event.target?.matches?.('.tg-dev-slider:not(:disabled)')) return;
+      if (event.type === 'keydown' && !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key)) return;
+      stop(); active = event.target; active.setAttribute('data-slider-active', 'true');
+    };
+    document.addEventListener('pointerdown', start, true); window.addEventListener('keydown', start, true);
+    window.addEventListener('pointerup', stop); window.addEventListener('pointercancel', stop); window.addEventListener('keyup', stop); window.addEventListener('blur', stop);
+    return () => { stop(); document.removeEventListener('pointerdown', start, true); window.removeEventListener('keydown', start, true); window.removeEventListener('pointerup', stop); window.removeEventListener('pointercancel', stop); window.removeEventListener('keyup', stop); window.removeEventListener('blur', stop); };
+  }, []);
   function refresh() {
     forceUpdate((value) => value + 1);
   }
@@ -851,6 +754,14 @@ function handleCameraPadPointerUp(event) {
   resetCameraPad();
 }
 
+useEffect(() => {
+  function openSection(event) {
+    const section = event.detail?.section;
+    if (section) setOpenDevSections(current => ({ ...current, [section]: true }));
+  }
+  window.addEventListener("tg-open-dev-section", openSection);
+  return () => window.removeEventListener("tg-open-dev-section", openSection);
+}, []);
 function toggleDevSection(sectionName) {
     setOpenDevSections((current) => ({
       ...current,
@@ -924,6 +835,13 @@ function handleSectionLockChange(event) {
     handleCharacterChange
   );
 
+  function handleDevSettingsChange(event) {
+    const { key, value } = event.detail ?? {};
+    if (key === 'fpvMode') setFpvMode(Boolean(value));
+    if (key === 'speedMultiplier') setSpeedMultiplier(Number(value) || 1);
+    if (key === 'invertCameraY') setInvertCameraY(Boolean(value));
+  }
+  window.addEventListener('dev-settings-changed', handleDevSettingsChange);
   window.addEventListener(
     "camera-settings-changed",
     handleCameraSettingsChange
@@ -940,6 +858,7 @@ function handleSectionLockChange(event) {
       handleCharacterChange
     );
 
+    window.removeEventListener('dev-settings-changed', handleDevSettingsChange);
     window.removeEventListener(
       "camera-settings-changed",
       handleCameraSettingsChange
@@ -954,7 +873,7 @@ function handleSectionLockChange(event) {
 
   useEffect(() => {
     function handleMouseAttack(event) {
-      if (event.button !== 0) return;
+      if (event.button !== 0 || !gameplayInputAllowed()) return;
       if (!currentCharacterId.startsWith("crashTester")) return;
 
       const interactionMode = useInteractionStore.getState().activeMode;
@@ -963,7 +882,7 @@ function handleSectionLockChange(event) {
       }
 
       const target = event.target;
-      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-dev-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-placed-object, .tg-editor-view")) {
+      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-dev-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-placed-object, .tg-editor-view, [data-input-context='panel']")) {
         return;
       }
 
@@ -976,6 +895,7 @@ function handleSectionLockChange(event) {
 
   useEffect(() => {
     function handleKeyDown(event) {
+      if (!gameplayInputAllowed() || event.repeat) return;
       if (event.code === "KeyW") {
         inputState.forward = true;
       }
@@ -1022,6 +942,18 @@ function handleSectionLockChange(event) {
 
       if (event.code === "KeyT") {
         window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: "swordAttack", duration: 900 } }));
+      }
+
+      const animationShortcuts = {
+        KeyF: ["attack", 620], KeyG: ["Dance_Loop", 5000], KeyV: ["pistolAim", 1200],
+        KeyB: ["pistolShoot", 650], KeyN: ["pistolReload", 1500], KeyJ: ["Sitting_Enter", 900],
+        KeyK: ["swim", 1200], KeyL: ["ClimbUp_1m", 1200], KeyH: ["Hit_Head", 850],
+        KeyY: ["Yes", 1800], KeyU: ["OverhandThrow", 1000], KeyI: ["Interact", 700],
+        KeyO: ["Chest_Open", 1300], KeyP: ["Consume", 1000],
+      };
+      const shortcut = animationShortcuts[event.code];
+      if (!event.repeat && shortcut && currentCharacterId.startsWith("crashTester")) {
+        window.dispatchEvent(new CustomEvent("crash-unit-action", { detail: { action: shortcut[0], duration: shortcut[1] } }));
       }
 
       updateStickFromKeyboard();
@@ -1195,50 +1127,13 @@ function handleSectionLockChange(event) {
     }, duration);
   }
 
+  function cycleCharacter(delta) {
+    const ids = Object.keys(characterRegistry);
+    changeCharacter(ids[(ids.indexOf(currentCharacterId) + delta + ids.length) % ids.length]);
+  }
   return (
     <>
-      <button
-        type="button"
-        className={`tg-dev-toggle tg-dev-compass-toggle ${
-          devToolsOpen || devToolsPanelOpen || interactionPanelOpen ? "active" : ""
-        }`}
-        onClick={handleDevToolsClick}
-        aria-label="Open Interaction Panel"
-      >
-        <img
-          src="/images/TG_ICON.svg"
-          alt="Testing Grounds Interaction"
-          className="tg-dev-toggle-icon"
-        />
-      </button>
-
-      {devToolsPanelOpen && !devToolsOpen && (
-        <DevToolsPanel
-          terrainLocked={terrainLocked}
-          onRefresh={refresh}
-          onClose={closeDevTools}
-        />
-      )}
-
-      <div
-        className={`tg-side-panel tg-dev-full-menu ${
-          devToolsOpen ? "open" : ""
-        } ${editorOpen ? "editor-embedded" : ""}`}
-      >
-        {devToolsOpen && (
-          <>
-            <div className="tg-side-panel-title-row">
-              <div className="tg-side-panel-title">DEV TOOLS</div>
-              <button
-                type="button"
-                className="tg-side-panel-close"
-                onClick={closeDevTools}
-                aria-label="Close Dev Tools"
-              >
-                ×
-              </button>
-            </div>
-
+      {devToolsHost && createPortal(<div className="tg-dev-full-menu open" data-input-context="panel">
             {/* CHARACTER */}
             <div className="tg-dev-section">
               <DevSectionHeader
@@ -1250,78 +1145,23 @@ function handleSectionLockChange(event) {
 
               {openDevSections.character && (
                 <div className="tg-dev-section-content">
-                  <div className="tg-dev-placeholder">
-                    CRASH TESTERS are now the default character family.
+                  <div className="tg-character-selector" role="group" aria-label="Character selection">
+                    <button type="button" className="tg-ui-button" aria-label="Previous character" onClick={() => cycleCharacter(-1)}>&lt;</button>
+                    <output data-character-id={currentCharacterId} aria-live="polite">{characterRegistry[currentCharacterId]?.displayName ?? currentCharacterId}</output>
+                    <button type="button" className="tg-ui-button" aria-label="Next character" onClick={() => cycleCharacter(1)}>&gt;</button>
                   </div>
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester01" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester01");
-                    }}
-                  >
-                    CRASH TESTER 01
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester02" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester02");
-                    }}
-                  >
-                    CRASH TESTER 02
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester03" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester03");
-                    }}
-                  >
-                    CRASH TESTER 03
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester04" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester04");
-                    }}
-                  >
-                    CRASH TESTER 04
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "crashTester05" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("crashTester05");
-                    }}
-                  >
-                    CRASH TESTER 05
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "adventurer" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("adventurer");
-                    }}
-                  >
-                    LEGACY HUMAN
-                  </button>
-
-                  <button
-                    className={`tg-side-panel-button ${currentCharacterId === "velociraptor" ? "active" : ""}`}
-                    onClick={() => {
-                      changeCharacter("velociraptor");
-                    }}
-                  >
-                    RAPTOR
-                  </button>
-
                   <button className="tg-side-panel-button disabled" disabled>
                     UPLOAD
                   </button>
                 </div>
               )}
             </div>
+
+{/* TOOLS */}
+<div className="tg-dev-section" data-dev-tools-section>
+  <DevSectionHeader label="TOOLS" sectionName="tools" isOpen={openDevSections.tools} onToggle={toggleDevSection}/>
+  {openDevSections.tools && <div className="tg-dev-section-content"><WorldToolControls/></div>}
+</div>
 
 {/* TERRAIN */}
 <div className="tg-dev-section">
@@ -1401,7 +1241,7 @@ function handleSectionLockChange(event) {
         <div className="tg-dev-profile-label">
           ACTIVE PROFILE:{" "}
           {currentCharacterId.startsWith("crashTester")
-            ? currentCharacterId.replace("crashTester", "CRASH TESTER ").toUpperCase()
+            ? currentCharacterId === "crashTester20" ? "CRASH TESTER 2.0" : currentCharacterId.replace("crashTester", "CRASH TESTER ").toUpperCase()
             : currentCharacterId === "adventurer"
               ? "LEGACY HUMAN"
               : "VELOCIRAPTOR"}
@@ -1558,7 +1398,7 @@ function handleSectionLockChange(event) {
             <button
               key={multiplier}
               type="button"
-              disabled={physicsLocked}
+              disabled={physicsLocked || fpvMode}
               className={`tg-dev-speed-button ${
                 speedMultiplier === multiplier
                   ? "active"
@@ -1582,12 +1422,16 @@ function handleSectionLockChange(event) {
       </div>
 
       <div className="tg-dev-placeholder">
-          Debug speed increases movement velocity and
-  acceleration. Animation speed remains stable.
+          Speed presets affect third-person movement. FPV uses FPV Move Speed in Camera. Animation speed remains stable.
       </div>
     </div>
   </div>
 )}
+            </div>
+
+            <div className="tg-dev-section">
+              <DevSectionHeader label="CLOUDS" sectionName="clouds" isOpen={openDevSections.clouds} onToggle={toggleDevSection} />
+              {openDevSections.clouds && <div className="tg-dev-section-content"><CloudControls allowCreation /></div>}
             </div>
 
             {/* ATMOSPHERE */}
@@ -1863,9 +1707,7 @@ function handleSectionLockChange(event) {
               )}
             </div>
 
-          </>
-        )}
-      </div>
+      </div>, devToolsHost)}
 
       {/* DESKTOP JOYSTICK HUD */}
 <div

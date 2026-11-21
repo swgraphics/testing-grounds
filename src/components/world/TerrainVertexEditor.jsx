@@ -1,3 +1,6 @@
+import { useWorldStore } from "../../systems/world/worldStore";
+import { hasTerrainAt } from "../../systems/world/terrainRegions";
+import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -44,17 +47,18 @@ function findTerrainPoint(camera) {
     }
   }
 
-  return ray.origin.clone().add(direction.multiplyScalar((low + high) / 2));
+  const hit=ray.origin.clone().add(direction.multiplyScalar((low + high) / 2));
+  return hasTerrainAt(hit.x,hit.z,useWorldStore.getState().world)?hit:null;
 }
 
 function isUiTarget(target) {
   return target?.closest?.(
-    "button, input, select, textarea, .tg-side-panel, .tg-interaction-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view"
+    "button, input, select, textarea, .tg-side-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, [data-input-context='panel']"
   );
 }
 
 export default function TerrainVertexEditor() {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const activeTool = useInteractionStore((state) => state.activeTool);
   const selected = useTerrainVertexStore((state) => state.selected);
   const hovered = useTerrainVertexStore((state) => state.hovered);
@@ -86,7 +90,9 @@ export default function TerrainVertexEditor() {
     }
 
     function onPointerDown(event) {
-      if (event.button !== 0 || isUiTarget(event.target)) return;
+      if(event.target!==gl.domElement)return;
+      document.activeElement?.blur?.();
+      if (!gameplayInputAllowed() || event.button !== 0 || isUiTarget(event.target)) return;
       const point = findTerrainPoint(camera);
       if (!point) return;
 
@@ -143,7 +149,7 @@ export default function TerrainVertexEditor() {
       window.removeEventListener("pointerup", stopDragging, true);
       window.removeEventListener("pointercancel", stopDragging, true);
     };
-  }, [activeTool, camera]);
+  }, [activeTool, camera, gl]);
 
   useEffect(() => {
     if (activeTool !== "VERTEX") {

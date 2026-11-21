@@ -38,6 +38,9 @@ useFrame((state) => {
     material.uniforms.softness.value =
         cloudSettings.softness;
 
+    material.uniforms.puffiness.value = cloudSettings.puffiness;
+    material.uniforms.wispy.value = cloudSettings.wispy;
+
     material.uniforms.brightness.value =
         cloudSettings.brightness;
 

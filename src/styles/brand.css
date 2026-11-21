@@ -13,22 +13,22 @@
   --tg-gray: #9ca8b3;
   --tg-white: #e8eef5;
 
-  --tg-maroon: #811012;
-  --tg-crimson: #cd2626;
-  --tg-crimson-dark: #811012;
+  --tg-maroon: var(--tg-orange);
+  --tg-crimson: var(--tg-orange);
+  --tg-crimson-dark: var(--tg-orange);
 
-  --tg-red-soft: rgba(205, 38, 38, 0.18);
-  --tg-red-mid: rgba(205, 38, 38, 0.45);
-  --tg-red-strong: rgba(205, 38, 38, 0.85);
+  --tg-red-soft: rgb(var(--tg-orange-rgb) / 0.18);
+  --tg-red-mid: rgb(var(--tg-orange-rgb) / 0.45);
+  --tg-red-strong: rgb(var(--tg-orange-rgb) / 0.85);
 
   --tg-font-display: "Bebas Neue", "Oswald", sans-serif;
   --tg-font-copy: "Inter", "Helvetica Neue", Arial, sans-serif;
 
   --tg-gradient-crimson: linear-gradient(
     90deg,
-    #811012 0%,
-    #cd2626 50%,
-    #811012 100%
+    var(--tg-orange) 0%,
+    var(--tg-orange) 50%,
+    var(--tg-orange) 100%
   );
 }
 
@@ -107,8 +107,8 @@ canvas {
 .tg-key-box.active {
   color: var(--tg-white);
   border-color: var(--tg-crimson);
-  background: rgba(205, 38, 38, 0.22);
-  box-shadow: 0 0 16px rgba(205, 38, 38, 0.35);
+  background: rgb(var(--tg-orange-rgb) / 0.22);
+  box-shadow: 0 0 16px rgb(var(--tg-orange-rgb) / 0.35);
 }
 
 /* =======================================================
@@ -425,7 +425,7 @@ canvas {
 
   text-shadow:
     0 1px 4px rgba(0, 0, 0, 0.9),
-    0 0 7px rgba(205, 38, 38, 0.5);
+    0 0 7px rgb(var(--tg-orange-rgb) / 0.5);
 
   pointer-events: none;
 }
@@ -436,7 +436,7 @@ canvas {
 
   filter:
     brightness(1.35)
-    drop-shadow(0 0 10px rgba(205, 38, 38, 0.75));
+    drop-shadow(0 0 10px rgb(var(--tg-orange-rgb) / 0.75));
 }
 
 .tg-action-button:active .tg-action-button-label,
@@ -454,7 +454,7 @@ canvas {
   pointer-events: none;
   opacity: 0;
   background: rgba(8, 10, 14, 0.95);
-  border: 1px solid rgba(205, 38, 38, 0.65);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.65);
   backdrop-filter: blur(12px);
   color: var(--tg-white);
   transition:
@@ -462,7 +462,7 @@ canvas {
     opacity 0.25s ease;
   box-shadow:
     0 0 22px rgba(0, 0, 0, 0.45),
-    0 0 18px rgba(205, 38, 38, 0.12);
+    0 0 18px rgb(var(--tg-orange-rgb) / 0.12);
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -477,8 +477,8 @@ canvas {
 .tg-side-panel::-webkit-scrollbar-thumb {
   background: linear-gradient(
     180deg,
-    #cd2626,
-    #811012
+    var(--tg-orange),
+    var(--tg-orange)
   );
   border-radius: 999px;
 }
@@ -502,7 +502,7 @@ canvas {
 
 .tg-dev-toggle:hover {
   transform: scale(1.06);
-  box-shadow: 0 0 20px rgba(205, 38, 38, 0.35);
+  box-shadow: 0 0 20px rgb(var(--tg-orange-rgb) / 0.35);
 }
 
 .tg-dev-toggle-icon {
@@ -528,9 +528,9 @@ canvas {
   margin-bottom: 8px;
   background: linear-gradient(
     90deg,
-    rgba(129, 16, 18, 0.85) 0%,
-    rgba(205, 38, 38, 0.75) 50%,
-    rgba(129, 16, 18, 0.15) 100%
+    rgb(var(--tg-orange-rgb) / 0.85) 0%,
+    rgb(var(--tg-orange-rgb) / 0.75) 50%,
+    rgb(var(--tg-orange-rgb) / 0.15) 100%
   );
   color: var(--tg-white);
   font-family: var(--tg-font-display);
@@ -549,8 +549,8 @@ canvas {
   width: 100%;
   height: 34px;
   margin-bottom: 8px;
-  background: rgba(129, 16, 18, 0.28);
-  border: 1px solid rgba(205, 38, 38, 0.75);
+  background: rgb(var(--tg-orange-rgb) / 0.28);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.75);
   color: var(--tg-white);
   font-family: var(--tg-font-display);
   font-size: 18px;
@@ -559,7 +559,7 @@ canvas {
 }
 
 .tg-side-panel-button:hover {
-  background: rgba(205, 38, 38, 0.28);
+  background: rgb(var(--tg-orange-rgb) / 0.28);
 }
 
 .tg-side-panel-button.disabled {
@@ -600,8 +600,8 @@ canvas {
   border-left: 2px solid var(--tg-crimson);
   background: linear-gradient(
     90deg,
-    rgba(129, 16, 18, 0.95) 0%,
-    rgba(205, 38, 38, 0.42) 58%,
+    rgb(var(--tg-orange-rgb) / 0.95) 0%,
+    rgb(var(--tg-orange-rgb) / 0.42) 58%,
     rgba(5, 6, 8, 0) 100%
   );
 
@@ -622,8 +622,8 @@ canvas {
 .tg-dev-section-header.open {
   background: linear-gradient(
     90deg,
-    rgba(205, 38, 38, 0.92) 0%,
-    rgba(129, 16, 18, 0.58) 62%,
+    rgb(var(--tg-orange-rgb) / 0.92) 0%,
+    rgb(var(--tg-orange-rgb) / 0.58) 62%,
     rgba(5, 6, 8, 0) 100%
   );
 }
@@ -654,7 +654,7 @@ canvas {
 .tg-dev-speed-button {
   min-width: 0;
   height: 34px;
-  border: 1px solid rgba(205, 38, 38, 0.72);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.72);
   background: rgba(5, 6, 8, 0.72);
   color: var(--tg-white);
   font-family: var(--tg-font-display);
@@ -672,7 +672,7 @@ canvas {
     var(--tg-maroon) 0%,
     var(--tg-crimson) 100%
   );
-  box-shadow: 0 0 14px rgba(205, 38, 38, 0.28);
+  box-shadow: 0 0 14px rgb(var(--tg-orange-rgb) / 0.28);
 }
 /* Track */
 
@@ -683,9 +683,9 @@ canvas {
 
   background: linear-gradient(
     90deg,
-    #811012,
-    #cd2626,
-    #811012
+    var(--tg-orange),
+    var(--tg-orange),
+    var(--tg-orange)
   );
 }
 
@@ -696,9 +696,9 @@ canvas {
 
   background: linear-gradient(
     90deg,
-    #811012,
-    #cd2626,
-    #811012
+    var(--tg-orange),
+    var(--tg-orange),
+    var(--tg-orange)
   );
 }
 
@@ -716,10 +716,10 @@ canvas {
 
   border: 2px solid #ffffff;
 
-  background: #cd2626;
+  background: var(--tg-orange);
 
   box-shadow:
-    0 0 10px rgba(205,38,38,.6);
+    0 0 10px rgb(var(--tg-orange-rgb) / .6);
 }
 
 .tg-dev-slider::-moz-range-thumb {
@@ -730,10 +730,10 @@ canvas {
 
   border: 2px solid white;
 
-  background: #cd2626;
+  background: var(--tg-orange);
 
   box-shadow:
-    0 0 10px rgba(205,38,38,.6);
+    0 0 10px rgb(var(--tg-orange-rgb) / .6);
 }
 /* Mobile Dev Tools */
 
@@ -885,9 +885,9 @@ canvas {
   border: 2px solid rgba(232, 238, 245, 0.9);
   background: linear-gradient(
     180deg,
-    #cd2626 0%,
+    var(--tg-orange) 0%,
     #b41f1f 45%,
-    #811012 100%
+    var(--tg-orange) 100%
   );
   color: var(--tg-white);
   font-family: var(--tg-font-display);
@@ -900,11 +900,11 @@ canvas {
   background: linear-gradient(
     180deg,
     #e63535 0%,
-    #cd2626 45%,
+    var(--tg-orange) 45%,
     #8f1313 100%
   );
   box-shadow:
-    0 0 24px rgba(205, 38, 38, 0.45),
+    0 0 24px rgb(var(--tg-orange-rgb) / 0.45),
     inset 0 0 8px rgba(255, 255, 255, 0.08);
 }
 
@@ -1052,9 +1052,9 @@ canvas {
 
   background: radial-gradient(
     circle,
-    rgba(205, 38, 38, 0.74) 0%,
-    rgba(129, 16, 18, 0.42) 38%,
-    rgba(205, 38, 38, 0) 74%
+    rgb(var(--tg-orange-rgb) / 0.74) 0%,
+    rgb(var(--tg-orange-rgb) / 0.42) 38%,
+    rgb(var(--tg-orange-rgb) / 0) 74%
   );
 
   filter: blur(14px);
@@ -1079,8 +1079,8 @@ canvas {
   filter:
     brightness(0.42)
     saturate(0.45)
-    drop-shadow(0 0 5px rgba(205, 38, 38, 0.7))
-    drop-shadow(0 0 16px rgba(205, 38, 38, 0.45));
+    drop-shadow(0 0 5px rgb(var(--tg-orange-rgb) / 0.7))
+    drop-shadow(0 0 16px rgb(var(--tg-orange-rgb) / 0.45));
 }
 
 .tg-loading-overlay-message {
@@ -1170,7 +1170,7 @@ canvas {
     90deg,
     rgba(5, 6, 8, 0) 0%,
     rgba(54, 7, 10, 0.86) 15%,
-    rgba(129, 16, 18, 0.94) 50%,
+    rgb(var(--tg-orange-rgb) / 0.94) 50%,
     rgba(54, 7, 10, 0.86) 85%,
     rgba(5, 6, 8, 0) 100%
   );
@@ -1912,10 +1912,10 @@ canvas {
 
 .tg-dev-section-lock.locked {
   border-color:
-    rgba(205, 38, 38, 0.78);
+    rgb(var(--tg-orange-rgb) / 0.78);
 
   background:
-    rgba(129, 16, 18, 0.42);
+    rgb(var(--tg-orange-rgb) / 0.42);
 
   color: var(--tg-white);
 }
@@ -1938,7 +1938,7 @@ canvas {
   color: rgba(232, 238, 245, 0.68);
 
   border-bottom: 1px solid
-    rgba(205, 38, 38, 0.42);
+    rgb(var(--tg-orange-rgb) / 0.42);
 }
 
 .tg-dev-section-lockable {
@@ -2565,14 +2565,14 @@ canvas {
   padding: 0;
   background: rgba(8, 10, 14, 0.94);
   border: 1px solid var(--tg-crimson);
-  box-shadow: 0 0 0 rgba(205, 38, 38, 0);
+  box-shadow: 0 0 0 rgb(var(--tg-orange-rgb) / 0);
   backdrop-filter: blur(12px);
 }
 
 .tg-dev-compass-toggle.active,
 .tg-dev-compass-toggle:hover {
   border-color: var(--tg-crimson);
-  box-shadow: 0 0 20px rgba(205, 38, 38, 0.35);
+  box-shadow: 0 0 20px rgb(var(--tg-orange-rgb) / 0.35);
 }
 
 .tg-dev-compass-toggle .tg-dev-toggle-icon {
@@ -2593,11 +2593,11 @@ canvas {
   overflow-y: auto;
   overflow-x: hidden;
   background: rgba(8, 10, 14, 0.96);
-  border: 1px solid rgba(205, 38, 38, 0.65);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.65);
   color: var(--tg-white);
   box-shadow:
     0 0 22px rgba(0, 0, 0, 0.45),
-    0 0 18px rgba(205, 38, 38, 0.12);
+    0 0 18px rgb(var(--tg-orange-rgb) / 0.12);
   backdrop-filter: blur(12px);
   scrollbar-gutter: stable;
 }
@@ -2632,7 +2632,7 @@ canvas {
 
 .tg-dev-panel-module {
   padding: 10px;
-  border: 1px solid rgba(205, 38, 38, 0.42);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.42);
   background: rgba(255, 255, 255, 0.018);
 }
 
@@ -2644,8 +2644,8 @@ canvas {
   border-left: 2px solid var(--tg-crimson);
   background: linear-gradient(
     90deg,
-    rgba(129, 16, 18, 0.95),
-    rgba(205, 38, 38, 0.42) 58%,
+    rgb(var(--tg-orange-rgb) / 0.95),
+    rgb(var(--tg-orange-rgb) / 0.42) 58%,
     rgba(5, 6, 8, 0)
   );
   color: var(--tg-white);
@@ -2672,10 +2672,10 @@ canvas {
   max-height: none;
   padding: 14px;
   transform: none;
-  border-color: rgba(205, 38, 38, 0.65);
+  border-color: rgb(var(--tg-orange-rgb) / 0.65);
   box-shadow:
     0 20px 56px rgba(0, 0, 0, 0.44),
-    0 0 18px rgba(205, 38, 38, 0.1);
+    0 0 18px rgb(var(--tg-orange-rgb) / 0.1);
 }
 
 .tg-dev-full-menu.editor-embedded.open {
@@ -2712,18 +2712,18 @@ canvas {
 
 .tg-editor-viewport {
   background:
-    linear-gradient(rgba(205, 38, 38, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(205, 38, 38, 0.025) 1px, transparent 1px),
+    linear-gradient(rgb(var(--tg-orange-rgb) / 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--tg-orange-rgb) / 0.025) 1px, transparent 1px),
     rgba(3, 5, 7, 0.7);
 }
 
 .tg-editor-viewport-label {
-  border-color: rgba(205, 38, 38, 0.36);
+  border-color: rgb(var(--tg-orange-rgb) / 0.36);
   color: var(--tg-crimson);
 }
 
 .tg-editor-world-corner {
-  border-color: rgba(205, 38, 38, 0.28);
+  border-color: rgb(var(--tg-orange-rgb) / 0.28);
 }
 
 .tg-editor-crosshair::before,
@@ -2733,17 +2733,17 @@ canvas {
 
 .tg-editor-aerial-map {
   background:
-    radial-gradient(circle at 50% 50%, rgba(205, 38, 38, 0.08), transparent 45%),
-    linear-gradient(rgba(205, 38, 38, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(205, 38, 38, 0.06) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, rgb(var(--tg-orange-rgb) / 0.08), transparent 45%),
+    linear-gradient(rgb(var(--tg-orange-rgb) / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--tg-orange-rgb) / 0.06) 1px, transparent 1px),
     rgba(4, 7, 10, 0.92);
 }
 
 .tg-map-grid-lines {
-  border-color: rgba(205, 38, 38, 0.12);
+  border-color: rgb(var(--tg-orange-rgb) / 0.12);
   background:
-    linear-gradient(rgba(205, 38, 38, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(205, 38, 38, 0.08) 1px, transparent 1px);
+    linear-gradient(rgb(var(--tg-orange-rgb) / 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--tg-orange-rgb) / 0.08) 1px, transparent 1px);
 }
 
 .tg-map-node span {
@@ -2754,7 +2754,7 @@ canvas {
 .tg-map-node:hover {
   border-color: var(--tg-crimson);
   box-shadow:
-    0 0 18px rgba(205, 38, 38, 0.2),
+    0 0 18px rgb(var(--tg-orange-rgb) / 0.2),
     inset 0 0 0 1px var(--tg-crimson);
 }
 
@@ -2771,7 +2771,7 @@ canvas {
 
 .tg-dev-full-menu .tg-side-panel-button,
 .tg-dev-panel .tg-side-panel-button {
-  border-color: rgba(205, 38, 38, 0.72);
+  border-color: rgb(var(--tg-orange-rgb) / 0.72);
 }
 
 @media (max-width: 899px) {
@@ -2904,7 +2904,7 @@ canvas {
   min-width: 32px;
   height: 18px;
   padding: 0 5px;
-  border: 1px solid rgba(205, 38, 38, 0.45);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.45);
   background: rgba(5, 6, 8, 0.75);
   color: rgba(232, 238, 245, 0.5);
   font-family: var(--tg-font-copy);
@@ -2918,7 +2918,7 @@ canvas {
 .tg-dev-slider-lock.locked {
   border-color: var(--tg-crimson);
   color: var(--tg-white);
-  background: rgba(129, 16, 18, 0.52);
+  background: rgb(var(--tg-orange-rgb) / 0.52);
 }
 
 .tg-dev-slider-heading .tg-dev-slider-label { margin: 0; }
@@ -2930,7 +2930,7 @@ canvas {
 .tg-dev-full-menu,
 .tg-dev-panel {
   background: rgba(8, 10, 14, 0.97);
-  border-color: rgba(205, 38, 38, 0.58);
+  border-color: rgb(var(--tg-orange-rgb) / 0.58);
 }
 
 .tg-dev-full-menu .tg-dev-section-header,
@@ -2994,7 +2994,7 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid rgba(205, 38, 38, 0.34);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.34);
   background: rgba(5, 6, 8, 0.55);
   color: rgba(232, 238, 245, 0.78);
   font-family: var(--tg-font-copy);
@@ -3006,7 +3006,7 @@ canvas {
   width: 34px;
   height: 22px;
   padding: 0;
-  border: 1px solid rgba(205, 38, 38, 0.65);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.65);
   background: transparent;
   cursor: pointer;
 }
@@ -3151,7 +3151,7 @@ canvas {
 
 .tg-dev-panel-section-button {
   min-height: 28px;
-  border: 1px solid rgba(205, 38, 38, 0.38);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.38);
   background: rgba(255, 255, 255, 0.018);
   color: rgba(232, 238, 245, 0.66);
   font-family: var(--tg-font-display);
@@ -3164,7 +3164,7 @@ canvas {
 .tg-dev-panel-section-button.active {
   border-color: var(--tg-crimson);
   color: var(--tg-white);
-  background: rgba(129, 16, 18, 0.35);
+  background: rgb(var(--tg-orange-rgb) / 0.35);
 }
 
 .tg-dev-open-full-button {
@@ -3326,7 +3326,7 @@ canvas {
   min-height: 0;
   padding: 22px 26px 16px;
   background: rgba(5, 6, 8, 0.78);
-  border: 1px solid rgba(205, 38, 38, 0.46);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.46);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(12px);
 }
@@ -3411,7 +3411,7 @@ canvas {
 .tg-splash-dots button.active {
   border-color: var(--tg-crimson);
   background: var(--tg-crimson);
-  box-shadow: 0 0 10px rgba(205,38,38,0.45);
+  box-shadow: 0 0 10px rgb(var(--tg-orange-rgb) / 0.45);
 }
 
 .tg-splash-panel .tg-title-buttons {
@@ -3484,8 +3484,8 @@ canvas {
   overflow-x: hidden;
   pointer-events: auto;
   background: rgba(8,10,14,0.96);
-  border: 1px solid rgba(205,38,38,0.68);
-  box-shadow: 0 18px 55px rgba(0,0,0,0.48), 0 0 20px rgba(205,38,38,0.08);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.68);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.48), 0 0 20px rgb(var(--tg-orange-rgb) / 0.08);
   backdrop-filter: blur(12px);
 }
 
@@ -3657,9 +3657,9 @@ canvas {
   overflow-y: auto;
   overflow-x: hidden;
   background: rgba(8, 10, 14, 0.96);
-  border: 1px solid rgba(205, 38, 38, 0.65);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.65);
   color: var(--tg-white);
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgba(205, 38, 38, 0.12);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgb(var(--tg-orange-rgb) / 0.12);
   backdrop-filter: blur(12px);
   scrollbar-gutter: stable;
 }
@@ -3845,9 +3845,9 @@ canvas {
   padding: 14px;
   overflow-y: auto;
   background: rgba(8, 10, 14, 0.96);
-  border: 1px solid rgba(205, 38, 38, 0.65);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.65);
   color: var(--tg-white);
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgba(205, 38, 38, 0.12);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgb(var(--tg-orange-rgb) / 0.12);
   backdrop-filter: blur(12px);
 }
 
@@ -3869,8 +3869,8 @@ canvas {
 .tg-tree-interaction-close {
   width: 30px;
   height: 30px;
-  border: 1px solid rgba(205, 38, 38, 0.55);
-  background: rgba(129, 16, 18, 0.18);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.55);
+  background: rgb(var(--tg-orange-rgb) / 0.18);
   color: var(--tg-white);
   font-family: var(--tg-font-display);
   font-size: 18px;
@@ -3935,7 +3935,7 @@ canvas {
   border-radius: 50%;
   border: 2px solid var(--tg-white);
   background: var(--tg-crimson);
-  box-shadow: 0 0 10px rgba(205, 38, 38, 0.6);
+  box-shadow: 0 0 10px rgb(var(--tg-orange-rgb) / 0.6);
 }
 
 .tg-tree-interaction-slider input::-moz-range-thumb {
@@ -3944,7 +3944,7 @@ canvas {
   border-radius: 50%;
   border: 2px solid var(--tg-white);
   background: var(--tg-crimson);
-  box-shadow: 0 0 10px rgba(205, 38, 38, 0.6);
+  box-shadow: 0 0 10px rgb(var(--tg-orange-rgb) / 0.6);
 }
 
 .tg-tree-interaction-hint {
@@ -4196,9 +4196,9 @@ canvas {
   padding: 14px;
   overflow-y: auto;
   background: rgba(8, 10, 14, 0.96);
-  border: 1px solid rgba(205, 38, 38, 0.65);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.65);
   color: var(--tg-white);
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgba(205, 38, 38, 0.12);
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.5), 0 0 22px rgb(var(--tg-orange-rgb) / 0.12);
   backdrop-filter: blur(12px);
 }
 
@@ -4220,8 +4220,8 @@ canvas {
 .tg-tree-interaction-close {
   width: 30px;
   height: 30px;
-  border: 1px solid rgba(205, 38, 38, 0.55);
-  background: rgba(129, 16, 18, 0.18);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.55);
+  background: rgb(var(--tg-orange-rgb) / 0.18);
   color: var(--tg-white);
   font-family: var(--tg-font-display);
   font-size: 18px;
@@ -4286,7 +4286,7 @@ canvas {
   border-radius: 50%;
   border: 2px solid var(--tg-white);
   background: var(--tg-crimson);
-  box-shadow: 0 0 10px rgba(205, 38, 38, 0.6);
+  box-shadow: 0 0 10px rgb(var(--tg-orange-rgb) / 0.6);
 }
 
 .tg-tree-interaction-slider input::-moz-range-thumb {
@@ -4295,7 +4295,7 @@ canvas {
   border-radius: 50%;
   border: 2px solid var(--tg-white);
   background: var(--tg-crimson);
-  box-shadow: 0 0 10px rgba(205, 38, 38, 0.6);
+  box-shadow: 0 0 10px rgb(var(--tg-orange-rgb) / 0.6);
 }
 
 .tg-tree-interaction-hint {
@@ -4369,7 +4369,7 @@ canvas {
   height: min(72vh, 72vw);
   image-rendering: pixelated;
   border: 1px solid rgba(232, 238, 245, 0.22);
-  box-shadow: 0 0 0 1px rgba(205, 38, 38, 0.08);
+  box-shadow: 0 0 0 1px rgb(var(--tg-orange-rgb) / 0.08);
 }
 
 .tg-world-map-overlay-label {
@@ -4377,7 +4377,7 @@ canvas {
   top: 10px;
   left: 10px;
   padding: 5px 7px;
-  border: 1px solid rgba(205, 38, 38, 0.6);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.6);
   background: rgba(5, 6, 8, 0.82);
   color: var(--tg-white);
   font-family: var(--tg-font-display);
@@ -4389,8 +4389,8 @@ canvas {
   width: 100%;
   margin-top: 10px;
   min-height: 34px;
-  border: 1px solid rgba(205, 38, 38, 0.55);
-  background: rgba(129, 16, 18, 0.18);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.55);
+  background: rgb(var(--tg-orange-rgb) / 0.18);
   color: var(--tg-white);
   font-family: var(--tg-font-display);
   font-size: 12px;
@@ -4699,7 +4699,7 @@ canvas {
 .tg-chunk-dialog {
   width: min(430px, calc(100vw - 40px));
   padding: 20px;
-  border: 1px solid rgba(205, 38, 38, 0.48);
+  border: 1px solid rgb(var(--tg-orange-rgb) / 0.48);
   background: rgba(5, 6, 8, 0.96);
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.65);
 }
@@ -4767,7 +4767,7 @@ canvas {
 
 .tg-chunk-dialog-actions button:last-child {
   border-color: var(--tg-crimson);
-  background: rgba(205, 38, 38, 0.12);
+  background: rgb(var(--tg-orange-rgb) / 0.12);
 }
 
 .tg-chunk-dialog-actions button:disabled {
@@ -4834,7 +4834,7 @@ canvas {
   overflow: hidden;
   border: 1px solid rgba(232, 238, 245, 0.18);
   background: #05070a;
-  box-shadow: inset 0 0 0 1px rgba(205, 38, 38, 0.06);
+  box-shadow: inset 0 0 0 1px rgb(var(--tg-orange-rgb) / 0.06);
 }
 
 .tg-world-map-terrain {
@@ -4884,12 +4884,12 @@ canvas {
 }
 
 .tg-world-map-cell:hover {
-  background: rgba(205, 38, 38, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(205, 38, 38, 0.42);
+  background: rgb(var(--tg-orange-rgb) / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(var(--tg-orange-rgb) / 0.42);
 }
 
 .tg-world-map-cell.active {
-  background: rgba(205, 38, 38, 0.14);
+  background: rgb(var(--tg-orange-rgb) / 0.14);
   box-shadow: inset 0 0 0 2px var(--tg-crimson);
 }
 
@@ -5043,7 +5043,7 @@ canvas {
 }
 
 .tg-world-map-grid-cell:hover {
-  background: rgba(205, 38, 38, 0.06);
+  background: rgb(var(--tg-orange-rgb) / 0.06);
 }
 
 .tg-world-map-grid-cell.active {
@@ -5104,16 +5104,16 @@ canvas {
 
 
 .tg-tree-interaction-mode-row, .tg-mesh-edit-mode-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin-bottom:12px; }
-.tg-tree-interaction-mode, .tg-mesh-edit-mode-row .tg-mesh-edit-action { min-height:32px; border:1px solid rgba(205,38,38,.55); background:rgba(129,16,18,.18); color:var(--tg-white); font-family:var(--tg-font-display); font-size:11px; letter-spacing:.08em; cursor:pointer; }
+.tg-tree-interaction-mode, .tg-mesh-edit-mode-row .tg-mesh-edit-action { min-height:32px; border:1px solid rgb(var(--tg-orange-rgb) / .55); background:rgb(var(--tg-orange-rgb) / .18); color:var(--tg-white); font-family:var(--tg-font-display); font-size:11px; letter-spacing:.08em; cursor:pointer; }
 .tg-tree-interaction-mode.active, .tg-mesh-edit-mode-row .tg-mesh-edit-action.active { background:var(--tg-crimson); border-color:var(--tg-crimson); }
 .tg-tree-interaction-section { margin-top:16px; padding-top:11px; border-top:1px solid rgba(232,238,245,.1); color:rgba(232,238,245,.55); font-family:var(--tg-font-display); font-size:10px; letter-spacing:.08em; }
 
 /* 1.6.03.04 — SHORTCUTS is a temporary centered bottom HUD. */
 .tg-quick-interaction-slots{position:fixed;left:50%;right:auto;top:auto;bottom:18px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;z-index:260}
-.tg-quick-shortcuts-toggle{min-height:30px;padding:5px 14px;border:1px solid rgba(205,38,38,.65);background:rgba(5,6,8,.88);color:var(--tg-white);font-family:var(--tg-font-display);font-size:10px;letter-spacing:.08em;cursor:pointer}
-.tg-quick-shortcuts-toggle:hover{border-color:var(--tg-crimson);background:rgba(129,16,18,.22)}
+.tg-quick-shortcuts-toggle{min-height:30px;padding:5px 14px;border:1px solid rgb(var(--tg-orange-rgb) / .65);background:rgba(5,6,8,.88);color:var(--tg-white);font-family:var(--tg-font-display);font-size:10px;letter-spacing:.08em;cursor:pointer}
+.tg-quick-shortcuts-toggle:hover{border-color:var(--tg-crimson);background:rgb(var(--tg-orange-rgb) / .22)}
 .tg-quick-shortcut-panel{display:flex;flex-direction:column;align-items:center;gap:6px;padding:7px;background:rgba(5,6,8,.9);border:1px solid rgba(232,238,245,.16)}
-.tg-quick-add-shortcut{min-height:27px;padding:4px 10px;border:1px solid rgba(205,38,38,.58);background:rgba(5,6,8,.82);color:var(--tg-white);font-family:var(--tg-font-display);font-size:9px;letter-spacing:.08em;cursor:pointer}
+.tg-quick-add-shortcut{min-height:27px;padding:4px 10px;border:1px solid rgb(var(--tg-orange-rgb) / .58);background:rgba(5,6,8,.82);color:var(--tg-white);font-family:var(--tg-font-display);font-size:9px;letter-spacing:.08em;cursor:pointer}
 .tg-quick-shortcut-grid{display:grid;grid-template-columns:repeat(4,minmax(96px,1fr));gap:5px}
 .tg-quick-interaction-slot{min-height:42px;border:1px solid rgba(232,238,245,.22);background:rgba(8,10,14,.88);color:var(--tg-white);font-family:var(--tg-font-display);font-size:9px;letter-spacing:.06em;cursor:pointer}
 .tg-quick-interaction-slot:hover{border-color:rgba(232,238,245,.5)}
@@ -5126,3 +5126,17 @@ canvas {
 /* 1.6.03.03 — Tree branch gesture controls remain compact and brand-consistent. */
 .tg-tree-interaction-panel .tg-tree-interaction-mode-row{display:flex;flex-wrap:wrap;gap:4px}
 .tg-tree-interaction-panel .tg-tree-interaction-mode-row .tg-tree-interaction-mode{flex:1 1 auto;min-width:72px;font-size:9px;padding:6px 7px}
+
+/* Animation Library Pass 2: shared desktop/touch action picker. */
+.tg-animation-library-ui{position:fixed;right:18px;top:76px;z-index:310;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:auto}
+.tg-animation-library-toggle{min-height:34px;padding:8px 12px;border:1px solid rgb(var(--tg-orange-rgb) / .75);background:rgba(5,7,10,.92);color:var(--tg-white);font-family:var(--tg-font-display);font-size:10px;letter-spacing:.09em;cursor:pointer}
+.tg-animation-library-toggle:hover{background:rgb(var(--tg-orange-rgb) / .8);border-color:var(--tg-crimson)}
+.tg-animation-library-panel{width:min(430px,calc(100vw - 28px));max-height:min(72vh,680px);overflow:auto;padding:12px;background:rgba(5,7,10,.96);border:1px solid rgba(232,238,245,.2);box-shadow:0 12px 36px rgba(0,0,0,.48);color:var(--tg-white);overscroll-behavior:contain}
+.tg-animation-library-heading{font-family:var(--tg-font-display);font-size:12px;letter-spacing:.1em;margin-bottom:6px}
+.tg-animation-library-hint{font-size:10px;line-height:1.45;color:rgba(232,238,245,.66);margin-bottom:12px}
+.tg-animation-library-category{margin-top:12px;padding-top:9px;border-top:1px solid rgba(232,238,245,.13)}
+.tg-animation-library-category-title{font-family:var(--tg-font-display);font-size:9px;letter-spacing:.1em;color:rgba(232,238,245,.72);margin-bottom:7px}
+.tg-animation-library-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.tg-animation-library-action{min-height:32px;padding:6px 8px;text-align:left;border:1px solid rgba(232,238,245,.16);background:rgba(255,255,255,.045);color:var(--tg-white);font-family:var(--tg-font-display);font-size:9px;letter-spacing:.025em;cursor:pointer}
+.tg-animation-library-action:hover,.tg-animation-library-action:focus-visible{outline:none;border-color:var(--tg-crimson);background:rgb(var(--tg-orange-rgb) / .32)}
+@media(max-width:620px){.tg-animation-library-ui{top:58px;right:8px}.tg-animation-library-panel{max-height:58vh;padding:9px}.tg-animation-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tg-animation-library-action{font-size:8px;min-height:30px}}

@@ -1,0 +1,13 @@
+.tg-world-tool-controls { display:grid; gap:15px; color:#f2f4f7; }
+.tg-world-tool-controls section { display:grid; gap:8px; }
+.tg-world-tool-controls h3 { font:400 10px/1.5 var(--tg-font-heading); color:#bfc6ce; margin:0; }
+.tg-world-tool-buttons { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.tg-world-tool-controls .tg-ui-button { min-height:35px; padding:7px 5px; background:#101215; border:1px solid #50545b; color:white; font:400 10px/1.5 var(--tg-font-heading); box-shadow:none; overflow-wrap:anywhere; }
+.tg-world-tool-controls .tg-ui-button[aria-pressed=true] { color:#2a8fff; border-color:#2a8fff; background:rgb(42 143 255 / .12); }
+.tg-world-tool-controls .tg-ui-button:focus-visible { outline:2px solid #2a8fff; outline-offset:2px; }
+.tg-world-tool-controls .tg-tool-library { color:var(--tg-orange); }
+.tg-pond-diameter { display:grid; grid-template-columns:1fr auto; gap:8px; font:400 10px/1.5 var(--tg-font-heading); }
+.tg-pond-diameter input { grid-column:1/-1; width:100%; accent-color:#fff; }
+.tg-pond-diameter input:focus-visible { outline:2px solid #2a8fff; outline-offset:3px; }
+.tg-pond-diameter input[data-gamepad-adjusting] { accent-color:#2a8fff; }
+.tg-world-tool-hint { margin:0; color:#aeb7c0; font:11px/1.5 sans-serif; }

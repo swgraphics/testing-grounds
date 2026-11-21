@@ -1,4 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { clearGameplayInput } from '../../systems/input/inputOwnership';
+import { createPortal } from "react-dom";
+import AnimationActions from "./AnimationActions";
+import { addObjectToScatter, scatterEligibility } from "../../systems/objects/scatterOperations";
+import { terrainSettings } from "../../systems/terrain/terrainSettings";
+import TreeProperties from "./TreeProperties";
+import ObjectTransformProperties from "./ObjectTransformProperties";
+import ObjectEditHistory from "./ObjectEditHistory";
+import GeologyEditor from './GeologyEditor';
+import GeologyThumbnail from './GeologyThumbnail';
+import { mergeTreeProperties } from "../../systems/objects/treeProperties";
+import { resolveObjectTarget, editObjectTarget } from "../../systems/objects/objectEditing";
+import { useEditorStore } from "../../systems/editor/editorStore";
+import { returnToWorldView, openObjectLibrary } from "../../systems/ui/navigationActions";
+import { useNavigationStore } from "../../systems/ui/navigationStore";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CrimsonTreeModel from "../world/CrimsonTreeModel";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
@@ -13,6 +28,7 @@ import { useWorldStore } from "../../systems/world/worldStore";
 
 
 function PreviewIcon({ kind = "structure" }) {
+  if (kind === 'cloud') return <div className="tg-mesh-cloud-icon" aria-hidden="true" />;
   if (kind === "tree") {
     return (
       <div className="tg-mesh-icon tg-mesh-icon-tree" aria-hidden="true">
@@ -221,7 +237,7 @@ function TreeEditorPreview({ treeDefinition, rotation, scale, onHeightChange, on
           </mesh>
         )}
       </Canvas>
-      <div className="tg-tree-editor-mode-hint">{editMode === "branch" ? "BRANCH // CLICK + DRAG OUTWARD" : "TRUNK // CLICK + DRAG UP / DOWN"}</div>
+      <div className="tg-tree-editor-mode-hint">{editMode === "preview" ? "OBJECT PREVIEW" : editMode === "branch" ? "BRANCH // CLICK + DRAG OUTWARD" : "TRUNK // CLICK + DRAG UP / DOWN"}</div>
     </div>
   );
 }
@@ -273,598 +289,150 @@ function LeafVertexEditor({ vertices, onSave, onCancel }) {
   );
 }
 
-function MeshEditModal({ mesh, onSave, onCancel }) {
-  const baseDefinition = useMemo(
-    () =>
-      mesh?.treeDefinition ??
-      createCrimsonTreeDefinition(),
-    [mesh?.treeDefinition]
-  );
-
-  const [trunkHeight, setTrunkHeight] = useState(
-    Number(baseDefinition.trunk?.height ?? 50)
-  );
-
-  const [trunkWidth, setTrunkWidth] = useState(
-    Number(baseDefinition.trunk?.radius ?? 50)
-  );
-
-  const [trunkTaper, setTrunkTaper] = useState(
-    Number(baseDefinition.trunk?.taper ?? 50)
-  );
-
-  const [trunkBend, setTrunkBend] = useState(
-    Number(baseDefinition.trunk?.bend ?? 50)
-  );
-  const [crownWidth, setCrownWidth] = useState(
-    Number(baseDefinition.leaves?.size ?? 50)
-  );
-
-  const [crownHeight, setCrownHeight] = useState(
-    Number(baseDefinition.leaves?.clustering ?? 50)
-  );
-
-  const [leafFillColor, setLeafFillColor] = useState(
-    baseDefinition.leaves?.color ?? "#080808"
-  );
-
-  const [leafOutlineColor, setLeafOutlineColor] = useState(
-  baseDefinition.leaves?.outlineColor ?? "#fc0303"
-  );
-
-  const [leafGradientEnabled, setLeafGradientEnabled] = useState(
-  baseDefinition.leaves?.gradientEnabled ?? false
-  );
-
-  const [leafGradientColor, setLeafGradientColor] = useState(
-  baseDefinition.leaves?.gradientColor ?? "#181818"
-  );
-  
-  const [floatingLeafDensity, setFloatingLeafDensity] = useState(
-  Number(baseDefinition.leaves?.floating?.density ?? 15)
-  );
-
-  const [rotation, setRotation] = useState(
-    Number(mesh?.transform?.rotation ?? 0)
-    );
-
-  const [scale, setScale] = useState(
-    Number(mesh?.transform?.scale ?? 50)
-  );
+function MeshEditModal(props) {
+  if(props.live&&props.mesh.modelType==='geology'&&!props.mesh.geologyId)return <div className="tg-mesh-edit-backdrop" role="dialog" aria-modal="true" data-input-context="panel"><div className="tg-mesh-edit-window"><div className="tg-mesh-edit-controls"><h2>LEGACY GEOLOGY</h2><p>This formation has no editable terrain feature record. Use the terrain tools to refine its baked surface, or place a new editable geology formation.</p><button type="button" className="tg-ui-button" onClick={props.onCancel}>BACK TO SOUTH</button></div></div></div>;
+  return props.mesh.modelType === 'geology' ? <GeologyEditor {...props}/> : <StandardMeshEditModal {...props}/>;
+}
+function StandardMeshEditModal({ mesh, live, onChange, onSave, onCancel }) {
+  useEffect(()=>{
+    if(!live)return;
+    const finish=()=>{if(useInteractionStore.getState().gestureOwner==='object-editor')useInteractionStore.getState().setGestureOwner(null)};
+    for(const event of ['pointerup','pointercancel','blur'])window.addEventListener(event,finish,true);
+    return()=>{for(const event of ['pointerup','pointercancel','blur'])window.removeEventListener(event,finish,true);finish()};
+  },[live]);
+  const [draft, setDraft] = useState(() => createCrimsonTreeDefinition(mesh.treeDefinition ?? {}));
+  const [fireflyDraft, setFireflyDraft] = useState(mesh.editSettings ?? { density: 40, speed: 30, flicker: 65, color: "#d9ff8a" });
+  const [rotation, setRotation] = useState(0);
+  const [previewScale, setPreviewScale] = useState(1);
   const [directTreeEdit, setDirectTreeEdit] = useState(false);
-  const [leafVertexEditorOpen, setLeafVertexEditorOpen] = useState(false);
-  const [leafVertices, setLeafVertices] = useState(baseDefinition.leaves?.vertices ?? null);
   const [treeEditMode, setTreeEditMode] = useState("trunk");
-  const [branchTaper, setBranchTaper] = useState(Number(baseDefinition.branches?.taper ?? 50));
-  const [secondaryBranchCount, setSecondaryBranchCount] = useState(Number(baseDefinition.branches?.secondary?.count ?? 2));
-  const [customBranches, setCustomBranches] = useState(baseDefinition.branches?.custom ?? []);
-
-  const [fireflyDensity, setFireflyDensity] = useState(Number(mesh?.editSettings?.density ?? 40));
-  const [fireflySpeed, setFireflySpeed] = useState(Number(mesh?.editSettings?.speed ?? 30));
-  const [fireflyFlicker, setFireflyFlicker] = useState(Number(mesh?.editSettings?.flicker ?? 65));
-  const [fireflyColor, setFireflyColor] = useState(mesh?.editSettings?.color ?? "#d9ff8a");
-  const [branchCount, setBranchCount] = useState(
-    Number(baseDefinition.branches?.count ?? 50)
-  );
-
-  const [branchAngle, setBranchAngle] = useState(
-    Number(baseDefinition.branches?.angle ?? 50)
-  );
-
-  const [branchLength, setBranchLength] = useState(
-    Number(baseDefinition.branches?.length ?? 50)
-  );
-
-  const [branchThickness, setBranchThickness] = useState(
-    Number(baseDefinition.branches?.thickness ?? 50)
-  );
-
-  const [branchFrequency, setBranchFrequency] = useState(
-    Number(baseDefinition.branches?.frequency ?? 50)
-  );
-
-  const [branchVerticality, setBranchVerticality] = useState(
-    Number(baseDefinition.branches?.verticality ?? 50)
-  );
-
-  const [branchRandomness, setBranchRandomness] = useState(
-    Number(baseDefinition.branches?.randomness ?? 50)
-  );
-
-  const treeDefinition = useMemo(() => {
-    return {
-      ...baseDefinition,
-
-      trunk: {
-  ...baseDefinition.trunk,
-  height: trunkHeight,
-  radius: trunkWidth,
-  taper: trunkTaper,
-  bend: trunkBend,
-},
-
-      branches: {
-        ...baseDefinition.branches,
-        count: branchCount,
-        angle: branchAngle,
-        length: branchLength,
-        thickness: branchThickness,
-        frequency: branchFrequency,
-        verticality: branchVerticality,
-        randomness: branchRandomness,
-        taper: branchTaper,
-        secondary: { ...(baseDefinition.branches?.secondary ?? {}), count: secondaryBranchCount },
-        custom: customBranches,
-      },
-
-      leaves: {
-  ...baseDefinition.leaves,
-  size: crownWidth,
-  clustering: crownHeight,
-  color: leafFillColor,
-  outlineColor: leafOutlineColor,
-  gradientEnabled: leafGradientEnabled,
-  gradientColor: leafGradientColor,
-
-  floating: {
-    ...baseDefinition.leaves?.floating,
-    enabled: true,
-    density: floatingLeafDensity,
-  },
-  vertices: leafVertices,
-},
-    };
-  }, [
-    baseDefinition,
-    trunkHeight,
-    trunkWidth,
-    trunkTaper,
-    trunkBend,
-    branchCount,
-    branchAngle,
-    branchLength,
-    branchThickness,
-    branchFrequency,
-    branchVerticality,
-    branchRandomness,
-    branchTaper,
-    secondaryBranchCount,
-    customBranches,
-    crownWidth,
-    crownHeight,
-    leafFillColor,
-    leafOutlineColor,
-    leafGradientEnabled,
-    leafGradientColor,
-    floatingLeafDensity,
-    leafVertices,
-  ]);
-  
-  const resolvedScale =
-    0.65 +
-    (scale / 100) * 0.70;
-  
-  const handleSave = () => {
-    onSave({
-      treeDefinition,
-      transform: {
-        rotation,
-        scale: resolvedScale,
-      },
-      fireflySettings: isFireflies ? {
-        density: fireflyDensity,
-        speed: fireflySpeed,
-        flicker: fireflyFlicker,
-        color: fireflyColor,
-      } : undefined,
-    });
-  };
-
-  const isCrimsonTree =
-    mesh?.id === "crimson-tree" ||
-    mesh?.name === "CRIMSON TREE";
-  const isFireflies = mesh?.modelType === "fireflies" || mesh?.id === "fireflies";
-
-  const renderSlider = (
-    label,
-    value,
-    setter
-  ) => (
-    <label
-      className="tg-mesh-edit-slider"
-      key={label}
-    >
-      <span>
-        {label}
-        <strong>{value}%</strong>
-      </span>
-
-      <input
-        type="range"
-        min="0"
-        max="100"
-        value={value}
-        onChange={(event) =>
-          setter(
-            Number(event.target.value)
-          )
-        }
-      />
-    </label>
-  );
-
-  return (
-    <div
-      className="tg-mesh-edit-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Mesh editor"
-    >
-      <div className="tg-mesh-edit-window">
-
-        <div className="tg-mesh-edit-preview">
-          <div className="tg-mesh-edit-preview-title">
-            {mesh?.name || "MESH"}
-          </div>
-
-          {isFireflies ? (
-            <div className="tg-mesh-edit-placeholder tg-firefly-edit-preview">
-              {Array.from({ length: 18 }).map((_, index) => (
-                <span
-                  key={index}
-                  className="tg-firefly-preview-dot"
-                  style={{
-                    left: `${12 + ((index * 37) % 76)}%`,
-                    top: `${16 + ((index * 53) % 68)}%`,
-                    animationDelay: `${(index % 7) * -0.28}s`,
-                    animationDuration: `${Math.max(0.35, 2.8 - fireflySpeed * 0.018)}s`,
-                    opacity: `${0.2 + fireflyFlicker * 0.008}`,
-                    background: fireflyColor,
-                    boxShadow: `0 0 8px 2px ${fireflyColor}aa`,
-                    transform: `scale(${0.65 + fireflyDensity / 180})`,
-                  }}
-                />
-              ))}
-              <strong>FIREFLY FIELD</strong>
-            </div>
-          ) : isCrimsonTree ? (
-            directTreeEdit ? (
-              <TreeEditorPreview
-                treeDefinition={treeDefinition}
-                rotation={rotation}
-                scale={resolvedScale}
-                onHeightChange={setTrunkHeight}
-                onBendChange={setTrunkBend}
-                editMode={treeEditMode}
-                onBranchCreate={(point, dx, dy) => {
-                  if (!point) return;
-                  const local = point.clone();
-                  const angle = Math.atan2(-dy, dx);
-                  const direction = new THREE.Vector3(Math.cos(angle), 0.16, Math.sin(angle)).normalize();
-                  const next = [...customBranches];
-                  const index = next.length;
-                  next.push({
-                    trunkT: THREE.MathUtils.clamp(local.y / 8.5, 0.05, 0.95),
-                    origin: [local.x, local.y, local.z],
-                    direction: [direction.x, direction.y, direction.z],
-                    length: THREE.MathUtils.clamp(1.4 + Math.hypot(dx, dy) * 0.02, 0.6, 5.5),
-                  });
-                  setCustomBranches(next);
-                }}
-              />
-            ) : (
-              <Canvas
-                camera={{ position: [9, 7, 12], fov: 35 }}
-                dpr={[1, 1.5]}
-                gl={{ antialias: true, alpha: true }}
-              >
-                <color attach="background" args={["#111111"]} />
-                <ambientLight intensity={1.8} />
-                <directionalLight position={[5, 10, 6]} intensity={3} />
-                <directionalLight position={[-4, 5, -2]} intensity={1} />
-                <group
-                  position={[0, -4.8, 0]}
-                  rotation={[0, THREE.MathUtils.degToRad(rotation), 0]}
-                  scale={resolvedScale}
-                >
-                  <CrimsonTreeModel treeDefinition={treeDefinition} />
-                </group>
-                <gridHelper args={[14, 14, "#303030", "#202020"]} position={[0, -4.8, 0]} />
-              </Canvas>
-            )
-          ) : (
-            <div className="tg-mesh-edit-placeholder">
-              <PreviewIcon
-                kind={mesh?.kind}
-              />
-            </div>
-          )}
-
-          <div
-            className="tg-mesh-gizmo"
-            aria-hidden="true"
-          >
-            <span className="x" />
-            <span className="y" />
-            <span className="z" />
-            <i />
-          </div>
-        </div>
-
-        <div className="tg-mesh-edit-controls">
-
-          {isFireflies ? (
-            <>
-              <div className="tg-mesh-edit-section-label">FIREFLIES</div>
-              {renderSlider("DENSITY", fireflyDensity, setFireflyDensity)}
-              {renderSlider("SPEED", fireflySpeed, setFireflySpeed)}
-              {renderSlider("FLICKER", fireflyFlicker, setFireflyFlicker)}
-              <label className="tg-mesh-edit-slider">
-                <span>COLOR<strong>{fireflyColor}</strong></span>
-                <input type="color" value={fireflyColor} onChange={(event) => setFireflyColor(event.target.value)} />
-              </label>
-            </>
-          ) : (
-          <>
-          <div className="tg-mesh-edit-section-label">
-            TREE EDIT MODE
-          </div>
-          <div className="tg-mesh-edit-mode-row">
-            <button type="button" className={`tg-mesh-edit-action ${treeEditMode === "trunk" ? "active" : ""}`} onClick={() => setTreeEditMode("trunk")}>TRUNK</button>
-            <button type="button" className={`tg-mesh-edit-action ${treeEditMode === "branch" ? "active" : ""}`} onClick={() => setTreeEditMode("branch")}>BRANCH</button>
-          </div>
-
-          <div className="tg-mesh-edit-section-label">
-            TRUNK
-          </div>
-
-          <button
-            type="button"
-            className={`tg-mesh-edit-action ${directTreeEdit ? "active" : ""}`}
-            onClick={() => setDirectTreeEdit((current) => !current)}
-          >
-            {directTreeEdit ? "EXIT TREE EDIT" : "DIRECT TREE EDIT"}
-          </button>
-
-          {renderSlider(
-            "TRUNK HEIGHT",
-            trunkHeight,
-            setTrunkHeight
-          )}
-          
-          {renderSlider(
-            "TRUNK TAPER",
-            trunkTaper,
-            setTrunkTaper
-          )}
-
-          {renderSlider(
-            "TRUNK BEND",
-            trunkBend,
-            setTrunkBend
-          )}
-          
-          {renderSlider(
-            "TRUNK WIDTH",
-            trunkWidth,
-            setTrunkWidth
-          )}
-
-          <div className="tg-mesh-edit-section-label">
-            BRANCHES
-          </div>
-
-          {renderSlider(
-            "BRANCH COUNT",
-            branchCount,
-            setBranchCount
-          )}
-
-          {renderSlider(
-            "BRANCH ANGLE",
-            branchAngle,
-            setBranchAngle
-          )}
-
-          {renderSlider(
-            "BRANCH LENGTH",
-            branchLength,
-            setBranchLength
-          )}
-
-          {renderSlider(
-            "BRANCH THICKNESS",
-            branchThickness,
-            setBranchThickness
-          )}
-
-          {renderSlider(
-            "BRANCH FREQUENCY",
-            branchFrequency,
-            setBranchFrequency
-          )}
-
-          {renderSlider(
-            "BRANCH VERTICALITY",
-            branchVerticality,
-            setBranchVerticality
-          )}
-
-          {renderSlider(
-            "BRANCH RANDOMNESS",
-            branchRandomness,
-            setBranchRandomness
-          )}
-
-          {renderSlider("BRANCH TAPER", branchTaper, setBranchTaper)}
-          {renderSlider("SECONDARY BRANCHES", secondaryBranchCount * 12.5, (value) => setSecondaryBranchCount(Math.round(Number(value) / 12.5)))}
-
-          <div className="tg-mesh-edit-section-label">
-            CANOPY
-          </div>
-
-          {renderSlider(
-            "CROWN WIDTH",
-            crownWidth,
-            setCrownWidth
-          )}
-
-          {renderSlider(
-            "CROWN HEIGHT",
-            crownHeight,
-            setCrownHeight
-          )}
-          
-          {renderSlider(
-            "FLOATING LEAF DENSITY",
-            floatingLeafDensity,
-            setFloatingLeafDensity
-          )}
-
-<label className="tg-mesh-edit-slider">
-  <span>
-    LEAF FILL COLOR
-    <strong>{leafFillColor}</strong>
-  </span>
-
-  <input
-    type="color"
-    value={leafFillColor}
-    onChange={(event) =>
-      setLeafFillColor(event.target.value)
-    }
-  />
-</label>
-<label className="tg-mesh-edit-slider">
-  <span>
-    LEAF OUTLINE COLOR
-    <strong>{leafOutlineColor}</strong>
-  </span>
-
-  <input
-    type="color"
-    value={leafOutlineColor}
-    onChange={(event) =>
-      setLeafOutlineColor(event.target.value)
-    }
-  />
-</label>
-<label className="tg-mesh-edit-slider">
-  <span>
-    FOLIAGE GRADIENT
-    <strong>
-      {leafGradientEnabled ? "ON" : "OFF"}
-    </strong>
-  </span>
-
-  <input
-    type="checkbox"
-    checked={leafGradientEnabled}
-    onChange={(event) =>
-      setLeafGradientEnabled(
-        event.target.checked
-      )
-    }
-  />
-</label>
-
-{leafGradientEnabled && (
-  <label className="tg-mesh-edit-slider">
-    <span>
-      GRADIENT COLOR
-      <strong>{leafGradientColor}</strong>
-    </span>
-
-    <input
-      type="color"
-      value={leafGradientColor}
-      onChange={(event) =>
-        setLeafGradientColor(
-          event.target.value
-        )
-      }
-    />
-  </label>
-)}
-<label className="tg-mesh-edit-slider">
-  <span>
-    ROTATION
-    <strong>{rotation}°</strong>
-  </span>
-
-  <input
-    type="range"
-    min="0"
-    max="360"
-    value={rotation}
-    onChange={(event) =>
-      setRotation(
-        Number(event.target.value)
-      )
-    }
-  />
-</label>
-
-<label className="tg-mesh-edit-slider">
-  <span>
-    SCALE
-    <strong>{scale}%</strong>
-  </span>
-
-  <input
-    type="range"
-    min="0"
-    max="100"
-    value={scale}
-    onChange={(event) =>
-      setScale(
-        Number(event.target.value)
-      )
-    }
-  />
-</label>
-          </>
-          )}
-
-          <div className="tg-mesh-edit-divider" />
-          <button type="button" className="tg-mesh-edit-action" onClick={() => setLeafVertexEditorOpen(true)}>VERTEX EDIT</button>
-          <button type="button" className="tg-mesh-edit-action" disabled>RANDOMIZE</button>
-          <div className="tg-mesh-edit-footer">
-            <button type="button" className="tg-mesh-save" onClick={handleSave}>SAVE</button>
-            <button type="button" className="tg-mesh-cancel" onClick={onCancel}>CANCEL</button>
-          </div>
-
+  const [vertexOpen, setVertexOpen] = useState(false);
+  const isTree = mesh.modelType === "crimson-tree";
+  const isFireflies = mesh.modelType === "fireflies";
+  const definition = live ? mesh.treeDefinition ?? draft : draft;
+  const fireflySettings = live ? mesh.editSettings ?? fireflyDraft : fireflyDraft;
+  function update(patch) {
+    if (live) onChange({ treeDefinition: patch });
+    else setDraft(current => mergeTreeProperties(current, patch));
+  }
+  function updateFirefly(key, value) {
+    const editSettings = { ...fireflySettings, [key]: value };
+    if (live) onChange({ editSettings }); else setFireflyDraft(editSettings);
+  }
+  return <div className="tg-mesh-edit-backdrop tg-object-editor-backdrop" role="dialog" aria-modal={!live} data-world-object-editor={live?true:undefined} aria-label="Edit Object" data-input-context="panel" onPointerDownCapture={()=>{if(live){useInteractionStore.getState().setGestureOwner('object-editor');clearGameplayInput()}}} onPointerUpCapture={event=>{
+    if(live&&event.target.matches('input[type="range"],input[type="number"]')&&!event.target.hasAttribute('data-gamepad-adjusting'))window.requestAnimationFrame(()=>event.target.blur());
+  }}>
+    <div className="tg-mesh-edit-window tg-focused-object-editor">
+      <div className="tg-mesh-edit-preview">
+        <div className="tg-mesh-edit-preview-title">{mesh.name || "OBJECT"}</div>
+        {isTree ? <TreeEditorPreview treeDefinition={definition} rotation={rotation} scale={previewScale}
+          editMode={directTreeEdit ? treeEditMode : "preview"}
+          onHeightChange={value => { if (directTreeEdit) update({ trunk: { height: value } }); }}
+          onBendChange={value => { if (directTreeEdit) update({ trunk: { bend: value } }); }}
+          onBranchCreate={(point, dx, dy) => {
+            if (!directTreeEdit || !point) return;
+            const angle = Math.atan2(-dy, dx);
+            const direction = new THREE.Vector3(Math.cos(angle), .16, Math.sin(angle)).normalize();
+            update({ branches: { custom: [...(definition.branches?.custom ?? []), { trunkT: THREE.MathUtils.clamp(point.y / 8.5, .05, .95), origin: [point.x, point.y, point.z], direction: direction.toArray(), length: THREE.MathUtils.clamp(1.4 + Math.hypot(dx, dy) * .02, .6, 5.5) }] } });
+          }} /> : isFireflies ? <div className="tg-mesh-edit-placeholder tg-firefly-edit-preview">
+          {Array.from({ length: 18 }, (_, index) => <span key={index} className="tg-firefly-preview-dot" style={{ left: (12 + ((index * 37) % 76)) + "%", top: (16 + ((index * 53) % 68)) + "%", background: fireflySettings.color, opacity: .2 + (fireflySettings.flicker ?? 65) * .008, animationDuration: Math.max(.35, 2.8 - (fireflySettings.speed ?? 30) * .018) + "s", transform: "scale(" + (.65 + (fireflySettings.density ?? 40) / 180) + ")" }} />)}
+          <strong>FIREFLY FIELD</strong>
+        </div> : <div className="tg-mesh-edit-placeholder"><PreviewIcon kind={mesh.kind} /></div>}
+      </div>
+      <div className="tg-mesh-edit-controls">
+        <h2>EDIT OBJECT</h2>
+        <p className="tg-library-guidance">{live ? "WORLD OBJECT — changes apply live. Undo restores previous edits." : mesh.file && !mesh.modelPath ? "LOCAL GLB — session-only. Use Place; persistent library copies require a registered model path." : "LIBRARY TEMPLATE — Save creates a library copy; Cancel discards this draft."}</p>
+        {live && mesh.position && <ObjectTransformProperties object={mesh} onChange={onChange} />}
+        {live && !mesh.position && <p className="tg-library-guidance">Scatter placement/rotation/scale are generated by the population. Editing scope: {mesh.editScope || "single tree"}.</p>}
+        {isTree && <>
+          <TreeProperties definition={definition} onChange={update} onVertexEdit={() => setVertexOpen(true)} seedEditable={!(mesh.profileId && mesh.editScope === "global")} />
+          <button className="tg-ui-button" onClick={() => setDirectTreeEdit(current => !current)}>{directTreeEdit ? "EXIT DIRECT TREE EDIT" : "DIRECT TREE EDIT"}</button>
+          {directTreeEdit && <div className="tg-panel-actions"><button className="tg-ui-button" aria-pressed={treeEditMode === "trunk"} onClick={() => setTreeEditMode("trunk")}>TRUNK</button><button className="tg-ui-button" aria-pressed={treeEditMode === "branch"} onClick={() => setTreeEditMode("branch")}>BRANCH</button></div>}
+          <details><summary>PREVIEW CAMERA</summary><label>PREVIEW ROTATION<input aria-label="Preview rotation" type="range" min="0" max="360" value={rotation} onChange={event => setRotation(Number(event.target.value))} /></label><label>PREVIEW SCALE<input aria-label="Preview scale" type="range" min=".25" max="2" step=".05" value={previewScale} onChange={event => setPreviewScale(Number(event.target.value))} /></label></details>
+        </>}
+        {isFireflies && <fieldset><legend>FIREFLIES</legend>{["density", "speed", "flicker"].map(key => <label key={key}>{key.toUpperCase()}<input aria-label={"Firefly " + key} type="range" min="0" max="100" value={fireflySettings[key] ?? 50} onChange={event => updateFirefly(key, Number(event.target.value))} /></label>)}<label>COLOR<input aria-label="Firefly color" type="color" value={fireflySettings.color ?? "#d9ff8a"} onChange={event => updateFirefly("color", event.target.value)} /></label></fieldset>}
+        {!isTree && !isFireflies && <p className="tg-library-guidance">{live ? "Edit transforms here or directly in the world. The world is the visual preview for this asset." : "This asset has no procedural property editor. Use Place, then select its world instance to edit transforms."}</p>}
+        <div className="tg-mesh-edit-footer">
+          {live && <ObjectEditHistory />}
+          {!live && <button type="button" className="tg-mesh-save" disabled={Boolean(mesh.file && !mesh.modelPath)} onClick={() => onSave({ treeDefinition: isTree ? draft : undefined, fireflySettings: isFireflies ? fireflyDraft : undefined })}>SAVE LIBRARY COPY</button>}
+          <button type="button" className="tg-mesh-cancel" data-object-editor-close onClick={onCancel}>{live ? "BACK TO SOUTH" : "CANCEL"}</button>
         </div>
       </div>
-      {leafVertexEditorOpen && (
-        <LeafVertexEditor vertices={leafVertices} onSave={(next) => { setLeafVertices(next); setLeafVertexEditorOpen(false); }} onCancel={() => setLeafVertexEditorOpen(false)} />
-      )}
     </div>
-  );
+    {vertexOpen && <LeafVertexEditor vertices={definition.leaves?.vertices} onSave={vertices => { update({ leaves: { vertices } }); setVertexOpen(false); }} onCancel={() => setVertexOpen(false)} />}
+  </div>;
 }
 
-export default function MeshMenu() {
+
+function captureLibraryPosition(mode) {
+  return { mode: mode === "place" ? "select" : mode, scrollTop: document.querySelector("#tg-panel-south .tg-directional-content")?.scrollTop ?? 0, galleryScrollLeft: document.querySelector(".tg-mesh-library")?.scrollLeft ?? 0 };
+}
+
+export default function MeshMenu({ host }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [mode, setMode] = useState("place");
+  const [mode, setMode] = useState("select");
   const [selectedId, setSelectedId] = useState(null);
+  const [worldTarget, setWorldTarget] = useState(null);
+  const world = useWorldStore(state => state.world);
+  const southVisible = useEditorStore(state => state.visiblePanels.south);
+  const activeTarget = useInteractionStore(state => state.activeTarget);
   const [editOpen, setEditOpen] = useState(false);
-  const [page, setPage] = useState(0);
   const [uploadedMeshes, setUploadedMeshes] = useState([]);
+  const [uploadError, setUploadError] = useState("");
   const [editedMeshes, setEditedMeshes] = useState({});
   const [savedMeshes, setSavedMeshes] = useState(() => {
     try { return JSON.parse(localStorage.getItem("testingGroundsSavedObjects") || "[]"); } catch { return []; }
   });
   const fileInputRef = useRef(null);
+  const galleryRef = useRef(null);
+  function scrollGallery(direction) {
+    const gallery = galleryRef.current;
+    gallery?.scrollBy({ left: direction * gallery.clientWidth * 0.85, behavior: "auto" });
+  }
+  const libraryPosition = useRef({ mode: "select", scrollTop: 0, galleryScrollLeft: 0 });
+  const attachGallery = useCallback(element => {
+    galleryRef.current = element;
+    if (element) element.scrollLeft = libraryPosition.current.galleryScrollLeft;
+  }, []);
+  function rememberLibraryPosition(browsingMode = mode) {
+    if (southVisible) libraryPosition.current = captureLibraryPosition(browsingMode);
+    else libraryPosition.current.mode = browsingMode === "place" ? "select" : browsingMode;
+  }
+  useEffect(() => {
+    const content = host?.closest('.tg-directional-content');
+    if (!content) return;
+    const rememberScroll = () => {
+      if (useEditorStore.getState().visiblePanels.south) libraryPosition.current.scrollTop = content.scrollTop;
+    };
+    content.addEventListener('scroll', rememberScroll);
+    return () => content.removeEventListener('scroll', rememberScroll);
+  }, [host]);
+  useEffect(() => {
+    const content = host?.closest('.tg-directional-content');
+    if (southVisible && content) content.scrollTop = libraryPosition.current.scrollTop;
+  }, [host, southVisible]);
+  useEffect(() => {
+    function selectFromLibrary(event) {
+      const mesh = event.detail?.mesh;
+      if (!mesh?.id) return;
+      setWorldTarget(null); setSelectedId(mesh.id); setMode("select"); setEditOpen(false); setMenuOpen(true);
+      useEditorStore.getState().openPanel("south");
+    }
+    window.addEventListener("tg-mesh-library-select", selectFromLibrary);
+    return () => window.removeEventListener("tg-mesh-library-select", selectFromLibrary);
+  }, []);
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteCandidate, setDeleteCandidate] = useState(null);
 
+  const scatterProfiles = useWorldStore((state) => state.world.scatterProfiles ?? {});
   const meshes = useMemo(
   () =>
     [
       ...savedMeshes,
       ...uploadedMeshes,
       ...BUILTIN_OBJECTS,
+      ...Object.entries(scatterProfiles).filter(([id]) => !savedMeshes.some(mesh => mesh.id === id) && !uploadedMeshes.some(mesh => mesh.id === id) && !BUILTIN_OBJECTS.some(mesh => mesh.id === id)).map(([id, profile]) => ({ ...profile, id, source: profile.source ?? "saved" })),
     ].map((mesh) => {
       const edited = editedMeshes[mesh.id];
 
@@ -879,27 +447,41 @@ export default function MeshMenu() {
         treeDefinition:
           edited?.treeDefinition ??
           mesh.treeDefinition,
+        geologyDefinition: edited?.geologyDefinition ?? mesh.geologyDefinition,
       };
     }),
-  [uploadedMeshes, editedMeshes, savedMeshes]
+  [uploadedMeshes, editedMeshes, savedMeshes, scatterProfiles]
 );
-  const pageSize = 6;
-  const pageCount = Math.max(1, Math.ceil(meshes.length / pageSize));
-  const visibleMeshes = meshes.slice(page * pageSize, page * pageSize + pageSize);
-  const selectedMesh = meshes.find((mesh) => mesh.id === selectedId) || null;
-  const scatterProfiles = useWorldStore((state) => state.world.scatterProfiles ?? {});
+  const worldSelection = useMemo(() => resolveObjectTarget(worldTarget, world), [worldTarget, world]);
+  const selectedMesh = worldTarget ? worldSelection : meshes.find(mesh => mesh.id === selectedId) || null;
+  const eligibility = scatterEligibility(selectedMesh);
+  const currentSelectionId = activeTarget?.replace(/^(object|tree):/, "");
+  const currentSelection = resolveObjectTarget({ id: currentSelectionId }, world);
   const scatterProfile = useWorldStore(
     (state) => selectedMesh?.id ? state.world.scatterProfiles?.[selectedMesh.id] : null
   );
 
-  useEffect(() => {
-    setPage((current) => Math.min(current, pageCount - 1));
-  }, [pageCount]);
 useEffect(() => {
-  function handleMeshMenuOpen() {
+  function handleMeshMenuOpen(event) {
+    useEditorStore.getState().openPanel("south");
     setMenuOpen(true);
     setEditOpen(false);
-    setMode("select");
+    if (event?.detail?.restore) {
+      setMode(libraryPosition.current.mode);
+      window.requestAnimationFrame(() => {
+        const panel = document.querySelector("#tg-panel-south");
+        if (!panel || panel.hidden) return;
+        const selected = panel.querySelector(".tg-mesh-card.selected") || panel.querySelector(".tg-mesh-menu-actions button");
+        selected?.focus({ preventScroll: true });
+        panel.querySelector(".tg-directional-content").scrollTop = libraryPosition.current.scrollTop;
+        if (galleryRef.current) galleryRef.current.scrollLeft = libraryPosition.current.galleryScrollLeft;
+      });
+    } else {
+      const requested = event?.detail?.mode;
+      const nextMode = requested === 'edit' ? 'selected' : ['scatter','animation'].includes(requested) ? requested : 'select';
+      setMode(nextMode);
+      libraryPosition.current.mode = nextMode;
+    }
   }
 
   window.addEventListener(
@@ -927,9 +509,10 @@ useEffect(() => {
 
   useEffect(() => {
     function handlePlacementCancelled() {
-      setMenuOpen(true);
-      setEditOpen(false);
-      setMode("select");
+      const navigation = useNavigationStore.getState();
+      const fromLibrary = navigation.placementOrigin === "south";
+      navigation.setPlacementOrigin(null);
+      if (fromLibrary) openObjectLibrary("return");
     }
 
     window.addEventListener("tg-mesh-placement-cancelled", handlePlacementCancelled);
@@ -957,12 +540,21 @@ useEffect(() => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // The existing importer supports self-contained GLB, not OBJ/FBX or sidecar files.
+    if (!/\.glb$/i.test(file.name)) {
+      setUploadError("Choose a self-contained .glb file. OBJ, FBX and external glTF resources are not supported.");
+      event.target.value = "";
+      return;
+    }
+    setUploadError("");
+
     const id = `upload-${Date.now()}`;
     const mesh = createUploadedObject(file, id);
 
     setUploadedMeshes((current) => [mesh, ...current]);
+    setWorldTarget(null);
     setSelectedId(id);
-    setMode("place");
+    setMode("select");
 
     window.dispatchEvent(
       new CustomEvent("tg-mesh-upload-request", {
@@ -974,32 +566,28 @@ useEffect(() => {
   }
 
   function selectMesh(mesh) {
+    setWorldTarget(null);
     setSelectedId(mesh.id);
-    setMode("place");
+    setMode(current => current === "scatter" ? "scatter" : "select");
     setEditOpen(false);
-    useInteractionStore.getState().activate({ target: `object:${mesh.id}`, tool: "OBJECT", mode: "PLACE" });
-    window.dispatchEvent(new CustomEvent("tg-mesh-place-request", { detail: { mesh } }));
   }
 
   function placeSelected() {
     if (!selectedMesh) return;
-    if (mode === "place") {
-      useInteractionStore.getState().clear();
-      window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
-      setMode("select");
-      return;
-    }
+    rememberLibraryPosition();
+    if (selectedMesh.kind === 'cloud') window.dispatchEvent(new CustomEvent('tg-mesh-cancel-placement'));
+    returnToWorldView();
     setMode("place");
     setEditOpen(false);
-    setMenuOpen(true);
+    setMenuOpen(false);
     useInteractionStore.getState().activate({
       target: `object:${selectedMesh.id}`,
       tool: "OBJECT",
       mode: "PLACE",
     });
     window.dispatchEvent(
-      new CustomEvent("tg-mesh-place-request", {
-        detail: { mesh: selectedMesh },
+      new CustomEvent(selectedMesh.kind === 'cloud' ? 'tg-cloud-place-request' : "tg-mesh-place-request", {
+        detail: { mesh: selectedMesh, origin: "south" },
       })
     );
   }
@@ -1025,43 +613,35 @@ function confirmDelete() {
 }
 
  function editSelected() {
-  if (!selectedMesh) return;
-
-  window.dispatchEvent(
-    new CustomEvent("tg-mesh-cancel-placement")
-  );
-
-  useInteractionStore.getState().activate({
-    target: `object:${selectedMesh.id}`,
-    tool: "OBJECT",
-    mode: "EDIT",
-  });
-
-  setMode("edit");
-  setEditOpen(true);
-
-  window.dispatchEvent(
-    new CustomEvent("tg-mesh-edit-request", {
-      detail: { mesh: selectedMesh },
-    })
-  );
-}
+   if (!selectedMesh) return;
+   window.dispatchEvent(new CustomEvent("crimson-tree-edit-exit-request"));
+   window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
+   if (worldTarget && selectedMesh.position) useInteractionStore.getState().activate({ target: "object:" + worldTarget.id, tool: "OBJECT", mode: "select" });
+   setMode("selected"); setEditOpen(true);
+   window.requestAnimationFrame(() => document.querySelector(".tg-mesh-edit-controls input, [data-object-editor-close]")?.focus());
+ }
+ useEffect(() => {
+   function focusObject(event) {
+     const target = event.detail;
+     if (!resolveObjectTarget(target)) return;
+     window.dispatchEvent(new CustomEvent("crimson-tree-edit-exit-request"));
+     if (resolveObjectTarget(target)?.position) useInteractionStore.getState().activate({ target: "object:" + target.id, tool: "OBJECT", mode: "select" });
+     setWorldTarget(target); setMode("selected"); setEditOpen(true); setMenuOpen(true);
+     useEditorStore.getState().openPanel("south");
+   }
+   window.addEventListener("tg-object-focus-edit", focusObject);
+   return () => window.removeEventListener("tg-object-focus-edit", focusObject);
+ }, []);
+ function closeEditor() {
+   setEditOpen(false);
+   window.requestAnimationFrame(() => document.querySelector("[data-object-edit]")?.focus());
+ }
 
 function closeMenu() {
-  useInteractionStore.getState().clear();
-
-  // Placement cancellation intentionally happens first because the mesh menu
-  // listens for that event and normally reopens itself after placement exits.
-  // The explicit close state comes last so the X button always wins.
-  window.dispatchEvent(
-    new CustomEvent("tg-mesh-cancel-placement")
-  );
-  window.dispatchEvent(
-    new CustomEvent("tg-mesh-menu-close")
-  );
-
+  // Visibility only: preserve the selected tool and any placement preview.
   setEditOpen(false);
   setMenuOpen(false);
+  window.dispatchEvent(new CustomEvent("tg-mesh-menu-close"));
 }
 
 function getDefaultCrimsonProfile() {
@@ -1069,13 +649,13 @@ function getDefaultCrimsonProfile() {
   return {
     enabled: current?.enabled !== false,
     objectId: "crimson-tree",
-    name: "CRIMSON TREE",
+    name: "DEFAULT TREE",
     kind: "tree",
     source: "procedural",
     modelType: "crimson-tree",
     treeDefinition: current?.treeDefinition ?? createCrimsonTreeDefinition(),
-    density: Number(current?.density ?? 25),
-    coverage: Number(current?.coverage ?? 50),
+    density: Number(current?.density ?? terrainSettings.treeDensity ?? 25),
+    coverage: Number(current?.coverage ?? terrainSettings.treeCoverage ?? 50),
     scaleVariation: Number(current?.scaleVariation ?? 25),
     rotationVariation: Number(current?.rotationVariation ?? 100),
     clustering: Number(current?.clustering ?? 35),
@@ -1083,45 +663,11 @@ function getDefaultCrimsonProfile() {
 }
 
   function addToScatter() {
-    if (!selectedMesh) return;
-
-    useInteractionStore.getState().activate({
-      target: `object:${selectedMesh.id}`,
-      tool: "SCATTER",
-      mode: "EDIT",
-    });
-
-    window.dispatchEvent(
-      new CustomEvent("tg-mesh-cancel-placement")
-    );
-
-    const worldStore = useWorldStore.getState();
-    worldStore.upsertScatterProfile(selectedMesh.id, {
-      enabled: true,
-      objectId: selectedMesh.id,
-      name: selectedMesh.name,
-      kind: selectedMesh.kind,
-      source: selectedMesh.source,
-      modelPath: selectedMesh.modelPath,
-      modelType: selectedMesh.modelType,
-      geologyType: selectedMesh.geologyType,
-      treeDefinition: selectedMesh.treeDefinition ?? (selectedMesh.modelType === "crimson-tree" ? createCrimsonTreeDefinition() : undefined),
-      density: Number(scatterProfile?.density ?? 50),
-      coverage: Number(scatterProfile?.coverage ?? 50),
-      width: Number(scatterProfile?.width ?? (selectedMesh.geologyType === "canyon-wall" ? 60 : 36)),
-      height: Number(scatterProfile?.height ?? (selectedMesh.geologyType === "canyon-wall" ? 30 : 12)),
-      scaleVariation: Number(scatterProfile?.scaleVariation ?? 25),
-      rotationVariation: Number(scatterProfile?.rotationVariation ?? 100),
-      clustering: Number(scatterProfile?.clustering ?? 35),
-    });
-
+    const result = addObjectToScatter(selectedMesh);
+    if (!result.ok) return;
+    window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
     setMode("scatter");
-
-    window.dispatchEvent(
-      new CustomEvent("tg-mesh-scatter-request", {
-        detail: { mesh: selectedMesh },
-      })
-    );
+    window.dispatchEvent(new CustomEvent("tg-mesh-scatter-request", { detail: { mesh: selectedMesh } }));
   }
 
   function updateScatterSetting(profileId, key, value) {
@@ -1141,7 +687,7 @@ function getDefaultCrimsonProfile() {
   function selectScatterPopulation(profileId) {
     const mesh = meshes.find((entry) => entry.id === profileId);
     if (!mesh) return;
-    setSelectedId(profileId);
+    setWorldTarget(null); setSelectedId(profileId);
     setMode("scatter");
     setEditOpen(false);
     useInteractionStore.getState().clear();
@@ -1177,7 +723,7 @@ function getDefaultCrimsonProfile() {
   function scatterEntries() {
     const defaultProfile = scatterProfiles["crimson-tree"] ?? getDefaultCrimsonProfile();
     const custom = Object.entries(scatterProfiles)
-      .filter(([id, profile]) => id !== "crimson-tree" && profile?.enabled)
+      .filter(([id]) => id !== "crimson-tree")
       .map(([id, profile]) => [id, profile]);
     return [["crimson-tree", defaultProfile], ...custom];
   }
@@ -1191,8 +737,6 @@ function getDefaultCrimsonProfile() {
 
       if (editOpen) {
         setEditOpen(false);
-        useInteractionStore.getState().clear();
-        window.dispatchEvent(new CustomEvent("tg-mesh-cancel-placement"));
         return;
       }
 
@@ -1205,44 +749,128 @@ function getDefaultCrimsonProfile() {
 
   return (
   <>
-    {menuOpen && (
+    {(host || menuOpen) && (
       <>
-        <div className="tg-mesh-menu">
-
-    <button
-      type="button"
-      className="tg-mesh-menu-close"
-      aria-label="Close mesh menu"
-      onClick={closeMenu}
-    >
-      ×
-    </button>
-
+        {host && createPortal(<div className="tg-mesh-menu" data-input-context="panel">
+        <nav className="tg-object-entries" aria-label="Object workflows">
+          {[["select","LIBRARY"],["selected","SELECTED OBJECT"],["scatter","SCATTER / POPULATIONS"],["animation","ANIMATION ACTIONS"]].map(([id,label]) => <button key={id} className="tg-ui-button" data-object-view={id} aria-pressed={mode === id} onClick={() => setMode(id)}>{label}</button>)}
+        </nav>
+        <div hidden={mode === "animation"} className="tg-object-browser">
+        {southVisible && mode === "selected" && <section className="tg-selected-object-context">
+          <label>WORLD OBJECT <select aria-label="Select world object" value={worldTarget?.id ?? ""} onChange={event => setWorldTarget(event.target.value ? { id: event.target.value, chunkId: world.currentChunkId } : null)}>
+            <option value="">Library selection</option>
+            {Object.values(world.chunks?.[world.currentChunkId]?.objects ?? {}).map(object => <option key={object.id} value={object.id}>{object.name || object.id}</option>)}
+            {Object.values(world.geology?.features ?? {}).map(feature => <option key={feature.id} value={feature.id}>{feature.name}</option>)}
+            {worldSelection?.profileId && <option value={worldTarget.id}>{worldSelection.name} / scattered instance</option>}
+          </select></label>
+          <button className="tg-ui-button" disabled={!currentSelection} onClick={() => setWorldTarget({ id: currentSelectionId, chunkId: world.currentChunkId, scope: "single" })}>USE WORLD SELECTION</button>
+          <p className="tg-library-guidance">{worldTarget ? "World target: " + (selectedMesh?.name || "unavailable") : "Library template: " + (selectedMesh?.name || "choose an item in Library")}</p>
+        </section>}
+        <div className="tg-library-toolbar">
         <div className="tg-mesh-menu-actions">
           <button type="button" onClick={() => fileInputRef.current?.click()}>
             UPLOAD MESH
           </button>
-          <button type="button" className={`tg-mesh-place-button ${mode === "place" && selectedMesh ? "active" : ""}`} disabled={!selectedMesh} onClick={placeSelected}>
+          <button type="button" className={`tg-mesh-place-button ${mode === "place" && selectedMesh ? "active" : ""}`} disabled={!selectedMesh || Boolean(worldTarget)} onClick={placeSelected}>
             PLACE
           </button>
-          <button type="button" className={mode === "edit" ? "active" : ""} onClick={editSelected}>
+          <button type="button" data-object-edit disabled={!selectedMesh || selectedMesh.kind === 'cloud'} title={selectedMesh?.kind === 'cloud' ? 'Place a cloud, then edit it in CLOUDS or Cloud Interaction.' : undefined} onClick={editSelected}>
             EDIT
           </button>
-          <button type="button" className={mode === "scatter" ? "active" : ""} onClick={scatterProfile?.enabled ? () => setMode("scatter") : addToScatter}>
-            {scatterProfile?.enabled ? "SCATTER" : "ADD TO SCATTER"}
-          </button>
+          {mode !== "scatter" && <button type="button" data-add-to-scatter="selected" disabled={!eligibility.eligible} onClick={scatterProfile?.enabled ? () => setMode("scatter") : addToScatter}>{scatterProfile?.enabled ? "OPEN POPULATION" : "ADD TO SCATTER"}</button>}
           <input
             ref={fileInputRef}
             type="file"
-            accept=".glb,.gltf,.obj,.fbx"
+            accept=".glb"
             hidden
             onChange={handleUpload}
           />
         </div>
 
-        {mode === "scatter" && (
+          <div className="tg-gallery-navigation" aria-label="Browse objects">
+            <button type="button" className="tg-mesh-prev tg-ui-button" aria-label="Scroll objects left" onClick={() => scrollGallery(-1)}>&#8249;</button>
+            <span>{meshes.length} OBJECTS</span>
+            <button type="button" className="tg-mesh-next tg-ui-button" aria-label="Scroll objects right" onClick={() => scrollGallery(1)}>&#8250;</button>
+          </div>
+        </div>
+
+        {uploadError && <p className="tg-upload-error" role="alert">{uploadError}</p>}
+        {southVisible && <div hidden={mode === "selected" || mode === "scatter"} ref={attachGallery} onScroll={event => { libraryPosition.current.galleryScrollLeft = event.currentTarget.scrollLeft; }} className="tg-mesh-library" role="list" aria-label="Object gallery" tabIndex={0}>
+          {meshes.map((mesh) => {
+            const renaming = renamingId === mesh.id;
+            return (
+              <div key={mesh.id} className="tg-mesh-card-shell" role="listitem">
+                {!BUILTIN_OBJECTS.some((entry) => entry.id === mesh.id) && (
+                  <button type="button" className="tg-mesh-card-delete" aria-label={`Delete ${mesh.name}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); requestDelete(mesh); }}>×</button>
+                )}
+                <button
+                  type="button"
+                  className={`tg-mesh-card ${selectedId === mesh.id ? "selected" : ""}`}
+                  onClick={() => {
+                    if (!renaming) selectMesh(mesh);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      if (!renaming) selectMesh(mesh);
+                    }
+                  }}
+                  aria-pressed={selectedId === mesh.id}
+                  title={mesh.name}
+                >
+                  <div className="tg-mesh-card-art">
+                    {mesh.modelType==='geology'?<GeologyThumbnail type={mesh.geologyType} definition={mesh.geologyDefinition}/>:<PreviewIcon kind={mesh.kind} />}
+                  </div>
+                  {mesh.category && <small className="tg-cloud-category">{mesh.category.toUpperCase()}</small>}
+                  <span
+                    onDoubleClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setRenameValue(mesh.name);
+                      setRenamingId(mesh.id);
+                    }}
+                  >
+                    {mesh.name}
+                  </span>
+                </button>
+                {renaming && (
+                  <input
+                    className="tg-mesh-card-rename-input"
+                    autoFocus
+                    value={renameValue}
+                    onChange={(event) => setRenameValue(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") commitRename(mesh);
+                    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setRenamingId(null); }
+                    }}
+                    onBlur={() => commitRename(mesh)}
+                    onClick={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => event.stopPropagation()}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>}
+
+        <div className="tg-library-footer">
+          <output className="tg-library-selected" aria-label="Selected object" title={selectedMesh?.name}>{selectedMesh?.name || "Select an object, then choose an action"}</output>
+          {selectedMesh && !eligibility.eligible && <p className="tg-library-guidance" role="status" data-scatter-feedback>{eligibility.message}</p>}
+          <p className="tg-library-guidance">GLB uploads are session-only; Save World does not retain local files.</p>
+          <details className="tg-placement-help"><summary>PLACEMENT CONTROLS</summary><p>Choose Place to enter the world. Escape / B returns here. Placed objects: R rotates; [ / ] changes scale.</p></details>
+        </div>
+        </div>
+        {southVisible && <div hidden={mode !== "animation"} className="tg-object-animation-host"><AnimationActions /></div>}
+        {southVisible && mode === "scatter" && (
           <div className="tg-mesh-scatter-panel tg-mesh-scatter-manager">
-            <div className="tg-mesh-scatter-manager-title">SCATTER</div>
+            <div className="tg-mesh-scatter-manager-title">SCATTER / POPULATIONS</div>
+            <div className="tg-panel-actions tg-population-add">
+              <label>LIBRARY OBJECT <select aria-label="Object to add to Scatter" value={worldTarget ? "" : selectedId ?? ""} onChange={event => { const mesh = meshes.find(entry => entry.id === event.target.value); if (mesh) selectMesh(mesh); }}>
+                <option value="">Choose an object</option>
+                {meshes.map(mesh => <option key={mesh.id} value={mesh.id} disabled={!scatterEligibility(mesh).eligible}>{mesh.name}{scatterEligibility(mesh).eligible ? "" : " (individual placement only)"}</option>)}
+              </select></label>
+              <button className="tg-ui-button" data-add-to-scatter="population" disabled={!eligibility.eligible} onClick={addToScatter}>ADD SELECTED TO SCATTER</button>
+            </div>
             <div className="tg-mesh-scatter-manager-scroll">
               {scatterEntries().map(([profileId, profile]) => {
                 const isDefault = profileId === "crimson-tree";
@@ -1250,7 +878,7 @@ function getDefaultCrimsonProfile() {
                 const isSelected = selectedId === profileId;
                 const isCanyonWall = profile?.geologyType === "canyon-wall" || profile?.modelType === "geology";
                 return (
-                  <div key={profileId} className={`tg-scatter-population ${isSelected ? "selected" : ""} ${!isEnabled ? "disabled" : ""}`}>
+                  <div key={profileId} data-scatter-profile={profileId} className={`tg-scatter-population ${isSelected ? "selected" : ""} ${!isEnabled ? "disabled" : ""}`}>
                     <button type="button" className="tg-scatter-population-header" onClick={() => selectScatterPopulation(profileId)}>
                       <span>{profile?.name ?? profileId}</span>
                       <strong>{isDefault ? "DEFAULT" : "CUSTOM"}</strong>
@@ -1294,92 +922,11 @@ function getDefaultCrimsonProfile() {
                 );
               })}
             </div>
-            {selectedMesh && !scatterProfiles[selectedMesh.id]?.enabled && selectedMesh.id !== "crimson-tree" && (
-              <button type="button" className="tg-mesh-scatter-add-selected" onClick={addToScatter}>ADD SELECTED TO SCATTER</button>
-            )}
+
           </div>
         )}
 
-        <div className="tg-mesh-library-label">QUATERNIUS STYLIZED NATURE + TG BUILT-INS</div>
-
-        <div className="tg-mesh-library">
-          {visibleMeshes.map((mesh) => {
-            const renaming = renamingId === mesh.id;
-            return (
-              <div key={mesh.id} className="tg-mesh-card-shell">
-                {!BUILTIN_OBJECTS.some((entry) => entry.id === mesh.id) && (
-                  <button type="button" className="tg-mesh-card-delete" aria-label={`Delete ${mesh.name}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); requestDelete(mesh); }}>×</button>
-                )}
-                <button
-                  type="button"
-                  className={`tg-mesh-card ${selectedId === mesh.id ? "selected" : ""}`}
-                  onClick={() => {
-                    if (!renaming) selectMesh(mesh);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      if (!renaming) selectMesh(mesh);
-                    }
-                  }}
-                  title={mesh.name}
-                >
-                  <div className="tg-mesh-card-art">
-                    <PreviewIcon kind={mesh.kind} />
-                  </div>
-                  <span
-                    onDoubleClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setRenameValue(mesh.name);
-                      setRenamingId(mesh.id);
-                    }}
-                  >
-                    {mesh.name}
-                  </span>
-                </button>
-                {renaming && (
-                  <input
-                    className="tg-mesh-card-rename-input"
-                    autoFocus
-                    value={renameValue}
-                    onChange={(event) => setRenameValue(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") commitRename(mesh);
-                      if (event.key === "Escape") setRenamingId(null);
-                    }}
-                    onBlur={() => commitRename(mesh)}
-                    onClick={(event) => event.stopPropagation()}
-                    onPointerDown={(event) => event.stopPropagation()}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {meshes.length > pageSize && (
-          <div className="tg-mesh-pagination">
-            <button
-              type="button"
-              className="tg-mesh-prev"
-              aria-label="Previous mesh page"
-              onClick={() => setPage((current) => (current - 1 + pageCount) % pageCount)}
-            >
-              ‹
-            </button>
-            <span>{page + 1} / {pageCount}</span>
-            <button
-              type="button"
-              className="tg-mesh-next"
-              aria-label="Next mesh page"
-              onClick={() => setPage((current) => (current + 1) % pageCount)}
-            >
-              ›
-            </button>
-          </div>
-        )}
-      </div>
+      </div>, host)}
 
         {deleteCandidate && (
           <div className="tg-mesh-delete-backdrop" role="dialog" aria-modal="true">
@@ -1395,49 +942,20 @@ function getDefaultCrimsonProfile() {
           </div>
         )}
 
-        {editOpen && selectedMesh && (
-    <MeshEditModal
-      mesh={selectedMesh}
-    onSave={(settings) => {
-  const updatedMesh = {
-    ...selectedMesh,
-    editSettings: settings.fireflySettings ?? selectedMesh.editSettings ?? settings,
-    treeDefinition: settings.treeDefinition ?? selectedMesh.treeDefinition,
-  };
-
-  setEditedMeshes((current) => ({
-    ...current,
-    [selectedMesh.id]: settings.fireflySettings ?? settings,
-  }));
-
-  const savedObject = createSavedObject(updatedMesh, {
-    id: `${selectedMesh.id}-saved-${Date.now()}`,
-  });
-
-  setSavedMeshes((current) => {
-    const next = [savedObject, ...current.filter((entry) => entry.id !== savedObject.id)];
-    localStorage.setItem("testingGroundsSavedObjects", JSON.stringify(next));
-    return next;
-  });
-
-  window.dispatchEvent(
-    new CustomEvent("tg-mesh-edit-save", {
-      detail: {
-        mesh: { ...updatedMesh, savedObject },
-        settings,
-        treeDefinition: settings.treeDefinition,
-      },
-    })
-  );
-
-  setEditOpen(false);
-}}
-      onCancel={() => {
-        setEditOpen(false);
-        useInteractionStore.getState().clear();
-      }}
-    />
-  )}
+        {editOpen && southVisible && selectedMesh && <MeshEditModal key={worldTarget?.id ?? selectedMesh.id} mesh={{ ...selectedMesh, editScope: worldTarget?.scope }} live={Boolean(worldTarget)}
+          onChange={patch => editObjectTarget(worldTarget, patch)} onCancel={closeEditor}
+          onSave={settings => {
+            if (selectedMesh.file && !selectedMesh.modelPath) return;
+            if (settings.geologyDefinition && settings.applyTemplate) {
+              setEditedMeshes(current => ({...current,[selectedMesh.id]:{...current[selectedMesh.id],geologyDefinition:settings.geologyDefinition}}));
+              setEditOpen(false);return;
+            }
+            const updatedMesh = { ...selectedMesh, treeDefinition: settings.treeDefinition ?? selectedMesh.treeDefinition, editSettings: settings.fireflySettings ?? selectedMesh.editSettings, geologyDefinition: settings.geologyDefinition ?? selectedMesh.geologyDefinition };
+            const savedObject = createSavedObject(updatedMesh, { id: selectedMesh.id + "-saved-" + Date.now() });
+            setSavedMeshes(current => { const next = [savedObject, ...current]; localStorage.setItem("testingGroundsSavedObjects", JSON.stringify(next)); return next; });
+            setSelectedId(savedObject.id); setEditOpen(false);
+            window.dispatchEvent(new CustomEvent("tg-mesh-edit-save", { detail: { mesh: savedObject, settings } }));
+          }} /> }
 
       </>
     )}

@@ -3,7 +3,7 @@ import { NATURE_PACK_OBJECTS } from "./naturePackRegistry";
 export const BUILTIN_OBJECTS = Object.freeze([
   {
     id: "crimson-tree",
-    name: "CRIMSON TREE",
+    name: "DEFAULT TREE",
     kind: "tree",
     source: "procedural",
     modelType: "crimson-tree",
@@ -18,6 +18,7 @@ export const BUILTIN_OBJECTS = Object.freeze([
   { id: "giant-rock", name: "GIANT ROCK", kind: "rock", source: "procedural", modelType: "geology", geologyType: "giant-rock" },
   { id: "cliff-face", name: "CLIFF FACE", kind: "rock", source: "procedural", modelType: "geology", geologyType: "cliff-face" },
   ...NATURE_PACK_OBJECTS,
+  ...['stratus', 'cirrus', 'cumulus'].map(family => ({ id: `living-vapor-${family}`, name: family.toUpperCase(), kind: 'cloud', category: 'Cloud', source: 'procedural', modelType: 'living-vapor', family })),
 ]);
 
 export function createUploadedObject(file, id = `upload-${Date.now()}`) {
@@ -40,6 +41,7 @@ export function createSavedObject(object, overrides = {}) {
     modelType: object.modelType,
     blockType: object.blockType,
     geologyType: object.geologyType,
+    geologyDefinition: object.geologyDefinition,
     treeDefinition: object.treeDefinition,
     editSettings: object.editSettings,
     modelPath: object.modelPath,

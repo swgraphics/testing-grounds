@@ -1,0 +1,10 @@
+.tg-terrain-export{position:absolute;right:16px;bottom:70px;width:min(360px,calc(100vw - 32px));max-height:65vh;overflow:auto;z-index:350;padding:16px;background:rgba(5,7,10,.96);color:var(--tg-white,#eee);border:1px solid rgba(232,238,245,.3);pointer-events:auto;font-size:12px}
+.tg-terrain-export-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tg-terrain-export h2{font-family:var(--tg-font-display);font-size:13px;margin:0 0 12px}
+.tg-terrain-export fieldset{border:0;margin:0;padding:0;min-width:0}
+.tg-terrain-export legend{margin-bottom:12px}
+.tg-terrain-export-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tg-terrain-export label{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.tg-terrain-export input,.tg-terrain-export select{box-sizing:border-box;width:100%;min-width:0;padding:7px;background:#15191f;color:inherit;border:1px solid #65707c;font:inherit}
+.tg-terrain-export p{line-height:1.5;margin:10px 0}
+.tg-terrain-export :focus-visible{outline:2px solid currentColor;outline-offset:2px}

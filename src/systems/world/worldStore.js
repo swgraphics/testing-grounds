@@ -1,7 +1,8 @@
+import { terrainChunkAt } from "./terrainRegions";
 import { create } from "zustand";
 import { gridToWorldPosition, parseGridCoordinate } from "./worldGrid";
 
-export const WORLD_SCHEMA_VERSION = 7;
+export const WORLD_SCHEMA_VERSION = 8;
 
 export const WORLD_GRID = Object.freeze({
   chunkSize: 100,
@@ -297,7 +298,7 @@ export const useWorldStore = create((set) => ({
 
   upsertObject(object) {
     set((state) => {
-      const chunkId = object?.chunkId ?? state.world.currentChunkId;
+      const chunkId = object?.chunkId ?? (state.world.terrainSurface && Array.isArray(object?.position) ? terrainChunkAt(object.position[0],object.position[2],state.world)?.id : null) ?? state.world.currentChunkId;
       if (!chunkId || !state.world.chunks[chunkId] || !object?.id) {
         return state;
       }
@@ -328,7 +329,7 @@ export const useWorldStore = create((set) => ({
 
   updateObject(objectId, patch, chunkId = null) {
     set((state) => {
-      const targetChunkId = chunkId ?? state.world.currentChunkId;
+      const targetChunkId = chunkId ?? (state.world.terrainSurface ? Object.values(state.world.chunks).find(c=>c.objects?.[objectId])?.id : null) ?? state.world.currentChunkId;
       const chunk = state.world.chunks[targetChunkId];
       const object = chunk?.objects?.[objectId];
       if (!chunk || !object) return state;
@@ -383,7 +384,7 @@ export const useWorldStore = create((set) => ({
 
   removeObject(objectId, chunkId = null) {
     set((state) => {
-      const targetChunkId = chunkId ?? state.world.currentChunkId;
+      const targetChunkId = chunkId ?? (state.world.terrainSurface ? Object.values(state.world.chunks).find(c=>c.objects?.[objectId])?.id : null) ?? state.world.currentChunkId;
       const chunk = state.world.chunks[targetChunkId];
       if (!chunk || !chunk.objects[objectId]) return state;
 

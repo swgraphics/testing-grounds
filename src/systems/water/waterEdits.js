@@ -1,3 +1,4 @@
+import { terrainHistoryPaths, getTerrainHistorySnapshot } from "../terrain/terrainEdits";
 import { useWorldStore } from "../world/worldStore";
 import { terrainSettings } from "../terrain/terrainSettings";
 import { beginHistoryTransaction, commitHistoryTransaction, cancelHistoryTransaction } from "../history/historyStore";
@@ -11,6 +12,7 @@ export function getWaterHistorySnapshot() {
   const id = world.currentChunkId;
   const chunk = world.chunks?.[id];
   return {
+    ...getTerrainHistorySnapshot(),
     chunks: {
       [id]: {
         water: JSON.parse(JSON.stringify(chunk?.water ?? {})),
@@ -27,8 +29,7 @@ function historyPaths() {
   const id = currentChunkId();
   return [
     ["chunks", id, "water"],
-    ["chunks", id, "terrain", "terrainEdits"],
-    ["chunks", id, "terrain", "terrainEditVersion"],
+    ...terrainHistoryPaths(id),
   ];
 }
 
@@ -50,4 +51,17 @@ export function commitWaterHistory() {
 
 export function cancelWaterHistory() {
   cancelHistoryTransaction();
+}
+
+
+export function addWaterBody(body) {
+  const state = useWorldStore.getState();
+  const chunkId = state.world.currentChunkId;
+  const chunk = state.world.chunks?.[chunkId];
+  if (!chunk) return null;
+  const bodies = Array.isArray(chunk.water?.bodies) ? chunk.water.bodies : [];
+  const next = { id: `pond-${Date.now()}-${Math.round(Math.random()*9999)}`, ...body };
+  state.updateChunk(chunkId, { water: { ...(chunk.water ?? {}), bodies: [...bodies, next] } });
+  window.dispatchEvent(new CustomEvent("tg-water-bodies-changed", { detail: { chunkId } }));
+  return next;
 }

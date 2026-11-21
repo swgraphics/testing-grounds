@@ -1,0 +1,23 @@
+@font-face{font-family:"Special Gothic Expanded One";src:url("/fonts/SpecialGothicExpandedOne-Regular.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+:root{--tg-orange:#FF4800;--tg-orange-rgb:255 72 0;--tg-surface:#08090b;--tg-surface-raised:#111316;--tg-border:#414449;--tg-foreground:#f5f5f2;--tg-muted:#a3a7af;--tg-font-heading:"Special Gothic Expanded One","Oswald",sans-serif;--tg-glow:0 0 5px rgb(var(--tg-orange-rgb) / .18);--tg-glow-selected:0 0 8px rgb(var(--tg-orange-rgb) / .3);--tg-halftone:radial-gradient(rgb(255 255 255 / .035) .65px,transparent .8px);--tg-raster:repeating-linear-gradient(0deg,transparent 0 3px,rgb(255 255 255 / .012) 3px 4px);--tg-focus:2px solid var(--tg-orange);--tg-crimson:var(--tg-orange);--tg-maroon:var(--tg-orange);--tg-crimson-dark:var(--tg-orange);--tg-red-soft:rgb(var(--tg-orange-rgb) / .18);--tg-red-mid:rgb(var(--tg-orange-rgb) / .45);--tg-red-strong:rgb(var(--tg-orange-rgb) / .85)}
+.tg-hud-surface,.tg-side-panel,.tg-dev-panel,.tg-interaction-panel,.tg-mesh-menu,.tg-mesh-edit-panel,.tg-chunk-dialog,.tg-terrain-export,.tg-animation-library-panel{background-color:var(--tg-surface);background-image:var(--tg-halftone),var(--tg-raster);background-size:4px 4px,auto;color:var(--tg-foreground)}
+.tg-hud-heading,.tg-side-panel-title,.tg-dev-panel-module-title,.tg-mesh-scatter-manager-title,.tg-terrain-export h2{font-family:var(--tg-font-heading);font-weight:400;letter-spacing:-.025em;overflow-wrap:anywhere;text-shadow:var(--tg-glow)}
+.tg-hud-icon{display:inline-block;width:26px;height:26px;object-fit:contain;flex-shrink:0;filter:brightness(0) invert(1);vertical-align:middle}
+.tg-brand-vector{object-fit:contain;filter:drop-shadow(0 0 3px rgb(var(--tg-orange-rgb) / .2))}
+.tg-ui-button{font-family:var(--tg-font-display);font-size:17px;letter-spacing:.04em;background:var(--tg-surface);color:var(--tg-foreground);border:1px solid var(--tg-border);padding:8px 14px;cursor:pointer;min-height:36px}
+.tg-ui-button:hover{border-color:var(--tg-orange);box-shadow:var(--tg-glow)}
+.tg-ui-button[aria-pressed="true"],.tg-ui-button.active{color:var(--tg-orange);border-color:var(--tg-orange);box-shadow:var(--tg-glow-selected)}
+button:disabled{opacity:.4;cursor:not-allowed}
+:where(button,input,select,textarea,[tabindex]):focus-visible{outline:var(--tg-focus);outline-offset:3px;box-shadow:var(--tg-glow-selected)}
+:where(.tg-dev-full-menu,.tg-dev-panel,.tg-mesh-menu,.tg-interaction-panel) button:is(:hover,.active){border-color:var(--tg-orange)}
+.tg-dev-toggle.tg-dev-compass-toggle,.tg-editor-open-button{display:none}
+.tg-canvas-shell:not(.editor-open){inset:0!important}
+.tg-help-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);z-index:900;width:min(600px,calc(100vw - 48px));max-height:80vh;overflow:auto;border:1px solid var(--tg-orange);padding:24px;box-sizing:border-box}
+.tg-help-dialog h2{font-family:var(--tg-font-heading);font-size:22px}.tg-help-dialog p{line-height:1.7;color:var(--tg-muted)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.tg-ui-button:is(:hover,.active) .tg-hud-icon,.tg-compass-destination.selected .tg-hud-icon{filter:brightness(0) invert(1) drop-shadow(0 0 2px rgb(var(--tg-orange-rgb) / .25))}
+@media(hover:hover) and (pointer:fine){.tg-desktop-joystick,.tg-desktop-camera-pad,.tg-desktop-action-buttons{display:none!important}}
+body:not(.tg-editor-active) .tg-animation-library-ui{display:none}
+
+.tg-editor-view button:focus-visible,.tg-interaction-panel button:focus-visible,.tg-mesh-menu button:focus-visible,.tg-mesh-edit-backdrop button:focus-visible,.tg-dev-panel button:focus-visible,.tg-side-panel button:focus-visible,.tg-quick-interaction-slot:focus-visible{outline:var(--tg-focus);outline-offset:3px}

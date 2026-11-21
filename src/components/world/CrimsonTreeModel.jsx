@@ -21,7 +21,7 @@ import {
 import { terrainSettings } from "../../systems/terrain/terrainSettings";
 /*
  * Testing Grounds
- * Crimson Tree — reusable visual model
+ * Default Tree — reusable visual model
  *
  * This component contains ONLY the visual tree.
  * Physics/collision behavior remains in Landscape.jsx.
@@ -194,7 +194,7 @@ export default function CrimsonTreeModel({
   trunkColor = "#10080a",
   crownColor = "#080808",
   crownEmissive = "#353434",
-  outlineColor = "#fc0303",
+  outlineColor = "#3A8C0E",
 }) {
   const crownGeometry = useMemo(
     () => createMatureTreeCrownGeometry(),

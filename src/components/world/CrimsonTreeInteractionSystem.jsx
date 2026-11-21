@@ -3,6 +3,8 @@ import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import { useWorldStore } from "../../systems/world/worldStore";
+import { clearGameplayInput, gameplayInputAllowed } from "../../systems/input/inputOwnership";
+import { resolveObjectTarget, resolveTreeProfileId } from "../../systems/objects/objectEditing";
 import { gamepadState } from "../../systems/input/gamepadState";
 import { createCrimsonTreeDefinition } from "./treeGenerator";
 import { beginHistoryTransaction, commitHistoryTransaction, getHistoryPathSnapshot } from "../../systems/history/historyStore";
@@ -49,7 +51,8 @@ function getTreeRoot(object) {
 }
 
 export default function CrimsonTreeInteractionSystem() {
-  const { camera, scene } = useThree();
+  const { camera, scene, gl } = useThree();
+  const selectedRef = useRef(null);
   const raycasterRef = useRef(new THREE.Raycaster());
   const targetRef = useRef(null);
   const activeTreeIdRef = useRef(null);
@@ -79,10 +82,12 @@ export default function CrimsonTreeInteractionSystem() {
     const q = new THREE.Quaternion();
     root.getWorldQuaternion(q);
     const normal = result.type === "branch" && result.branch?.direction
-      ? new THREE.Vector3(...result.branch.direction)
+      ? result.branch.direction.clone()
       : new THREE.Vector3(0, 1, 0);
     normal.applyQuaternion(q).normalize();
-    mesh.position.copy(result.hit.point);
+    const point = result.hit?.point ?? result.point;
+    if (!point) return;
+    mesh.position.copy(point);
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
     const scale = root.getWorldScale(new THREE.Vector3());
     mesh.scale.setScalar(
@@ -92,9 +97,9 @@ export default function CrimsonTreeInteractionSystem() {
     );
   };
 
-  const refreshTarget = () => {
+  const refreshTarget = (pointer = centerPointer) => {
     const raycaster = raycasterRef.current;
-    raycaster.setFromCamera(centerPointer, camera);
+    raycaster.setFromCamera(pointer, camera);
     const result = findTreeHit(raycaster.intersectObjects(scene.children, true));
     const treeId = result?.object?.userData?.tgCrimsonTreeId ?? null;
     const previous = targetRef.current;
@@ -126,14 +131,9 @@ export default function CrimsonTreeInteractionSystem() {
 
   const resolveTreeHistoryPaths = (treeId) => {
     const world = useWorldStore.getState().world;
-    const chunkId = world.currentChunkId;
-    if (treeId?.startsWith("scatter-tree-")) {
-      const profileId = Object.keys(world.scatterProfiles ?? {}).find((id) =>
-        treeId.startsWith(`scatter-tree-${id}-${chunkId}-`)
-      );
-      if (profileId) return [["scatterProfiles", profileId]];
-      if (treeId.startsWith(`scatter-tree-crimson-tree-${chunkId}-`)) return [["scatterProfiles", "crimson-tree"]];
-    }
+    const chunkId = (world.terrainSurface ? Object.values(world.chunks).find(c=>c.objects?.[treeId])?.id : null) ?? world.currentChunkId;
+    const profileId=resolveTreeProfileId(treeId,world);
+    if(profileId)return [['scatterProfiles',profileId]];
     return [["chunks", chunkId, "objects", treeId]];
   };
 
@@ -153,7 +153,7 @@ export default function CrimsonTreeInteractionSystem() {
   };
 
   useFrame(() => {
-    if (document.body.classList.contains("tg-editor-active")) return;
+      if (document.body.classList.contains("tg-editor-active") || !gameplayInputAllowed()) return;
 
     // The old implementation raycast the entire scene every render frame.
     // Tree targeting only needs a responsive sampling rate; doing it every
@@ -164,36 +164,43 @@ export default function CrimsonTreeInteractionSystem() {
     if (shouldRefresh) {
       const result = refreshTarget();
       const treeId = result?.object?.userData?.tgCrimsonTreeId ?? targetRef.current?.treeId ?? null;
-      if (gamepadState.aPressed && useInteractionStore.getState().activeTool !== "TREE" && treeId) {
-        activeTreeIdRef.current = treeId;
-        beginTreeHistory(treeId);
-        editModeRef.current = "trunk";
-        definitionRef.current = result?.object?.userData?.tgTreeDefinition ?? definitionRef.current;
-        useInteractionStore.getState().activate({ target: `tree:${treeId}`, tool: "TREE", mode: "edit" });
-        window.dispatchEvent(new CustomEvent("crimson-tree-edit-enter", { detail: { treeId, mode: "trunk", instanceScope: instanceScopeRef.current } }));
-        window.dispatchEvent(new CustomEvent("crimson-tree-instance-scope-changed", { detail: { scope: instanceScopeRef.current } }));
+      if (gamepadState.aPressed && gameplayInputAllowed() && !useInteractionStore.getState().activeTool && treeId && result) {
+        selectedRef.current = { ...targetRef.current, definition: result.object.userData.tgTreeDefinition };
+        useInteractionStore.getState().setTarget('tree:' + treeId);
+        window.dispatchEvent(new CustomEvent('crimson-tree-selected', { detail: { treeId, treeDefinition: selectedRef.current.definition } }));
       }
     }
   });
 
   useEffect(() => {
-    const enter = (treeId) => {
-      if (!treeId) return;
+    const enter = () => {
+      const selected = selectedRef.current ?? { treeId: useInteractionStore.getState().activeTarget?.replace(/^tree:/, '') };
+      const treeId = selected?.treeId;
+      if (!treeId || useInteractionStore.getState().activeTool) return;
+      const object = resolveObjectTarget({ id: treeId, definition: selected.definition });
+      if (!object) return;
+      selectedRef.current = { ...selected, definition: object.treeDefinition };
+      clearGameplayInput();
       activeTreeIdRef.current = treeId;
+      definitionRef.current = object.treeDefinition ?? selected.definition;
       beginTreeHistory(treeId);
       instanceScopeRef.current = "single";
       branchScopeRef.current = "global";
       editModeRef.current = "trunk";
       useInteractionStore.getState().activate({ target: `tree:${treeId}`, tool: "TREE", mode: "edit" });
-      window.dispatchEvent(new CustomEvent("crimson-tree-edit-enter", { detail: { treeId, mode: "trunk", instanceScope: instanceScopeRef.current } }));
+      window.dispatchEvent(new CustomEvent("crimson-tree-edit-enter", { detail: { treeId, mode: "trunk", instanceScope: instanceScopeRef.current, treeDefinition: definitionRef.current } }));
       window.dispatchEvent(new CustomEvent("crimson-tree-instance-scope-changed", { detail: { scope: instanceScopeRef.current } }));
     };
     const exit = () => {
       dragRef.current = false;
+      if(useInteractionStore.getState().gestureOwner==='tree-drag')useInteractionStore.getState().setGestureOwner(null);
       commitTreeHistory();
       activeTreeIdRef.current = null;
       editModeRef.current = "trunk";
-      if (useInteractionStore.getState().activeTool === "TREE") useInteractionStore.getState().deactivate();
+      if (useInteractionStore.getState().activeTool === "TREE") {
+        useInteractionStore.getState().deactivate();
+        if (selectedRef.current?.treeId) useInteractionStore.getState().setTarget('tree:' + selectedRef.current.treeId);
+      }
       ringVisibleRef.current = false;
       setRingVisible(false);
       window.dispatchEvent(new CustomEvent("crimson-tree-edit-exit"));
@@ -224,27 +231,34 @@ export default function CrimsonTreeInteractionSystem() {
       definitionRef.current = mergeCrimsonDefinition(current, patch);
     };
     const onDown = (event) => {
-      if (event.button !== 0 || document.body.classList.contains("tg-editor-active")) return;
+      if (event.button !== 0 || event.target !== gl.domElement) return;
+      const tool = useInteractionStore.getState().activeTool;
+      if ((tool && tool !== 'TREE') || (!tool && !gameplayInputAllowed())) return;
       if (event.target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-interaction-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view, .tg-tree-interaction-panel")) return;
       // Refresh synchronously on click so the interaction does not depend on
       // a possibly stale render-frame target. This also prevents a generic
       // Object click from winning the same pointer event.
-      const freshTarget = refreshTarget();
+      const rect = gl.domElement.getBoundingClientRect();
+      const freshTarget = refreshTarget(new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2));
       const target = freshTarget
         ? { treeId: freshTarget.object?.userData?.tgCrimsonTreeId ?? null, type: freshTarget.type, branch: freshTarget.branch, point: freshTarget.hit.point.clone(), object: freshTarget.object }
-        : targetRef.current;
+        : null;
       if (!target?.treeId) return;
       const active = useInteractionStore.getState().activeTool === "TREE" && activeTreeIdRef.current === target.treeId;
       if (!active) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation?.();
-        enter(target.treeId);
+        selectedRef.current = { ...target, definition: freshTarget?.object?.userData?.tgTreeDefinition };
+        useInteractionStore.getState().setTarget('tree:' + target.treeId);
+        window.dispatchEvent(new CustomEvent('crimson-tree-selected', { detail: { treeId: target.treeId, treeDefinition: selectedRef.current.definition } }));
         return;
       }
       // Tree Edit is persistent. A click never toggles it off. In branch mode
       // the clicked branch becomes the physical gesture handle.
       dragRef.current = true;
+      useInteractionStore.getState().setGestureOwner('tree-drag');
+      clearGameplayInput();
       dragStartXRef.current = event.clientX;
       dragStartYRef.current = event.clientY;
       dragStartHeightRef.current = Number(definitionRef.current?.trunk?.height ?? 50);
@@ -305,9 +319,11 @@ export default function CrimsonTreeInteractionSystem() {
         }
       }
     };
-    const onUp = () => { dragRef.current = false; };
+    const onUp = () => { dragRef.current = false;if(useInteractionStore.getState().gestureOwner==='tree-drag')useInteractionStore.getState().setGestureOwner(null); };
     const onKey = (event) => {
-      if (event.key === "Escape" && useInteractionStore.getState().activeTool === "TREE") { event.preventDefault(); exit(); return; }
+      if (event.defaultPrevented || document.querySelector('.tg-leaf-editor-window,.tg-mesh-edit-backdrop')) return;
+      if (event.key === 'Escape' && useInteractionStore.getState().activeTool === 'TREE') { event.preventDefault(); event.stopImmediatePropagation(); exit(); return; }
+      if (event.code === 'KeyE' && gameplayInputAllowed() && !useInteractionStore.getState().activeTool) enter();
       if (useInteractionStore.getState().activeTool !== "TREE" || editModeRef.current !== "branch") return;
       if (event.key.toLowerCase() === "g") { event.preventDefault(); setBranchScope({ detail: { scope: branchScopeRef.current === "global" ? "single" : "global" } }); }
       if (event.key.toLowerCase() === "1") setBranchGestureMode({ detail: { mode: "length" } });
@@ -317,9 +333,12 @@ export default function CrimsonTreeInteractionSystem() {
       if (event.key.toLowerCase() === "5") setBranchGestureMode({ detail: { mode: "taper" } });
     };
     const poll = () => {
-      if (useInteractionStore.getState().activeTool !== "TREE" || !gamepadState.connected || !gamepadState.rightTrigger) return;
-      const x = Number(gamepadState.leftStickX) || 0;
-      const y = Number(gamepadState.leftStickY) || 0;
+      const pad = navigator.getGamepads?.().find(entry => entry?.connected);
+      if (useInteractionStore.getState().activeTool !== 'TREE' || !pad?.buttons[7]?.pressed) return;
+      if (document.querySelector('.tg-leaf-editor-window,.tg-mesh-edit-backdrop') || document.activeElement?.hasAttribute('data-gamepad-adjusting')) return;
+      // The inspector owns input: direct RT gestures must not re-enable world movement/camera.
+      const x = Number(pad.axes[0]) || 0;
+      const y = Number(pad.axes[1]) || 0;
       if (Math.abs(x) < 0.12 && Math.abs(y) < 0.12) return;
       const treeId = activeTreeIdRef.current;
       if (!treeId) return;
@@ -330,7 +349,6 @@ export default function CrimsonTreeInteractionSystem() {
         return;
       }
       if (editModeRef.current !== "branch") return;
-      const pad = navigator.getGamepads?.().find((entry) => entry?.connected);
       const modifier = pad?.buttons?.[2]?.pressed ? "thickness" : pad?.buttons?.[3]?.pressed ? "frequency" : pad?.buttons?.[1]?.pressed ? "taper" : branchGestureModeRef.current;
       const start = dragStartBranchRef.current ?? { ...definitionRef.current?.branches };
       const gestureDelta = modifier === "verticality" ? -y * 1.4 : x * 1.4;
@@ -354,8 +372,10 @@ export default function CrimsonTreeInteractionSystem() {
     window.addEventListener("pointermove", onMove, true);
     window.addEventListener("pointerup", onUp, true);
     window.addEventListener("pointercancel", onUp, true);
+    window.addEventListener("blur", onUp, true);
     window.addEventListener("keydown", onKey, true);
     window.addEventListener("crimson-tree-edit-exit-request", exit);
+    window.addEventListener("crimson-tree-edit-selected-request", enter);
     window.addEventListener("crimson-tree-edit-mode-request", changeMode);
     window.addEventListener("crimson-tree-edit-change", trackDefinition);
     function setInstanceScope(event) {
@@ -383,15 +403,17 @@ export default function CrimsonTreeInteractionSystem() {
       window.removeEventListener("pointermove", onMove, true);
       window.removeEventListener("pointerup", onUp, true);
       window.removeEventListener("pointercancel", onUp, true);
+      window.removeEventListener("blur", onUp, true);
       window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("crimson-tree-edit-exit-request", exit);
+      window.removeEventListener("crimson-tree-edit-selected-request", enter);
       window.removeEventListener("crimson-tree-edit-mode-request", changeMode);
       window.removeEventListener("crimson-tree-edit-change", trackDefinition);
       window.removeEventListener("crimson-tree-instance-scope-request", setInstanceScope);
       window.removeEventListener("crimson-tree-branch-scope-request", setBranchScope);
       window.removeEventListener("crimson-tree-branch-gesture-request", setBranchGestureMode);
     };
-  }, [camera]);
+  }, [camera, gl.domElement]);
 
   return (
     <mesh ref={ringMeshRef} visible={ringVisible} renderOrder={20}>

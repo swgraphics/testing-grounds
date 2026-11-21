@@ -1,0 +1,31 @@
+.tg-cloud-controls { color:#fff; font:inherit; }
+.tg-cloud-controls fieldset { border:0; margin:0; padding:0; min-width:0; }
+.tg-cloud-controls legend { padding:10px 0; color:#fff; }
+.tg-cloud-controls label { display:flex; gap:10px; align-items:center; justify-content:space-between; margin:10px 0; font-size:12px; }
+.tg-cloud-controls :is(select,input[type=number]) { min-width:0; width:48%; color:#fff; background:#101215; border:1px solid #50545b; padding:6px; }
+.tg-cloud-controls button { color:#fff; background:#101215; border:1px solid #50545b; padding:8px; cursor:pointer; font:inherit; font-size:12px; }
+.tg-cloud-controls button:focus-visible { outline:2px solid #2a8fff; outline-offset:2px; }
+.tg-cloud-controls button:disabled { opacity:0.45; cursor:not-allowed; }
+.tg-cloud-create { margin-bottom:16px; }
+.tg-cloud-controls button[aria-pressed=true] { color:#ff4800; border-color:#ff4800; }
+.tg-cloud-tool-row { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+.tg-cloud-tool-row button { flex:1; }
+.tg-cloud-tool-row button.active { color:#fff; background:#153657; border-color:#2a8fff; }
+.tg-cloud-controls .tg-cloud-slider { display:block; }
+.tg-cloud-slider span { display:flex; justify-content:space-between; gap:10px; margin-bottom:5px; }
+.tg-cloud-slider strong { white-space:nowrap; font-weight:400; }
+.tg-cloud-slider input { width:100%; accent-color:#fff; }
+.tg-cloud-controls p { color:#b9bec5; font-size:12px; line-height:1.4; }
+.tg-cloud-controls details { border-top:1px solid #45484c; padding:10px 0; }
+.tg-cloud-interaction-panel { position:fixed; right:24px; top:88px; width:min(350px,calc(100vw - 48px)); max-height:calc(100dvh - 130px); overflow:auto; background:rgb(8 10 13 / .96); color:#fff; border:1px solid #50545b; padding:18px; z-index:45; font-family:inherit; }
+.tg-cloud-interaction-panel .tg-side-panel-title { color:#fff; font-family:var(--tg-font-heading); font-weight:400; font-size:22px; }
+.tg-cloud-controls .tg-dev-slider::-webkit-slider-runnable-track { background:linear-gradient(90deg,#fff,#494d53); }
+.tg-cloud-controls .tg-dev-slider::-webkit-slider-thumb { background:#fff; border-color:#141518; box-shadow:none; }
+.tg-cloud-controls .tg-dev-slider:is(:active,[data-gamepad-adjusting])::-webkit-slider-thumb { background:#ff4800; }
+.tg-cloud-interaction-close { color:#fff; background:#101215; border:1px solid #50545b; padding:6px 10px; cursor:pointer; }
+.tg-cloud-selection,.tg-cloud-placement-hint { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:30; color:#fff; background:rgb(8 10 13 / .9); padding:8px; max-width:90vw; }
+.tg-cloud-reticle { display:block; width:28px; height:17px; border:2px solid #fff; border-radius:14px; position:relative; }
+.tg-cloud-reticle::before { content:''; position:absolute; width:14px; height:14px; border:2px solid #fff; border-bottom:0; border-radius:50% 50% 0 0; background:#101215; left:5px; top:-9px; }
+.tg-mesh-cloud-icon { width:54px; height:28px; border:2px solid #fff; border-radius:20px; position:relative; }
+.tg-mesh-cloud-icon::before { content:''; position:absolute; width:28px; height:25px; border:2px solid #fff; border-bottom:0; border-radius:50% 50% 0 0; left:9px; top:-15px; background:#101215; }
+.tg-cloud-category { display:block; color:#aeb4bc; font-size:10px; letter-spacing:.1em; }

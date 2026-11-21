@@ -19,6 +19,7 @@ import {
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
 import { getTerrainHeightAt } from "../../systems/terrain/terrainHeight";
 import { useWorldStore } from "../../systems/world/worldStore";
+import { gameplayInputAllowed } from "../../systems/input/inputOwnership";
 
 function FollowCamera({ controllerRef, character, fpvMode }) {
   const { camera, gl } = useThree();
@@ -39,6 +40,8 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
     const canvas = gl.domElement;
 
     function handlePointerDown(event) {
+      const interaction=useInteractionStore.getState();
+      if(!gameplayInputAllowed()||interaction.gestureOwner||interaction.activeTool==='TREE')return;
       const isRightSide = event.clientX > window.innerWidth / 2;
 
       if (event.pointerType === "mouse" || isRightSide) {
@@ -52,6 +55,7 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
     }
 
     function handlePointerMove(event) {
+      if(!gameplayInputAllowed()||useInteractionStore.getState().gestureOwner){isOrbitingRef.current=false;return;}
       if (!isOrbitingRef.current) return;
 
       const deltaX =
@@ -98,6 +102,8 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
       "pointerup",
       handlePointerUp
     );
+    window.addEventListener('pointercancel',handlePointerUp);
+    window.addEventListener('blur',handlePointerUp);
 
     return () => {
       canvas.removeEventListener(
@@ -114,6 +120,8 @@ function FollowCamera({ controllerRef, character, fpvMode }) {
         "pointerup",
         handlePointerUp
       );
+      window.removeEventListener('pointercancel',handlePointerUp);
+      window.removeEventListener('blur',handlePointerUp);
     };
   }, [gl, fpvMode]);
 
@@ -155,17 +163,14 @@ const gamepadCameraY = gamepadState.connected
   ? gamepadState.rightStickY
   : 0;
 
-const cameraInputX =
-  gamepadCameraX +
-  mobileCameraInputRef.current.x;
+const cameraOwnsInput=gameplayInputAllowed()&&!useInteractionStore.getState().gestureOwner;
+const cameraInputX = cameraOwnsInput ? gamepadCameraX + mobileCameraInputRef.current.x : 0;
 
 const mobileCameraY = devSettings.invertCameraY
   ? -mobileCameraInputRef.current.y
   : mobileCameraInputRef.current.y;
 
-const cameraInputY =
-  gamepadCameraY +
-  mobileCameraY;
+const cameraInputY = cameraOwnsInput ? gamepadCameraY + mobileCameraY : 0;
 
 yawRef.current -=
   cameraInputX *
@@ -193,10 +198,10 @@ pitchRef.current = THREE.MathUtils.clamp(
       const verticalSpeed = 15;
 
       const raiseCamera =
-        inputState.run || gamepadState.sprint;
+        cameraOwnsInput && (inputState.run || gamepadState.sprint);
 
       const lowerCamera =
-       inputState.crouch || gamepadState.crouch;
+       cameraOwnsInput && (inputState.crouch || gamepadState.crouch);
 
 if (raiseCamera) {
   fpvAltitudeRef.current +=
@@ -617,6 +622,24 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
+  function handleCameraSettingsChange(event) {
+    if (!event.detail?.key || event.detail.key === "fpvMoveSpeed") refreshCameraSettings((value) => value + 1);
+  }
+  function handleFpvToggleRequest() {
+    const next = !devSettings.fpvMode;
+    devSettings.fpvMode = next;
+    setFpvMode(next);
+    window.dispatchEvent(new CustomEvent("dev-settings-changed", { detail: { key: "fpvMode", value: next } }));
+  }
+  window.addEventListener("camera-settings-changed", handleCameraSettingsChange);
+  window.addEventListener("tg-toggle-fpv-request", handleFpvToggleRequest);
+  return () => {
+    window.removeEventListener("camera-settings-changed", handleCameraSettingsChange);
+    window.removeEventListener("tg-toggle-fpv-request", handleFpvToggleRequest);
+  };
+}, []);
+
+useEffect(() => {
   function handleCharacterChange(event) {
     setCurrentCharacterId(
       event.detail.characterId
@@ -774,7 +797,7 @@ useEffect(() => {
     // Opening a panel/editor does not lock movement. Only an actually active
     // world tool transfers the left stick from character movement to interaction.
     const interactionToolActive = Boolean(activeTool && activeMode && ["sculpt", "grab", "place", "edit"].includes(activeMode));
-    const movementLocked = interactionToolActive;
+    const movementLocked = interactionToolActive || !gameplayInputAllowed();
     const isMoving = !movementLocked && (forward || backward || leftward || rightward);
 
    let nextAnimationState = actionState || "idle";
@@ -840,16 +863,10 @@ if (
   ref={controllerRef}
   position={teleportRequest?.position ?? defaultSpawnPosition}
   mode="FixedCamera"
-  maxVelLimit={
-    fpvMode
-      ? fpvMoveSpeed
-      : speedProfile.maxVelLimit
-  }
-  sprintMult={
-    fpvMode
-      ? 1
-      : speedProfile.sprintMult
-  }
+  // ecctrl 2 uses separate velocity limits. Keep its previously effective NORMAL defaults.
+  maxWalkVel={fpvMode ? fpvMoveSpeed : speedMultiplier > 1 ? speedProfile.maxVelLimit : 2}
+  maxRunVel={fpvMode ? fpvMoveSpeed : speedMultiplier > 1 ? speedProfile.maxVelLimit : 5}
+  enableToggleRun={false}
   accDeltaTime={
     fpvMode
       ? 15

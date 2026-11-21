@@ -1,0 +1,18 @@
+.tg-geology-canyon-controls { position:fixed; bottom:62px; left:16px; z-index:90; width:min(390px,calc(100vw - 32px)); max-height:230px; overflow:auto; background:rgba(6,9,12,.94); border:1px solid #384753; padding:12px; display:grid; gap:9px; color:#edf2f5; font-size:11px; }
+.tg-canyon-settings { display:grid; gap:10px; border-top:1px solid #50545b; padding-top:12px; font-size:11px; }
+.tg-canyon-settings>strong { font:400 11px/1.5 var(--tg-font-heading); }
+.tg-canyon-settings .tg-panel-actions { display:flex; flex-wrap:wrap; gap:5px; }
+.tg-canyon-settings .tg-ui-button { flex:1 1 auto; }
+.tg-canyon-settings [role=status] { line-height:1.5; color:#cbd6de; }
+.tg-canyon-settings details label { display:grid; grid-template-columns:1fr auto; gap:7px; padding:10px 0; font-size:10px; }
+.tg-canyon-settings input { grid-column:1/-1; grid-row:2; width:100%; accent-color:white; }
+.tg-canyon-settings output { grid-column:2; grid-row:1; }
+.tg-canyon-help { color:#aeb7c0; font:11px/1.5 sans-serif; margin:7px 0; }
+.tg-geology-canyon-controls>strong { font-family:"Special Gothic Expanded One",sans-serif; font-size:12px; }
+.tg-geology-canyon-controls .tg-panel-actions { display:flex; gap:6px; flex-wrap:wrap; margin:0; }
+.tg-geology-canyon-controls button { font-size:10px; padding:5px 9px; }
+.tg-geology-canyon-controls [aria-pressed=true] { color:#2a8fff; border-color:#2a8fff; }
+.tg-geology-canyon-controls [role=status] { line-height:1.5; color:#cbd6de; }
+.tg-geology-canyon-controls details label { display:grid; grid-template-columns:90px 1fr 32px; align-items:center; gap:7px; margin:10px 0; }
+.tg-geology-canyon-controls input[type=range] { width:100%; accent-color:#edf2f5; }
+@media(max-width:700px){.tg-geology-canyon-controls{bottom:48px;left:8px;width:min(340px,calc(100vw - 16px));max-height:180px;padding:8px;}}

@@ -403,17 +403,32 @@ export function createProceduralBranchData(
     });
   }
 
-  return [
-    ...branches,
-    ...createCustomBranchData(
-      trunkDefinition,
-      branchDefinition,
-      seed,
-      branches.length
-    ),
-  ];
+  const custom = createCustomBranchData(trunkDefinition, branchDefinition, seed, branches.length);
+  return [...branches, ...custom, ...createSecondaryBranchData(branches, branchDefinition, seed, branches.length + custom.length)];
 }
 
+
+// Reuse the existing custom-branch attachment model for generated primary branches.
+// Append children to preserve primary/custom indices and their stored overrides.
+function createSecondaryBranchData(parents, definition, seed, startIndex) {
+  const count = definition?.secondary?.enabled === false ? 0 : Math.max(0, Math.min(8, Math.round(definition?.secondary?.count ?? 0)));
+  const children = [];
+  for (const parent of parents) {
+    for (let i = 0; i < count; i += 1) {
+      const origin = parent.origin.clone().lerp(parent.end, 0.32 + ((i + 1) / (count + 1)) * 0.45);
+      const phase = seed * 0.17 + parent.index * 2.41 + i * 2.399;
+      const direction = parent.direction.clone().multiplyScalar(0.58).add(new THREE.Vector3(Math.cos(phase), 0, Math.sin(phase)).multiplyScalar(0.78));
+      direction.y += 0.16 + (i % 2) * 0.08;
+      direction.normalize();
+      const length = parent.length * lerp(0.38, 0.62, (i % 5) / 4);
+      children.push({ ...parent, index: startIndex + children.length, secondary: true, proceduralSecondary: true,
+        origin, end: origin.clone().add(direction.clone().multiplyScalar(length)), direction, length,
+        thickness: parent.thickness * 0.56, azimuth: Math.atan2(direction.z, direction.x),
+        elevation: Math.acos(THREE.MathUtils.clamp(direction.y, -1, 1)) });
+    }
+  }
+  return children;
+}
 
 function createCustomBranchData(trunkDefinition, branchDefinition, seed, proceduralCount) {
   const custom = Array.isArray(branchDefinition?.custom) ? branchDefinition.custom : [];
@@ -424,7 +439,7 @@ function createCustomBranchData(trunkDefinition, branchDefinition, seed, procedu
   const taper = clamp01((trunkDefinition?.taper ?? 50) / 100);
   const maxBend = lerp(0, 0.85, clamp01((trunkDefinition?.bend ?? 50) / 100));
   const baseThickness = lerp(0.035, 0.16, clamp01((branchDefinition?.thickness ?? 50) / 100));
-  const secondaryCount = Math.max(0, Math.min(8, Math.round(branchDefinition?.secondary?.count ?? 0)));
+  const secondaryCount = branchDefinition?.secondary?.enabled === false ? 0 : Math.max(0, Math.min(8, Math.round(branchDefinition?.secondary?.count ?? 0)));
 
   const trunkPoint = (t) => {
     const clampedT = THREE.MathUtils.clamp(Number(t) || 0.5, 0.05, 0.95);

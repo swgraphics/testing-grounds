@@ -3,20 +3,26 @@ import * as THREE from "three";
 import { gamepadState } from "../../systems/input/gamepadState";
 import { terrainSettings, updateTerrainSetting } from "../../systems/terrain/terrainSettings";
 import { useInteractionStore } from "../../systems/interaction/interactionStore";
+import {gameplayInputAllowed} from '../../systems/input/inputOwnership';
 
 export default function AdaptiveReticle() {
   const [sunTarget, setSunTarget] = useState(false);
   const [treeTarget, setTreeTarget] = useState(false);
+  const [cloudTarget, setCloudTarget] = useState(false);
   const [held, setHeld] = useState(false);
-  const sunMode = useInteractionStore((state) => state.activeTool === "SUN");
-  const sunInteractable = sunMode || sunTarget;
+  const activeTool = useInteractionStore(state=>state.activeTool);
+  const sunMode = activeTool === 'SUN';
+  const sunInteractable = sunMode || (!activeTool && !cloudTarget && sunTarget);
   const treeMode = useInteractionStore((state) => state.activeTool === "TREE");
-  const treeInteractable = !sunInteractable && (treeTarget || treeMode);
+  const treeInteractable = !sunInteractable && !cloudTarget && (treeTarget || treeMode);
+  const cloudMode = useInteractionStore(state => state.activeTool === 'CLOUD');
+  const cloudInteractable = !sunInteractable && !treeInteractable && (cloudTarget || cloudMode);
   const targetRef = useRef(false);
   const pointerHeldRef = useRef(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
   const lastGamepadActiveRef = useRef(false);
   const lastSpellRef = useRef(0);
+  const automaticSunRef = useRef(false);
 
   useEffect(() => {
     function handleTargetChange(event) {
@@ -44,6 +50,12 @@ export default function AdaptiveReticle() {
     return () => window.removeEventListener("crimson-tree-reticle-target-changed", handleTreeTargetChange);
   }, []);
 
+  useEffect(() => {
+    const target = event => setCloudTarget(Boolean(event.detail?.active));
+    window.addEventListener('tg-cloud-reticle-target-changed', target);
+    return () => window.removeEventListener('tg-cloud-reticle-target-changed', target);
+  }, []);
+
   /*
    * Controller polling belongs to the DOM/UI layer now. It does not call any
    * React Three Fiber hooks, preventing the reticle from participating in the
@@ -53,10 +65,11 @@ export default function AdaptiveReticle() {
     const timer = window.setInterval(() => {
       const controllerHolding = Boolean(
         gamepadState.connected &&
-        sunInteractable
+        sunInteractable && gamepadState.rightTrigger && gameplayInputAllowed()
       );
 
       if (controllerHolding && !lastGamepadActiveRef.current) {
+        automaticSunRef.current=useInteractionStore.getState().activeTool!=='SUN';
         pointerHeldRef.current = true;
         setHeld(true);
         useInteractionStore.getState().activate({
@@ -69,7 +82,7 @@ export default function AdaptiveReticle() {
       if (!controllerHolding && lastGamepadActiveRef.current) {
         pointerHeldRef.current = false;
         setHeld(false);
-        if (useInteractionStore.getState().activeTool === "SUN") {
+        if (automaticSunRef.current && useInteractionStore.getState().activeTool === "SUN") {
           useInteractionStore.getState().deactivate();
         }
       }
@@ -113,13 +126,16 @@ export default function AdaptiveReticle() {
     function onPointerDown(event) {
       if (!sunInteractable || event.button !== 0) return;
       const target = event.target;
-      if (target?.closest?.("button, input, select, textarea, .tg-side-panel, .tg-interaction-panel, .tg-mesh-menu, .tg-mesh-edit-backdrop, .tg-editor-view")) return;
+      if (target!==document.querySelector('.tg-canvas-shell canvas')) return;
+      document.activeElement?.blur?.();
+      if(!gameplayInputAllowed())return;
 
       event.preventDefault();
       event.stopPropagation();
       pointerHeldRef.current = true;
       lastPointerRef.current = { x: event.clientX, y: event.clientY };
       setHeld(true);
+      automaticSunRef.current=useInteractionStore.getState().activeTool!=='SUN';
       useInteractionStore.getState().activate({
         target: "sun",
         tool: "SUN",
@@ -161,7 +177,7 @@ export default function AdaptiveReticle() {
       if (!pointerHeldRef.current) return;
       pointerHeldRef.current = false;
       setHeld(false);
-      if (useInteractionStore.getState().activeTool === "SUN") {
+      if (automaticSunRef.current && useInteractionStore.getState().activeTool === "SUN") {
         useInteractionStore.getState().deactivate();
       }
     }
@@ -170,12 +186,14 @@ export default function AdaptiveReticle() {
     window.addEventListener("pointermove", onPointerMove, true);
     window.addEventListener("pointerup", release, true);
     window.addEventListener("pointercancel", release, true);
+    window.addEventListener('blur',release);
 
     return () => {
       window.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("pointermove", onPointerMove, true);
       window.removeEventListener("pointerup", release, true);
       window.removeEventListener("pointercancel", release, true);
+      window.removeEventListener('blur',release);
     };
   }, [sunInteractable]);
 
@@ -210,6 +228,8 @@ export default function AdaptiveReticle() {
           <span className="tg-tree-reticle-leaf leaf-b" />
           <span className="tg-tree-reticle-leaf leaf-c" />
         </span>
+      ) : cloudInteractable ? (
+        <span className="tg-cloud-reticle" />
       ) : (
         <span className="tg-reticle-dot" />
       )}

@@ -1,102 +1,36 @@
-import { useEffect, useState } from "react";
-
-const TG_VERSION = "1.5.0";
-
-const SPLASH_CARDS = [
-  {
-    image: "/images/crash-testers/unit-01-river-raft.png",
-    quote: "WASD or the stick will get you moving. Unless you are me. I am still stuck in water.",
-    attribution: "BOB 001",
-  },
-  {
-    image: "/images/crash-testers/group-hero-shot.png",
-    quote: "Look around before you leap. I would say that with confidence if I could see.",
-    attribution: "SEYMOUR 004",
-  },
-  {
-    image: "/images/crash-testers/crash-02.png",
-    quote: "Big falls are excellent for testing. I have personally completed the flattening portion of the test.",
-    attribution: "MATT 003",
-  },
-  {
-    image: "/images/crash-testers/crash-03.png",
-    quote: "If you can reach it, you can probably interact with it. If you cannot reach it, try climbing.",
-    attribution: "CLIFF 014",
-  },
-  {
-    image: "/images/crash-testers/crash-04.png",
-    quote: "Press Q to channel world power. I recommend not channeling it directly into your sleeves.",
-    attribution: "FRANK 005",
-  },
-];
+import { useEffect } from "react";
+import { version } from "../../../package.json";
+import "./TitleScreen.css";
 
 export default function TitleScreen({ onStart, onLoad, hasSavedWorld }) {
-  const [cardIndex, setCardIndex] = useState(0);
-  const [startMode, setStartMode] = useState("default");
-  const card = SPLASH_CARDS[cardIndex];
-
   useEffect(() => {
-    function handleGamepadStart() {
-      onStart(startMode);
-    }
-    window.addEventListener("tg-gamepad-start", handleGamepadStart);
-    return () => window.removeEventListener("tg-gamepad-start", handleGamepadStart);
-  }, [onStart, startMode]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setCardIndex((current) => (current + 1) % SPLASH_CARDS.length);
-    }, 3000);
-    return () => window.clearInterval(timer);
-  }, []);
+    const start = () => onStart("default");
+    window.addEventListener("tg-gamepad-start", start);
+    return () => window.removeEventListener("tg-gamepad-start", start);
+  }, [onStart]);
 
   return (
-    <div className="tg-title-screen">
-      <div className="tg-title-panel tg-splash-panel">
-        <div className="tg-title-logo">
-          <img className="tg-title-logo-image" src="/images/tg-logo.png" alt="Testing Grounds Logo" />
+    <div className="tg-title-screen tg-title-v3" data-input-context="title">
+      <div className="tg-title-frame" aria-hidden="true" />
+      <main className="tg-title-content" aria-labelledby="tg-title-heading">
+        <img className="tg-title-brand tg-brand-vector" src="/brand/TG_Logo_landscape.svg" alt="Testing Grounds" />
+        <h1 id="tg-title-heading">WELCOME!</h1>
+        <p className="tg-title-intro">
+          Testing Grounds combines procedural world generation, real-time 3D rendering, environmental systems, character exploration, physics, and live development controls into a single interactive environment.
+        </p>
+        <div className="tg-title-actions" aria-label="Starting world">
+          <button type="button" className="tg-title-enter" data-title-action="enter" onClick={() => onStart("default")}>ENTER WORLD</button>
+          <button type="button" className="tg-title-blank" data-title-action="blank" onClick={() => onStart("blank")}>BLANK CANVAS</button>
         </div>
-
-        <button
-          type="button"
-          className="tg-splash-card tg-splash-card-clickable"
-          key={cardIndex}
-          onClick={() => setCardIndex((current) => (current + 1) % SPLASH_CARDS.length)}
-          aria-label="Advance Crash Tester guide"
-        >
-          <img src={card.image} alt="Crash Tester field guide" className="tg-splash-image" />
-          <div className="tg-splash-copy">
-            <div className="tg-splash-quote">“{card.quote}”</div>
-            <div className="tg-splash-attribution">— {card.attribution}</div>
-          </div>
-        </button>
-
-        <div className="tg-splash-dots" aria-label="Crash Tester guide pages">
-          {SPLASH_CARDS.map((entry, index) => (
-            <button key={entry.attribution} type="button" className={index === cardIndex ? "active" : ""} onClick={() => setCardIndex(index)} aria-label={`Show Crash Tester ${index + 1} guide`} />
-          ))}
+        <button type="button" className="tg-title-load" data-title-action="load" onClick={onLoad} disabled={!hasSavedWorld}>LOAD SAVED WORLD</button>
+      </main>
+      <footer className="tg-title-credits">
+        <span>CREATED BY STEPHEN WILSON</span>
+        <div className="tg-title-signature">
+          <img src="/brand/TCompass.svg" alt="" className="tg-title-compass tg-brand-vector" />
+          <span className="tg-title-version">v{version}</span>
         </div>
-
-        <div className="tg-world-start-choice" aria-label="Starting world">
-          <button type="button" className={startMode === "default" ? "active" : ""} onClick={() => setStartMode("default")}>
-            DEFAULT WORLD
-          </button>
-          <button type="button" className={startMode === "blank" ? "active" : ""} onClick={() => setStartMode("blank")}>
-            BLANK CANVAS
-          </button>
-        </div>
-
-        <div className="tg-title-buttons">
-          <button onClick={() => onStart(startMode)}>ENTER WORLD</button>
-          <button onClick={onLoad} disabled={!hasSavedWorld}>LOAD WORLD</button>
-          <button disabled>SETTINGS</button>
-        </div>
-
-        <div className="tg-title-footer">
-          <span>TESTING GROUNDS // OVERHAUL {TG_VERSION}</span>
-          <span>CREATED BY STEPHEN WILSON</span>
-        </div>
-      </div>
+      </footer>
     </div>
   );
 }
