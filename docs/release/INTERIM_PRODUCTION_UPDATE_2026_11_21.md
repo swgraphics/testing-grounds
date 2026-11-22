@@ -1,6 +1,10 @@
 # Interim production update — November 21, 2026
 
-Status: **complete — published and verified on the public production domain**. This is an informal sharing/testing checkpoint, not Demo 1.0. No official release tag, press kit or launch announcement is part of this work.
+Status: **rolled back after the owner's movement regression report; correction in progress**. The initial publication and narrower acceptance results below are historical. Fresh Enter World testing reproduced zero movement with keyboard and simulated controller; Blank FPV movement worked. This is an informal sharing/testing checkpoint, not Demo 1.0. No official release tag, press kit or launch announcement is part of this work.
+
+Later on November 21 (America/Chicago), the previously authorized critical-failure rollback restored `dpl_2Zka7QJhNkPNgy4dyMFJ6AarTyd5`, source `612d075`. CLI/domain inspection and public HTTPS 200 with the original assets confirmed restoration. Vercel paused automatic production-domain assignment (`autoAssignCustomDomains=false`); production branch `main` and normal deployment protection are unchanged. GitHub main temporarily remains `09d9082` pending correction, and both new/archived deployments are retained. The earlier movement acceptance tested a later Blank editing session and did not cover fresh procedural entry.
+
+Confirmed reproduction: three seconds of native W input, before and after a world click, and simulated controller movement all produced **0 m** travel in fresh Enter World; the same controls moved in Blank FPV. A local physics probe then showed unchanged chunk-settings loading leaves the player's Rapier body disabled despite valid world input and movement velocity. Delivering the existing terrain-ready signal re-enabled the body and restored movement. Evidence is under `interim-production-20261121.local/movement-investigation/` and `player-physics-investigation/`. The focused correction is being validated before any republication.
 
 ## Verified sources and archive
 
