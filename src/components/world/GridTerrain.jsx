@@ -275,7 +275,7 @@ function createTerrainGridGeometry({
 }
 
 export default function GridTerrain() {
-  const [, refresh] = useState(0);
+  const [terrainUpdateVersion, refresh] = useState(0);
   const guidesVisible = useWorldGuideStore((state) => state.visible);
   const chunks = useWorldStore((state) => state.world.chunks);
   const surface=useWorldStore(state=>state.world.terrainSurface);
@@ -481,9 +481,9 @@ export default function GridTerrain() {
   const terrainPhysicsKey = terrainKey + ':geology:' + geologyVersion;
 
   /*
-   * The terrain collider is replaced whenever terrainPhysicsKey changes.
-   * Tell the player controller after the replacement has committed so it can
-   * release the temporary physics lock without racing the collider rebuild.
+   * Height notifications also lock the player when settings are unchanged.
+   * Acknowledge those committed updates even when the cached collider is reused,
+   * so the player can release its lock after either a rebuild or a no-op load.
    */
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -495,7 +495,7 @@ export default function GridTerrain() {
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [terrainPhysicsKey]);
+  }, [terrainPhysicsKey, terrainUpdateVersion]);
 
   return (
     <>

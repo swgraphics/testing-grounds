@@ -11,7 +11,7 @@ export async function browserSession(directory) {
   await fs.writeFile(path.join(artifact, 'live-debugger.json'), JSON.stringify({ port, pid: process.pid, chromePid: chrome.pid }));
   let socket, pages;
   try {
-    for (let i = 0; i < 120; i++) { try { pages = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); if (pages.length) break; } catch {} await pause(250); }
+    for (let i = 0; i < 120; i++) { try { pages = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).filter(page => page.type === 'page' && !page.url.startsWith('chrome://')); if (pages.length) break; } catch {} await pause(250); }
     assert.ok(pages?.length, 'Chrome debugger connected');
     socket = new WebSocket(pages.find(page => page.type === 'page').webSocketDebuggerUrl);
     await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
